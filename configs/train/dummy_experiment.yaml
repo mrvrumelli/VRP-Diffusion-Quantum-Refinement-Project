@@ -1,0 +1,17 @@
+# Dummy experiment config for scripts/run_dummy_experiment.py.
+#
+# Exists to prove the experiment-tracking template (config, dataset hash, seed, metric table,
+# plots, logs) works end to end, per docs/coding_standards.md section 6. Not a real training run.
+
+experiment_name: dummy_experiment
+seed: 0
+
+dataset:
+  name: dummy_dataset
+  path: data/samples/dummy_dataset.csv
+
+output:
+  root: outputs/train
+
+training:
+  epochs: 5
