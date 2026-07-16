@@ -8,19 +8,24 @@ real; it exists only to exercise ExperimentTracker.
 from __future__ import annotations
 
 import argparse
+import os
 import random
+import tempfile
 from pathlib import Path
 
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import yaml
 
 from vrp_diffusion_quantum.utils.experiment import ExperimentTracker
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "configs" / "train" / "dummy_experiment.yaml"
+
+
+def configure_plot_cache() -> None:
+    cache_root = Path(tempfile.gettempdir()) / "vrp_diffusion_quantum_cache"
+    cache_root.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("MPLCONFIGDIR", str(cache_root / "matplotlib"))
+    os.environ.setdefault("XDG_CACHE_HOME", str(cache_root / "xdg"))
 
 
 def parse_args() -> argparse.Namespace:
@@ -30,6 +35,12 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    configure_plot_cache()
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
     args = parse_args()
     config = yaml.safe_load(args.config.read_text())
     seed = int(config["seed"])

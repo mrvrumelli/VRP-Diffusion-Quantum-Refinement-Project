@@ -83,3 +83,10 @@ packages = ["vrp_diffusion_quantum"]
 strict = true
 warn_unreachable = true
 warn_unused_configs = true
+
+# networkx and scikit-learn ship no inline types and no maintained third-party stub package, so
+# mypy cannot see their signatures. ignore_missing_imports here only suppresses that "no stubs
+# found" note; it does not weaken checking of our own code, which stays under strict = true.
+[[tool.mypy.overrides]]
+module = ["networkx.*", "sklearn.*"]
+ignore_missing_imports = true

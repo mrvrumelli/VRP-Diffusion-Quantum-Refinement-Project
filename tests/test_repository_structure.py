@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 EXPECTED_DIRECTORIES = [
@@ -22,6 +21,7 @@ EXPECTED_DIRECTORIES = [
     "src/vrp_diffusion_quantum/eval",
     "src/vrp_diffusion_quantum/inference",
     "src/vrp_diffusion_quantum/local_search",
+    "src/vrp_diffusion_quantum/metrics",
     "src/vrp_diffusion_quantum/models",
     "src/vrp_diffusion_quantum/quantum",
     "src/vrp_diffusion_quantum/train",

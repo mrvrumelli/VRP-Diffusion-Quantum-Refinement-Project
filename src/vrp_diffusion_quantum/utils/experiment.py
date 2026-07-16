@@ -16,11 +16,20 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from types import TracebackType
-from typing import Any
+from typing import Any, Protocol
 
 import yaml
 
 _HASH_CHUNK_BYTES = 1 << 20
+
+
+class _HashDigest(Protocol):
+    def update(self, data: bytes, /) -> object: ...
+
+
+def _update_length_prefixed(digest: _HashDigest, data: bytes) -> None:
+    digest.update(len(data).to_bytes(8, byteorder="big", signed=False))
+    digest.update(data)
 
 
 def hash_dataset(path: str | Path) -> str:
@@ -42,7 +51,9 @@ def hash_dataset(path: str | Path) -> str:
 
     digest = hashlib.sha256()
     for file_path in files:
-        digest.update(file_path.relative_to(base).as_posix().encode("utf-8"))
+        relative_path = file_path.relative_to(base).as_posix().encode("utf-8")
+        _update_length_prefixed(digest, relative_path)
+        digest.update(file_path.stat().st_size.to_bytes(8, byteorder="big", signed=False))
         with file_path.open("rb") as handle:
             for chunk in iter(lambda: handle.read(_HASH_CHUNK_BYTES), b""):
                 digest.update(chunk)
@@ -93,7 +104,7 @@ class ExperimentTracker:
         self.experiment_name = experiment_name
         self.seed = seed
 
-        timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+        timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
         self.run_dir = Path(output_root) / f"{experiment_name}_{timestamp}"
         self.run_dir.mkdir(parents=True, exist_ok=False)
         self.plots_dir = self.run_dir / "plots"
@@ -124,8 +135,8 @@ class ExperimentTracker:
         self.logger.setLevel(logging.INFO)
         self.logger.propagate = False
 
-        self._file_handler = logging.FileHandler(self.run_dir / "run.log")
-        self._stream_handler = logging.StreamHandler(sys.stdout)
+        self._file_handler: logging.Handler = logging.FileHandler(self.run_dir / "run.log")
+        self._stream_handler: logging.Handler = logging.StreamHandler(sys.stdout)
         formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
         self._file_handler.setFormatter(formatter)
         self._stream_handler.setFormatter(formatter)
@@ -161,7 +172,11 @@ class ExperimentTracker:
         self.logger.info("metrics %s", metrics)
 
     def close(self) -> None:
-        for handler in (self._file_handler, self._stream_handler):
+        handlers: tuple[logging.Handler, logging.Handler] = (
+            self._file_handler,
+            self._stream_handler,
+        )
+        for handler in handlers:
             handler.close()
             self.logger.removeHandler(handler)
 
