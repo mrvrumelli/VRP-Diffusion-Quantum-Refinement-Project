@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --line: #2a313c;
+      --muted: #8b93a0;
+      --accent: #5eead4;
+      --handle: #fbbf24;
+      --ink: #e8eaed;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      color: var(--ink);
+      font-family: "DM Sans", "Segoe UI", sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+    .wrap { padding: 2px 2px 0; }
+    .hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin: 0 0 8px;
+      line-height: 1.35;
+    }
+    .hint b { color: var(--accent); font-weight: 600; }
+    svg {
+      width: 100%;
+      height: 270px;
+      display: block;
+      background: linear-gradient(180deg, #12161c 0%, #0b0d10 100%);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    .grid line { stroke: var(--line); stroke-width: 1; }
+    .area { fill: rgba(94, 234, 212, 0.18); }
+    .curve {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .handle {
+      fill: var(--handle);
+      stroke: #0b0d10;
+      stroke-width: 2;
+      cursor: grab;
+    }
+    .handle:hover, .handle.active {
+      fill: #fff;
+      filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.65));
+    }
+    .handle.active { cursor: grabbing; }
+    .axis-label {
+      fill: var(--muted);
+      font-size: 11px;
+      font-family: ui-monospace, "JetBrains Mono", monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="hint">
+      <b>Drag</b> handles · <b>double-click</b> to add · <b>right-click</b> handle to delete
+    </p>
+    <svg id="stage" viewBox="0 0 700 270" preserveAspectRatio="none"></svg>
+  </div>
+
+  <script>
+    // Minimal Streamlit component bridge (no CDN).
+    const Streamlit = (() => {
+      const RENDER_EVENT = "streamlit:render";
+      const target = new EventTarget();
+      let listening = false;
+
+      function send(type, data) {
+        window.parent.postMessage({ isStreamlitMessage: true, type, ...data }, "*");
+      }
+
+      function onMessage(event) {
+        const msg = event.data;
+        if (!msg || msg.type !== RENDER_EVENT) return;
+        target.dispatchEvent(new CustomEvent(RENDER_EVENT, { detail: msg }));
+      }
+
+      return {
+        RENDER_EVENT,
+        events: target,
+        setComponentReady() {
+          if (!listening) {
+            window.addEventListener("message", onMessage);
+            listening = true;
+          }
+          send("streamlit:componentReady", { apiVersion: 1 });
+        },
+        setFrameHeight(height) {
+          send("streamlit:setFrameHeight", { height });
+        },
+        setComponentValue(value) {
+          send("streamlit:setComponentValue", { value, dataType: "json" });
+        },
+      };
+    })();
+
+    const svg = document.getElementById("stage");
+    const W = 700, H = 270;
+    const PAD = { l: 44, r: 18, t: 18, b: 36 };
+
+    let lo = 0, hi = 100;
+    let knots = [];
+    let dragIdx = -1;
+    let ready = false;
+
+    const xScale = (v) => PAD.l + ((v - lo) / Math.max(hi - lo, 1)) * (W - PAD.l - PAD.r);
+    const yScale = (v) => PAD.t + (1 - v) * (H - PAD.t - PAD.b);
+    const invX = (px) => lo + ((px - PAD.l) / Math.max(W - PAD.l - PAD.r, 1)) * (hi - lo);
+    const invY = (py) => 1 - ((py - PAD.t) / Math.max(H - PAD.t - PAD.b, 1));
+    const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+    function normalize(list) {
+      const cleaned = list
+        .map((k) => ({ x: Math.round(clamp(k.x, lo, hi)), y: clamp(k.y, 0, 1) }))
+        .sort((a, b) => a.x - b.x);
+      const merged = [];
+      for (const k of cleaned) {
+        if (merged.length && merged[merged.length - 1].x === k.x) {
+          merged[merged.length - 1].y = Math.max(merged[merged.length - 1].y, k.y);
+        } else {
+          merged.push({ ...k });
+        }
+      }
+      if (!merged.length) return [{ x: lo, y: 0.5 }, { x: hi, y: 0.5 }];
+      if (merged[0].x !== lo) merged.unshift({ x: lo, y: merged[0].y });
+      else merged[0].x = lo;
+      if (merged[merged.length - 1].x !== hi) merged.push({ x: hi, y: merged[merged.length - 1].y });
+      else merged[merged.length - 1].x = hi;
+      return merged;
+    }
+
+    function pathFromKnots(ks) {
+      const pts = ks.map((k) => [xScale(k.x), yScale(k.y)]);
+      if (pts.length === 1) return `M ${pts[0][0]} ${pts[0][1]}`;
+      let d = `M ${pts[0][0]} ${pts[0][1]}`;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[Math.max(0, i - 1)];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const p3 = pts[Math.min(pts.length - 1, i + 2)];
+        const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+        const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+        const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+        const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+        d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2[0]} ${p2[1]}`;
+      }
+      return d;
+    }
+
+    function areaFromKnots(ks) {
+      const line = pathFromKnots(ks);
+      const yBase = yScale(0);
+      return `${line} L ${xScale(ks[ks.length - 1].x)} ${yBase} L ${xScale(ks[0].x)} ${yBase} Z`;
+    }
+
+    function emit() {
+      Streamlit.setComponentValue(knots.map((k) => ({ x: k.x, y: Number(k.y.toFixed(4)) })));
+    }
+
+    function nearestIdx(x) {
+      let best = 0, bestD = Infinity;
+      knots.forEach((k, i) => {
+        const d = Math.abs(k.x - x);
+        if (d < bestD) { bestD = d; best = i; }
+      });
+      return best;
+    }
+
+    function render() {
+      const grid = [];
+      for (let i = 0; i <= 4; i++) {
+        const y = PAD.t + (i / 4) * (H - PAD.t - PAD.b);
+        const x = PAD.l + (i / 4) * (W - PAD.l - PAD.r);
+        grid.push(`<line x1="${PAD.l}" y1="${y}" x2="${W - PAD.r}" y2="${y}" />`);
+        grid.push(`<line x1="${x}" y1="${PAD.t}" x2="${x}" y2="${H - PAD.b}" />`);
+      }
+
+      const handles = knots.map((k, i) =>
+        `<circle class="handle${dragIdx === i ? " active" : ""}" data-i="${i}"
+          cx="${xScale(k.x)}" cy="${yScale(k.y)}" r="8"></circle>`
+      ).join("");
+
+      svg.innerHTML = `
+        <g class="grid">${grid.join("")}</g>
+        <path class="area" d="${areaFromKnots(knots)}"></path>
+        <path class="curve" d="${pathFromKnots(knots)}"></path>
+        ${handles}
+        <text class="axis-label" x="${PAD.l}" y="${H - 10}">${lo}</text>
+        <text class="axis-label" x="${(PAD.l + W - PAD.r) / 2}" y="${H - 10}" text-anchor="middle">capacity</text>
+        <text class="axis-label" x="${W - PAD.r}" y="${H - 10}" text-anchor="end">${hi}</text>
+        <text class="axis-label" x="8" y="${PAD.t + 4}">1</text>
+        <text class="axis-label" x="8" y="${H - PAD.b}">0</text>
+      `;
+
+      svg.querySelectorAll(".handle").forEach((el) => {
+        el.addEventListener("pointerdown", onHandleDown);
+        el.addEventListener("contextmenu", onHandleDelete);
+      });
+    }
+
+    function clientToSvg(evt) {
+      const rect = svg.getBoundingClientRect();
+      return {
+        x: ((evt.clientX - rect.left) / Math.max(rect.width, 1)) * W,
+        y: ((evt.clientY - rect.top) / Math.max(rect.height, 1)) * H,
+      };
+    }
+
+    function onHandleDown(evt) {
+      evt.preventDefault();
+      evt.stopPropagation();
+      dragIdx = Number(evt.currentTarget.getAttribute("data-i"));
+      try { evt.currentTarget.setPointerCapture(evt.pointerId); } catch (_) {}
+    }
+
+    function onHandleDelete(evt) {
+      evt.preventDefault();
+      const i = Number(evt.currentTarget.getAttribute("data-i"));
+      if (i <= 0 || i >= knots.length - 1) return;
+      knots = normalize(knots.filter((_, idx) => idx !== i));
+      render();
+      emit();
+    }
+
+    function onPointerMove(evt) {
+      if (dragIdx < 0) return;
+      const p = clientToSvg(evt);
+      const y = clamp(invY(p.y), 0, 1);
+      if (dragIdx === 0) {
+        knots[0] = { x: lo, y };
+      } else if (dragIdx === knots.length - 1) {
+        knots[knots.length - 1] = { x: hi, y };
+      } else {
+        const x = Math.round(clamp(invX(p.x), lo, hi));
+        const moved = { x, y };
+        knots[dragIdx] = moved;
+        knots = normalize(knots);
+        dragIdx = knots.findIndex((k) => k.x === moved.x && Math.abs(k.y - moved.y) < 1e-6);
+        if (dragIdx < 0) dragIdx = nearestIdx(moved.x);
+      }
+      render();
+    }
+
+    function onPointerUp() {
+      if (dragIdx < 0) return;
+      dragIdx = -1;
+      knots = normalize(knots);
+      render();
+      emit();
+    }
+
+    function onDblClick(evt) {
+      const p = clientToSvg(evt);
+      if (p.x < PAD.l || p.x > W - PAD.r || p.y < PAD.t || p.y > H - PAD.b) return;
+      const x = Math.round(clamp(invX(p.x), lo, hi));
+      const y = clamp(invY(p.y), 0, 1);
+      if (x === lo) knots[0].y = y;
+      else if (x === hi) knots[knots.length - 1].y = y;
+      else knots.push({ x, y });
+      knots = normalize(knots);
+      render();
+      emit();
+    }
+
+    svg.addEventListener("pointermove", onPointerMove);
+    svg.addEventListener("pointerup", onPointerUp);
+    svg.addEventListener("pointerleave", onPointerUp);
+    svg.addEventListener("dblclick", onDblClick);
+
+    function onRender(event) {
+      const args = (event.detail && event.detail.args) || {};
+      lo = Number(args.lo);
+      hi = Number(args.hi);
+      const incoming = (args.knots || []).map((k) => ({ x: Number(k.x), y: Number(k.y) }));
+      const rev = String(args.revision ?? "");
+      if (!ready || svg.dataset.rev !== rev) {
+        knots = normalize(incoming.length ? incoming : [{ x: lo, y: 0.5 }, { x: hi, y: 0.5 }]);
+        svg.dataset.rev = rev;
+        render();
+      }
+      if (!ready) {
+        ready = true;
+        Streamlit.setFrameHeight(310);
+      }
+    }
+
+    Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, onRender);
+    Streamlit.setComponentReady();
+    Streamlit.setFrameHeight(310);
+  </script>
+</body>
+</html>
