@@ -1,0 +1,37 @@
+
+
+config_name: cvrp
+seed: 42
+
+# Customer counts (excluding the depot).
+sizes: [20, 50, 100]
+
+# Number of instances per size. Each size uses an independent seed derived from the base seed.
+num_instances: 10000
+
+# Vehicle capacity override. null -> size-specific standard capacity, or route-size-derived when
+# route_size is set below.
+capacity: null
+
+
+# Depot placement: "random" (uniform), "center" (0.5, 0.5), or "corner" (0, 0).
+depot_mode: random
+
+# Customer placement: "random", "clustered", or "random_clustered".
+customer_mode: random
+
+# Demand distribution: "uniform" (default U{1..9}) or a Uchoa regime. The *_demand_*_spread
+# names read as <demand magnitude>_demand_<spread>_spread (spread = coefficient of variation):
+#   unitary | small_demand_wide_spread | small_demand_narrow_spread | large_demand_wide_spread |
+#   large_demand_narrow_spread | quadrant | many_small_few_large
+# Non-uniform regimes generally need route_size (or an explicit capacity) for feasibility.
+demand_mode: uniform
+
+# Target average customers-per-route r; derives capacity as Q = round(r * mean_demand).
+# null -> use the fixed capacity above. May be a number or a preset:
+#   very_short | short | medium | long | very_long | ultra_long
+route_size: null
+
+cluster_decay: 0.04
+
+output_dir: data/raw/cvrp
