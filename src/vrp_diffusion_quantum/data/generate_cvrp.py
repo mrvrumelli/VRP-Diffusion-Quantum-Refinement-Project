@@ -30,6 +30,7 @@ __all__ = [
     "capacity_floor",
     "demand_bounds_for_mode",
     "generate_dataset",
+    "generate_dataset_from_config",
     "generate_instance",
     "load_dataset",
     "resolve_capacity",
@@ -682,6 +683,38 @@ def generate_dataset(
     )
 
 
+def generate_dataset_from_config(config: dict[str, Any], size: int) -> CVRPDataset:
+    """Generate one size's dataset from a run-config snapshot.
+
+    ``config`` uses the schema written to a run's ``config.yaml`` (the per-``n`` maps are keyed
+    by ``str(size)``). This is the single source of truth for turning a config into instances;
+    the Streamlit generate loop and :func:`export_examples.regenerate_raw_dataset` both call it,
+    so regenerated data is guaranteed to match the originally generated data.
+    """
+    bounds = (config.get("demand_bounds_by_n") or {}).get(str(size)) or {}
+    raw_weights = (config.get("capacity_weights_by_n") or {}).get(str(size))
+    weights = (
+        [(int(point[0]), float(point[1])) for point in raw_weights] if raw_weights else None
+    )
+    return generate_dataset(
+        int(size),
+        int(config["num_instances"]),
+        seed=_derive_size_seed(int(config["seed"]), int(size)),
+        capacity=(config.get("capacity_by_n") or {}).get(str(size)),
+        depot_mode=config.get("depot_mode", "random"),
+        customer_mode=config.get("customer_mode", "random"),
+        demand_mode=config.get("demand_mode", "uniform"),
+        demand_low=bounds.get("low"),
+        demand_high=bounds.get("high"),
+        random_demand_bounds=bool(config.get("random_demand_bounds", False)),
+        route_size=config.get("route_size"),
+        random_capacity=bool(config.get("random_capacity", False)),
+        capacity_max=(config.get("capacity_max_by_n") or {}).get(str(size)),
+        capacity_weights=weights,
+        cluster_decay=float(config.get("cluster_decay", 0.04)),
+    )
+
+
 def _dataset_csv_paths(path: str | Path) -> tuple[Path, Path]:
     """Resolve the (nodes, instances) CSV paths for a dataset base path.
 
@@ -702,13 +735,12 @@ def _dataset_csv_paths(path: str | Path) -> tuple[Path, Path]:
 
 
 def save_dataset(dataset: CVRPDataset, path: str | Path) -> Path:
-    """Save a dataset as two normalized CSV files and return the nodes-CSV path.
+    """Save a dataset as two CSV files and return the nodes-CSV path.
 
     Writes ``<stem>_nodes.csv`` (one row per node) and ``<stem>_instances.csv`` (one row per
-    instance), joined on the ``instance`` column. Demands are stored **normalized** as
-    ``demand / capacity`` (in ``(0, 1]``), and the instances' ``capacity`` is therefore ``1``.
-    This is the model-ready form and is not reversible to the original integer demands.
-    Coordinates use full ``repr`` precision so they round-trip exactly.
+    instance), joined on the ``instance`` column. Demands are stored **raw** (the original
+    integer demands) and the instances' ``capacity`` is the real vehicle capacity, so the data
+    round-trips exactly. Coordinates use full ``repr`` precision so they round-trip exactly.
     """
     nodes_path, instances_path = _dataset_csv_paths(path)
     nodes_path.parent.mkdir(parents=True, exist_ok=True)
@@ -719,7 +751,6 @@ def save_dataset(dataset: CVRPDataset, path: str | Path) -> Path:
         for instance_idx in range(len(dataset)):
             coords = dataset.coords[instance_idx]
             demands = dataset.demands[instance_idx]
-            capacity = float(dataset.capacity[instance_idx])
             for node_id in range(coords.shape[0]):
                 writer.writerow(
                     [
@@ -728,7 +759,7 @@ def save_dataset(dataset: CVRPDataset, path: str | Path) -> Path:
                         int(node_id == 0),
                         repr(float(coords[node_id, 0])),
                         repr(float(coords[node_id, 1])),
-                        repr(float(demands[node_id]) / capacity),
+                        repr(float(demands[node_id])),
                     ]
                 )
 
@@ -751,8 +782,8 @@ def save_dataset(dataset: CVRPDataset, path: str | Path) -> Path:
                 [
                     instance_idx,
                     dataset.n_customers,
-                    # Demands are stored normalized (demand / capacity), so capacity is 1.
-                    repr(1.0),
+                    # Store the real vehicle capacity (demands are stored raw).
+                    repr(float(dataset.capacity[instance_idx])),
                     dataset.seed,
                     dataset.depot_mode,
                     dataset.customer_mode,
@@ -791,7 +822,7 @@ def load_dataset(path: str | Path) -> CVRPDataset:
 
     n_nodes = n_customers + 1
     coords = np.zeros((num_instances, n_nodes, 2), dtype=np.float64)
-    # Demands are stored normalized (demand / capacity), so they load as floats in (0, 1].
+    # Demands are stored raw (original integer demands), loaded as floats.
     demands = np.zeros((num_instances, n_nodes), dtype=np.float64)
     with nodes_path.open(newline="") as handle:
         for row in csv.DictReader(handle):

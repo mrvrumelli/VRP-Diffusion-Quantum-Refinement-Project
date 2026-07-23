@@ -38,7 +38,7 @@ CustomerMode = _gen_mod.CustomerMode
 DemandMode = _gen_mod.DemandMode
 DepotMode = _gen_mod.DepotMode
 demand_bounds_for_mode = _gen_mod.demand_bounds_for_mode
-generate_dataset = _gen_mod.generate_dataset
+generate_dataset_from_config = _gen_mod.generate_dataset_from_config
 load_dataset = _gen_mod.load_dataset
 save_dataset = _gen_mod.save_dataset
 if hasattr(_gen_mod, "suggested_capacity"):
@@ -58,6 +58,12 @@ else:
         return max(int(high_demand), floor)
 
 
+from vrp_diffusion_quantum.data.export_examples import (  # noqa: E402
+    _discover_labeled_sizes as _labeled_sizes,
+)
+from vrp_diffusion_quantum.data.export_examples import (
+    export_run,
+)
 from vrp_diffusion_quantum.data.solve_cvrp import (  # noqa: E402
     CVRPSolution,
     FleetMode,
@@ -599,7 +605,7 @@ def _render_generate(defaults: dict[str, Any], data_root: Path) -> None:
     st.markdown('<div class="section-label">Generate</div>', unsafe_allow_html=True)
     _blurb(
         "Sample CVRP instances into a config-named folder under the workspace. "
-        "CSVs are normalized (demand / capacity, capacity stored as 1.0)."
+        "CSVs store raw integer demands and the real vehicle capacity."
     )
 
     st.markdown('<div class="section-label">Dataset</div>', unsafe_allow_html=True)
@@ -961,27 +967,9 @@ def _render_generate(defaults: dict[str, Any], data_root: Path) -> None:
     try:
         for i, size in enumerate(sizes):
             progress.progress(i / max(len(sizes), 1), text=f"CVRP-{size}")
-            size_seed = int(
-                np.random.SeedSequence([int(seed), int(size)]).generate_state(1, dtype=np.uint32)[0]
-            )
-            bounds = demand_bounds_by_n[int(size)]
-            dataset = generate_dataset(
-                int(size),
-                int(num_instances),
-                seed=size_seed,
-                capacity=capacity_by_n.get(int(size)),
-                depot_mode=depot_mode,  # type: ignore[arg-type]
-                customer_mode=customer_mode,  # type: ignore[arg-type]
-                demand_mode=demand_mode,  # type: ignore[arg-type]
-                demand_low=bounds["low"],
-                demand_high=bounds["high"],
-                random_demand_bounds=bool(random_demand_bounds),
-                route_size=route_size,
-                random_capacity=bool(random_capacity),
-                capacity_max=capacity_max_by_n.get(int(size)),
-                capacity_weights=capacity_weights_by_n.get(int(size)),
-                cluster_decay=float(cluster_decay),
-            )
+            # Single source of truth for config -> instances (shared with the exporter's
+            # raw regeneration), so a re-export reproduces exactly this data.
+            dataset = generate_dataset_from_config(config_preview, int(size))
             generated.append((int(size), dataset))
             previews.append((int(size), dataset.coords[0], dataset.demands[0]))
     except Exception as exc:
@@ -1259,7 +1247,7 @@ def _render_solve(solve_defaults: dict[str, Any], data_root: Path) -> None:
             f"<b>{float(cust_dem.min()):.3g}</b> / "
             f"<b>{float(cust_dem.mean()):.3g}</b> / "
             f"<b>{float(cust_dem.max()):.3g}</b> "
-            f"(normalized: demand/capacity)."
+            f"(raw integer demands)."
         )
         fig = _plot_solution(
             instance.coords,
@@ -1288,6 +1276,75 @@ def _render_solve(solve_defaults: dict[str, Any], data_root: Path) -> None:
         st.dataframe(route_rows, use_container_width=True, hide_index=True)
 
 
+def _render_convert(data_root: Path) -> None:
+    st.markdown('<div class="section-label">Convert to examples</div>', unsafe_allow_html=True)
+    _blurb(
+        "Turn labeled run folders into one <code>CVRPExample</code> JSON per instance "
+        "(the modeling format read by <code>data.dataset.load_dataset</code>). Files are "
+        "written to <code>examples/</code> inside each selected folder."
+    )
+
+    runs = _discover_run_folders(data_root)
+    labeled = []
+    for name in runs:
+        run_dir = data_root if name == "." else data_root / name
+        if _labeled_sizes(run_dir):
+            labeled.append(name)
+    if not labeled:
+        st.info("No labeled folders yet — generate a dataset, then Solve it to create labels.")
+        return
+
+    display = ["(legacy root)" if name == "." else name for name in labeled]
+    picked = st.multiselect(
+        "run folders",
+        options=list(range(len(labeled))),
+        default=[0],
+        format_func=lambda i: display[i],
+        help="One or more solved folders to convert. Each keeps its own examples/ output.",
+    )
+    if not picked:
+        st.warning("Pick at least one folder.")
+        return
+
+    for i in picked:
+        run_dir = data_root if labeled[i] == "." else data_root / labeled[i]
+        sizes = _labeled_sizes(run_dir)
+        out_rel = (run_dir / "examples").relative_to(ROOT)
+        st.caption(f"`{display[i]}` → sizes {sizes} → `{out_rel}/`")
+
+    if not st.button("Convert to examples", type="primary", use_container_width=True):
+        return
+
+    summary_rows: list[dict[str, Any]] = []
+    progress = st.progress(0, text="Converting…")
+    for step, i in enumerate(picked):
+        name = labeled[i]
+        run_dir = data_root if name == "." else data_root / name
+        progress.progress(step / max(len(picked), 1), text=f"Converting {display[i]}…")
+        try:
+            written = export_run(run_dir)
+        except Exception as exc:  # surface any per-folder failure in the UI
+            summary_rows.append(
+                {"folder": display[i], "size": "—", "examples": 0, "status": f"error: {exc}"}
+            )
+            continue
+        out_dir = run_dir / "examples"
+        for size, paths in written.items():
+            summary_rows.append(
+                {
+                    "folder": display[i],
+                    "size": size,
+                    "examples": len(paths),
+                    "status": f"ok → {out_dir.relative_to(ROOT)}/",
+                }
+            )
+
+    progress.progress(1.0, text="Done")
+    total = sum(int(row["examples"]) for row in summary_rows)
+    st.success(f"Wrote {total} example JSON file(s).")
+    st.dataframe(summary_rows, use_container_width=True, hide_index=True)
+
+
 def main() -> None:
     gen_defaults = _load_yaml(DEFAULT_GEN_CFG)
     solve_defaults = _load_yaml(DEFAULT_SOLVE_CFG)
@@ -1303,7 +1360,7 @@ def main() -> None:
 
     mode = st.radio(
         "mode",
-        options=["Generate", "Solve"],
+        options=["Generate", "Solve", "Convert"],
         horizontal=True,
         label_visibility="collapsed",
     )
@@ -1322,8 +1379,10 @@ def main() -> None:
 
     if mode == "Generate":
         _render_generate(gen_defaults, data_root)
-    else:
+    elif mode == "Solve":
         _render_solve(solve_defaults, data_root)
+    else:
+        _render_convert(data_root)
 
 
 if __name__ == "__main__":

@@ -33,7 +33,7 @@ FleetMode = Literal["unlimited", "up_to", "exact"]
 
 # Scale [0, 1] coordinates to integer distances for discrete OR solvers.
 COORD_SCALE: int = 1000
-# Scale floating (normalized) demands/capacity to integers while preserving ratios.
+# Scale non-integer demands/capacity to integers while preserving ratios.
 LOAD_SCALE: int = 1_000_000
 # Safety wall-clock cap when the caller asks for "unlimited" time.
 _UNLIMITED_SAFETY_SECONDS: float = 24 * 60 * 60

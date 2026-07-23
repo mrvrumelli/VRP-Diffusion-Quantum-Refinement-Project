@@ -362,10 +362,9 @@ def test_save_and_load_round_trip(tmp_path) -> None:
     assert loaded.demand_mode == "small_demand_wide_spread"
     assert loaded.route_size == "medium"
     np.testing.assert_array_equal(loaded.coords, dataset.coords)
-    # Demands are stored normalized (demand / capacity); capacity is therefore 1.
-    expected_normalized = dataset.demands / dataset.capacity[:, None]
-    np.testing.assert_allclose(loaded.demands, expected_normalized)
-    np.testing.assert_array_equal(loaded.capacity, np.ones(len(dataset)))
+    # Demands and capacity are stored raw, so they round-trip exactly.
+    np.testing.assert_allclose(loaded.demands, dataset.demands)
+    np.testing.assert_allclose(loaded.capacity, dataset.capacity)
 
 
 def test_cli_writes_dataset_files(tmp_path) -> None:
@@ -420,12 +419,12 @@ def test_cli_reads_config_file(tmp_path) -> None:
     assert dataset.demand_mode == "unitary"
     # Depot (node 0) sits at the center for every instance.
     assert np.allclose(dataset.coords[:, 0, :], 0.5)
-    # Demands are stored normalized, so capacity is 1.
-    assert np.all(dataset.capacity == 1.0)
-    # Unitary demands are all equal within an instance and lie in (0, 1] once normalized.
+    # Demands are stored raw, so capacity is the real vehicle capacity.
+    assert np.all(dataset.capacity > 1.0)
+    # Unitary demands are equal (raw integers) within an instance.
     customer_demands = dataset.demands[:, 1:]
-    assert np.all(customer_demands > 0)
-    assert np.all(customer_demands <= 1)
+    assert np.all(customer_demands >= 1)
+    assert np.allclose(customer_demands, np.round(customer_demands))
     assert np.allclose(customer_demands, customer_demands[:, [0]])
 
 
@@ -445,10 +444,10 @@ def test_cli_flag_overrides_config(tmp_path) -> None:
 
     dataset = load_dataset(output_dir / "cvrp20")
     assert dataset.demand_mode == "uniform"
-    # Demands are stored normalized in (0, 1] with capacity normalized to 1.
-    assert np.all(dataset.capacity == 1.0)
+    # Demands are stored raw (integers) with the real vehicle capacity.
+    assert np.all(dataset.capacity > 1.0)
     customer_demands = dataset.demands[:, 1:]
-    assert customer_demands.min() > 0.0
-    assert customer_demands.max() <= 1.0
+    assert customer_demands.min() >= 1.0
+    assert np.allclose(customer_demands, np.round(customer_demands))
     assert customer_demands.max() > customer_demands.min()
 
