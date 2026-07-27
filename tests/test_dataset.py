@@ -11,6 +11,7 @@ from vrp_diffusion_quantum.data.dataset import (
     load_example,
     make_example,
     save_example,
+    split_examples,
 )
 from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance, LabeledSolution
 
@@ -320,6 +321,36 @@ def test_load_dataset_on_empty_directory_returns_empty_list(tmp_path: Path) -> N
 def test_collate_batch_rejects_empty_list() -> None:
     with pytest.raises(ValueError, match="empty"):
         collate_batch([])
+
+
+def test_split_examples_is_deterministic_disjoint_and_complete() -> None:
+    examples = [_tiny_example(instance_id=f"toy_{index}") for index in range(10)]
+    first = split_examples(examples, validation_fraction=0.2, test_fraction=0.2, seed=17)
+    second = split_examples(examples, validation_fraction=0.2, test_fraction=0.2, seed=17)
+
+    first_ids = [
+        [example.instance.instance_id for example in partition]
+        for partition in (first.train, first.validation, first.test)
+    ]
+    second_ids = [
+        [example.instance.instance_id for example in partition]
+        for partition in (second.train, second.validation, second.test)
+    ]
+    assert first_ids == second_ids
+    assert [len(partition) for partition in (first.train, first.validation, first.test)] == [
+        6,
+        2,
+        2,
+    ]
+    assert len(set(first_ids[0] + first_ids[1] + first_ids[2])) == len(examples)
+
+
+def test_split_examples_supports_two_example_train_validation_sanity_case() -> None:
+    examples = [_tiny_example(instance_id=f"toy_{index}") for index in range(2)]
+    split = split_examples(examples, validation_fraction=0.5, seed=0)
+    assert len(split.train) == 1
+    assert len(split.validation) == 1
+    assert split.test == []
 
 
 def test_collate_batch_produces_expected_shapes_for_uniform_size() -> None:
