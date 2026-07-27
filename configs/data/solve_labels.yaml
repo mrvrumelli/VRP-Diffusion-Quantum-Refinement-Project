@@ -1,0 +1,19 @@
+
+
+seed: 42
+
+dataset:
+  # Workspace root for generated run folders.
+  dir: data/raw/cvrp
+  sizes: null
+
+solver:
+  # "pyvrp" (preferred) or "ortools"
+  name: pyvrp
+  # Wall-clock seconds per instance (when time-limited).
+  time_limit: 1.0
+
+output:
+  # Legacy defaults; the app writes labels under <run>/labels/.
+  labels_dir: data/raw/cvrp/labels
+  root: data/raw/cvrp/runs

@@ -53,6 +53,9 @@ quantum = [
 tracking = [
     "wandb>=0.17",
 ]
+ui = [
+    "streamlit>=1.32",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
