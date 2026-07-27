@@ -1,0 +1,23 @@
+# Sanity training config for scripts/train_matrix_predictor.py (task P2.1).
+#
+# Trains MatrixPredictor on the tiny hand-crafted data/samples/sanity_cvrp dataset to prove
+# training runs end to end and outputs valid M probabilities, per AGENTS.md Phase 2's done
+# criterion. With only 2 examples this is an overfitting sanity check, not a meaningful
+# AUC/F1 result -- that needs a real dataset from P1.1/P1.2.
+
+experiment_name: matrix_predictor_sanity
+seed: 0
+
+dataset:
+  name: sanity_cvrp
+  path: data/samples/sanity_cvrp
+
+output:
+  root: outputs/train
+
+model:
+  hidden_dim: 64
+
+training:
+  epochs: 300
+  learning_rate: 0.05

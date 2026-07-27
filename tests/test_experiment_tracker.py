@@ -77,3 +77,27 @@ def test_experiment_tracker_without_dataset_path_skips_dataset_hash(tmp_path: Pa
 
     assert tracker.dataset_hash is None
     assert not (run_dir / "dataset_hash.txt").exists()
+
+
+def test_experiment_tracker_allows_same_experiment_started_quickly(tmp_path: Path) -> None:
+    output_root = tmp_path / "outputs"
+
+    with ExperimentTracker(
+        output_root=output_root,
+        experiment_name="collision_test",
+        config={},
+        seed=0,
+    ) as first_tracker:
+        first_run_dir = first_tracker.run_dir
+
+    with ExperimentTracker(
+        output_root=output_root,
+        experiment_name="collision_test",
+        config={},
+        seed=0,
+    ) as second_tracker:
+        second_run_dir = second_tracker.run_dir
+
+    assert first_run_dir != second_run_dir
+    assert first_run_dir.is_dir()
+    assert second_run_dir.is_dir()
