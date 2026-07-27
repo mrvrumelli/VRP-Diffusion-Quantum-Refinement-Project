@@ -56,9 +56,11 @@ DemandMode = Literal[
     "custom",
 ]
 
-# Classic size anchors for capacity floors (n → floor). Any other size is interpolated
-# / extrapolated by :func:`capacity_floor`. Suggested capacity is max(high_demand, floor).
-CAPACITY_FLOOR_BY_SIZE: dict[int, int] = {20: 20, 50: 30, 100: 50}
+# Classic size anchors for capacity floors (n → floor), matching the standard CVRP20/50/100
+# benchmark convention (Nazari et al., 2018; Kool et al., 2019, Appendix C.1: D^20=30, D^50=40,
+# D^100=50). Any other size is interpolated / extrapolated by :func:`capacity_floor`. Suggested
+# capacity is max(high_demand, floor).
+CAPACITY_FLOOR_BY_SIZE: dict[int, int] = {20: 30, 50: 40, 100: 50}
 DEFAULT_CAPACITY_BY_SIZE: dict[int, int] = CAPACITY_FLOOR_BY_SIZE
 
 DEMAND_LOW: int = 1
@@ -93,9 +95,9 @@ ROUTE_SIZE_RANGES: dict[str, tuple[float, float]] = {
 def capacity_floor(n_customers: int) -> int:
     """Return a size-based capacity floor for any customer count.
 
-    Anchors match the classic defaults ``{20: 20, 50: 30, 100: 50}``. Values between
-    anchors are linearly interpolated; below 20 the floor tracks ``n``; above 100 the
-    slope from the 50→100 segment (``0.4`` per customer) continues.
+    Anchors match the classic defaults ``{20: 30, 50: 40, 100: 50}``. Values between
+    anchors are linearly interpolated; below 20 the floor scales proportionally with
+    ``n``; above 100 the slope from the 50→100 segment (``0.2`` per customer) continues.
     """
     n = int(n_customers)
     if n <= 0:
@@ -103,18 +105,18 @@ def capacity_floor(n_customers: int) -> int:
     if n in CAPACITY_FLOOR_BY_SIZE:
         return int(CAPACITY_FLOOR_BY_SIZE[n])
     if n < 20:
-        return max(1, n)
+        return max(1, int(round(30 * n / 20)))
     if n < 50:
-        return int(round(20 + (30 - 20) * (n - 20) / 30))
+        return int(round(30 + (40 - 30) * (n - 20) / 30))
     if n < 100:
-        return int(round(30 + (50 - 30) * (n - 50) / 50))
-    return int(round(50 + 0.4 * (n - 100)))
+        return int(round(40 + (50 - 40) * (n - 50) / 50))
+    return int(round(50 + 0.2 * (n - 100)))
 
 
 def suggested_capacity(n_customers: int, high_demand: int) -> int:
     """Return a suitable default capacity for ``n_customers`` given ``high_demand``.
 
-    Uses :func:`capacity_floor` (anchors ``20→20``, ``50→30``, ``100→50``, interpolated
+    Uses :func:`capacity_floor` (anchors ``20→30``, ``50→40``, ``100→50``, interpolated
     elsewhere), then clamps up to ``high_demand`` so capacity is never below the demand
     ceiling.
     """

@@ -48,13 +48,13 @@ else:
     def suggested_capacity(n_customers: int, high_demand: int) -> int:
         n = int(n_customers)
         if n <= 20:
-            floor = max(1, n) if n < 20 else 20
+            floor = max(1, int(round(30 * n / 20))) if n < 20 else 30
         elif n <= 50:
-            floor = int(round(20 + 10 * (n - 20) / 30))
+            floor = int(round(30 + 10 * (n - 20) / 30))
         elif n <= 100:
-            floor = int(round(30 + 20 * (n - 50) / 50))
+            floor = int(round(40 + 10 * (n - 50) / 50))
         else:
-            floor = int(round(50 + 0.4 * (n - 100)))
+            floor = int(round(50 + 0.2 * (n - 100)))
         return max(int(high_demand), floor)
 
 

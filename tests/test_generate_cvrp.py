@@ -106,20 +106,20 @@ def test_normalized_demands_lie_in_unit_interval() -> None:
 
 
 def test_resolve_capacity_rules() -> None:
-    assert resolve_capacity(20, None) == 20
-    assert resolve_capacity(75, None) == 40  # interpolated between 50→30 and 100→50
-    assert resolve_capacity(999, None) == int(round(50 + 0.4 * (999 - 100)))
+    assert resolve_capacity(20, None) == 30
+    assert resolve_capacity(75, None) == 45  # interpolated between 50→40 and 100→50
+    assert resolve_capacity(999, None) == int(round(50 + 0.2 * (999 - 100)))
     assert resolve_capacity(999, 25) == 25
     with pytest.raises(ValueError):
         resolve_capacity(20, 0)
 
 
 def test_suggested_capacity_uses_size_floor_and_high_demand() -> None:
-    # high=10 → n20:20, n50:30, n100:50
-    assert suggested_capacity(20, 10) == 20
-    assert suggested_capacity(50, 10) == 30
+    # high=10 → n20:30, n50:40, n100:50
+    assert suggested_capacity(20, 10) == 30
+    assert suggested_capacity(50, 10) == 40
     assert suggested_capacity(100, 10) == 50
-    assert suggested_capacity(75, 10) == 40
+    assert suggested_capacity(75, 10) == 45
     # high demand wins when larger than the size floor
     assert suggested_capacity(20, 40) == 40
     assert suggested_capacity(100, 40) == 50
