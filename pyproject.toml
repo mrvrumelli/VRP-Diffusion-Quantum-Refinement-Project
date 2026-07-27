@@ -62,7 +62,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 
 [tool.ruff]
 line-length = 100
@@ -81,7 +81,6 @@ indent-style = "space"
 line-ending = "lf"
 
 [tool.mypy]
-python_version = "3.11"
 packages = ["vrp_diffusion_quantum"]
 strict = true
 warn_unreachable = true
@@ -91,5 +90,5 @@ warn_unused_configs = true
 # mypy cannot see their signatures. ignore_missing_imports here only suppresses that "no stubs
 # found" note; it does not weaken checking of our own code, which stays under strict = true.
 [[tool.mypy.overrides]]
-module = ["networkx.*", "sklearn.*"]
+module = ["networkx.*", "sklearn.*", "streamlit", "streamlit.*"]
 ignore_missing_imports = true

@@ -112,6 +112,64 @@ class CVRPBatch:
     metadata: list[dict[str, Any]]  # per-example instance_id, seed, solver_name, routes, ...
 
 
+@dataclass(frozen=True)
+class CVRPDatasetSplit:
+    """Deterministic train/validation/test partitions of CVRP examples."""
+
+    train: list[CVRPExample]
+    validation: list[CVRPExample]
+    test: list[CVRPExample]
+
+
+def split_examples(
+    examples: list[CVRPExample],
+    *,
+    validation_fraction: float,
+    test_fraction: float = 0.0,
+    seed: int,
+) -> CVRPDatasetSplit:
+    """Shuffle and partition examples reproducibly without overlap.
+
+    Every requested non-zero split receives at least one example. At least one example is always
+    retained for training.
+    """
+    if not examples:
+        raise ValueError("cannot split an empty list of examples")
+    if not 0.0 <= validation_fraction < 1.0:
+        raise ValueError("validation_fraction must be in [0, 1)")
+    if not 0.0 <= test_fraction < 1.0:
+        raise ValueError("test_fraction must be in [0, 1)")
+    if validation_fraction + test_fraction >= 1.0:
+        raise ValueError("validation_fraction + test_fraction must be less than 1")
+
+    requested_holdouts = int(validation_fraction > 0) + int(test_fraction > 0)
+    if len(examples) < requested_holdouts + 1:
+        raise ValueError(
+            f"{len(examples)} examples cannot provide train plus {requested_holdouts} "
+            "requested holdout split(s)"
+        )
+
+    validation_count = (
+        max(1, round(len(examples) * validation_fraction)) if validation_fraction > 0 else 0
+    )
+    test_count = max(1, round(len(examples) * test_fraction)) if test_fraction > 0 else 0
+    while validation_count + test_count >= len(examples):
+        if validation_count >= test_count and validation_count > int(validation_fraction > 0):
+            validation_count -= 1
+        elif test_count > int(test_fraction > 0):
+            test_count -= 1
+        else:  # pragma: no cover - guarded by the requested_holdouts size check
+            raise ValueError("not enough examples to retain a training split")
+
+    order = np.random.default_rng(seed).permutation(len(examples)).tolist()
+    test_end = test_count
+    validation_end = test_end + validation_count
+    test = [examples[index] for index in order[:test_end]]
+    validation = [examples[index] for index in order[test_end:validation_end]]
+    train = [examples[index] for index in order[validation_end:]]
+    return CVRPDatasetSplit(train=train, validation=validation, test=test)
+
+
 def collate_batch(examples: list[CVRPExample]) -> CVRPBatch:
     """Pad and stack a list of `CVRPExample` into a `CVRPBatch`.
 

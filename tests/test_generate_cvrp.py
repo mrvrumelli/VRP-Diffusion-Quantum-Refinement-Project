@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import get_args
 
 import numpy as np
@@ -108,7 +109,7 @@ def test_normalized_demands_lie_in_unit_interval() -> None:
 def test_resolve_capacity_rules() -> None:
     assert resolve_capacity(20, None) == 30
     assert resolve_capacity(75, None) == 45  # interpolated between 50→40 and 100→50
-    assert resolve_capacity(999, None) == int(round(50 + 0.2 * (999 - 100)))
+    assert resolve_capacity(999, None) == round(50 + 0.2 * (999 - 100))
     assert resolve_capacity(999, 25) == 25
     with pytest.raises(ValueError):
         resolve_capacity(20, 0)
@@ -178,7 +179,7 @@ def test_corner_depot_mode_places_depot_at_origin() -> None:
 @pytest.mark.parametrize("customer_mode", ["random", "clustered", "random_clustered"])
 def test_customer_modes_produce_valid_normalized_coords(customer_mode: str) -> None:
     rng = np.random.default_rng(2)
-    instance = generate_instance(100, rng, customer_mode=customer_mode)  
+    instance = generate_instance(100, rng, customer_mode=customer_mode)
 
     assert instance.customer_coords.shape == (100, 2)
     assert instance.coords.min() >= 0.0
@@ -338,7 +339,7 @@ def test_route_size_derives_capacity_and_scales_with_r() -> None:
 # --- persistence tests ---------------------------------------------------------------------
 
 
-def test_save_and_load_round_trip(tmp_path) -> None:
+def test_save_and_load_round_trip(tmp_path: Path) -> None:
     dataset = generate_dataset(
         20,
         num_instances=5,
@@ -367,7 +368,7 @@ def test_save_and_load_round_trip(tmp_path) -> None:
     np.testing.assert_allclose(loaded.capacity, dataset.capacity)
 
 
-def test_cli_writes_dataset_files(tmp_path) -> None:
+def test_cli_writes_dataset_files(tmp_path: Path) -> None:
     output_dir = tmp_path / "cvrp"
     main(
         [
@@ -396,7 +397,7 @@ def test_cli_writes_dataset_files(tmp_path) -> None:
     assert seed_20 != seed_50
 
 
-def test_cli_reads_config_file(tmp_path) -> None:
+def test_cli_reads_config_file(tmp_path: Path) -> None:
     output_dir = tmp_path / "out"
     config_path = tmp_path / "cfg.yaml"
     config_path.write_text(
@@ -428,7 +429,7 @@ def test_cli_reads_config_file(tmp_path) -> None:
     assert np.allclose(customer_demands, customer_demands[:, [0]])
 
 
-def test_cli_flag_overrides_config(tmp_path) -> None:
+def test_cli_flag_overrides_config(tmp_path: Path) -> None:
     output_dir = tmp_path / "out"
     config_path = tmp_path / "cfg.yaml"
     config_path.write_text(
@@ -450,4 +451,3 @@ def test_cli_flag_overrides_config(tmp_path) -> None:
     assert customer_demands.min() >= 1.0
     assert np.allclose(customer_demands, np.round(customer_demands))
     assert customer_demands.max() > customer_demands.min()
-

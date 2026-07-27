@@ -46,6 +46,7 @@ def test_pyvrp_solves_instance_feasibly(small_dataset: CVRPDataset) -> None:
     assert solution.solver_name == "pyvrp"
     assert solution.num_vehicles >= 1
     assert solution.cost > 0.0
+    assert solution.time_budget == pytest.approx(0.5)
     assert is_feasible_solution(instance, solution.routes)
     assert solution.cost == pytest.approx(route_cost(solution.routes, instance.coords), rel=1e-9)
 
@@ -96,6 +97,7 @@ def test_pyvrp_no_improvement_stop(small_dataset: CVRPDataset) -> None:
     )
     assert solution.feasible
     assert solution.runtime_seconds < 5.0
+    assert solution.time_budget == pytest.approx(0.3)
 
 
 def test_fleet_up_to_respects_cap(small_dataset: CVRPDataset) -> None:

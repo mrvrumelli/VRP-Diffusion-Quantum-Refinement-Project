@@ -8,13 +8,17 @@ import math
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
 from vrp_diffusion_quantum.data.generate_cvrp import CVRPDataset, CVRPInstance
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from pyvrp import Client, Depot
+    from pyvrp.stop import StoppingCriterion
 
 __all__ = [
     "COORD_SCALE",
@@ -54,6 +58,8 @@ class CVRPSolution:
         solver_name: ``\"pyvrp\"`` or ``\"ortools\"``.
         runtime_seconds: wall-clock time spent solving this instance.
         seed: seed passed to the stochastic solver.
+        time_budget: configured wall-clock time limit, or the no-improvement budget when no
+            hard time limit was configured.
         fleet_mode: fleet constraint used while solving (``unlimited`` / ``up_to`` / ``exact``).
         fleet_size: configured fleet cap / exact size; ``None`` when unlimited.
     """
@@ -67,6 +73,7 @@ class CVRPSolution:
     solver_name: str
     runtime_seconds: float
     seed: int
+    time_budget: float | None
     fleet_mode: FleetMode = "unlimited"
     fleet_size: int | None = None
 
@@ -188,10 +195,10 @@ def _build_pyvrp_stop(
     *,
     time_limit: float | None,
     no_improvement_seconds: float | None,
-) -> object:
+) -> StoppingCriterion:
     from pyvrp.stop import MaxRuntime, MultipleCriteria
 
-    criteria: list[object] = []
+    criteria: list[StoppingCriterion] = []
     if time_limit is not None:
         criteria.append(MaxRuntime(float(time_limit)))
     if no_improvement_seconds is not None:
@@ -226,7 +233,9 @@ def _solve_pyvrp(
     pyvrp_to_node = [depot_index, *customer_nodes]
 
     model = Model()
-    locations = [model.add_depot(x=float(coords[depot_index, 0]), y=float(coords[depot_index, 1]))]
+    locations: list[Client | Depot] = [
+        model.add_depot(x=float(coords[depot_index, 0]), y=float(coords[depot_index, 1]))
+    ]
     for node_id in customer_nodes:
         locations.append(
             model.add_client(
@@ -452,6 +461,7 @@ def solve_instance(
         solver_name=solver,
         runtime_seconds=float(runtime),
         seed=seed,
+        time_budget=time_limit if time_limit is not None else no_improvement_seconds,
         fleet_mode=fleet_mode,
         fleet_size=None if fleet_mode == "unlimited" else fleet_size,
     )

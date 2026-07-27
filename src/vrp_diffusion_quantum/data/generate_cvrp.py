@@ -105,12 +105,12 @@ def capacity_floor(n_customers: int) -> int:
     if n in CAPACITY_FLOOR_BY_SIZE:
         return int(CAPACITY_FLOOR_BY_SIZE[n])
     if n < 20:
-        return max(1, int(round(30 * n / 20)))
+        return max(1, round(30 * n / 20))
     if n < 50:
-        return int(round(30 + (40 - 30) * (n - 20) / 30))
+        return round(30 + (40 - 30) * (n - 20) / 30)
     if n < 100:
-        return int(round(40 + (50 - 40) * (n - 50) / 50))
-    return int(round(50 + 0.2 * (n - 100)))
+        return round(40 + (50 - 40) * (n - 50) / 50)
+    return round(50 + 0.2 * (n - 100))
 
 
 def suggested_capacity(n_customers: int, high_demand: int) -> int:
@@ -209,9 +209,7 @@ def _validate_demand_bounds(demand_low: int, demand_high: int) -> tuple[int, int
     low = int(demand_low)
     high = int(demand_high)
     if not (1 <= low <= 100 and 1 <= high <= 100):
-        raise ValueError(
-            f"demand_low/demand_high must be in 1..100, got low={low}, high={high}"
-        )
+        raise ValueError(f"demand_low/demand_high must be in 1..100, got low={low}, high={high}")
     if low > high:
         raise ValueError(f"demand_low ({low}) cannot exceed demand_high ({high})")
     return low, high
@@ -246,7 +244,7 @@ class CVRPInstance:
     @property
     def depot_coords(self) -> np.ndarray:
         """The depot coordinate, shape ``(2,)``."""
-        return self.coords[self.depot_index]
+        return np.asarray(self.coords[self.depot_index])
 
     @property
     def customer_coords(self) -> np.ndarray:
@@ -271,9 +269,7 @@ class CVRPInstance:
         if self.coords.ndim != 2 or self.coords.shape[1] != 2:
             raise ValueError(f"coords must have shape (n_nodes, 2), got {self.coords.shape}")
         if self.demands.shape != (self.n_nodes,):
-            raise ValueError(
-                f"demands must have shape ({self.n_nodes},), got {self.demands.shape}"
-            )
+            raise ValueError(f"demands must have shape ({self.n_nodes},), got {self.demands.shape}")
         if not (0 <= self.depot_index < self.n_nodes):
             raise ValueError(f"depot_index {self.depot_index} out of range for {self.n_nodes}")
         if self.coords.min() < 0.0 or self.coords.max() > 1.0:
@@ -426,9 +422,7 @@ def _resolve_instance_capacity(
     if random_capacity:
         cap_hi = int(capacity_max) if capacity_max is not None else max(min_cap * 3, min_cap + 50)
         if cap_hi < min_cap:
-            raise ValueError(
-                f"capacity_max ({cap_hi}) must be >= high-demand floor ({min_cap})"
-            )
+            raise ValueError(f"capacity_max ({cap_hi}) must be >= high-demand floor ({min_cap})")
         return sample_capacity_from_weights(rng, min_cap, cap_hi, capacity_weights)
 
     if capacity is not None:
@@ -436,8 +430,7 @@ def _resolve_instance_capacity(
             raise ValueError(f"capacity must be positive, got {capacity}")
         if capacity < min_cap:
             raise ValueError(
-                f"capacity ({capacity}) cannot be lower than high demand / max demand "
-                f"({min_cap})"
+                f"capacity ({capacity}) cannot be lower than high demand / max demand ({min_cap})"
             )
         return int(capacity)
 
@@ -695,9 +688,7 @@ def generate_dataset_from_config(config: dict[str, Any], size: int) -> CVRPDatas
     """
     bounds = (config.get("demand_bounds_by_n") or {}).get(str(size)) or {}
     raw_weights = (config.get("capacity_weights_by_n") or {}).get(str(size))
-    weights = (
-        [(int(point[0]), float(point[1])) for point in raw_weights] if raw_weights else None
-    )
+    weights = [(int(point[0]), float(point[1])) for point in raw_weights] if raw_weights else None
     return generate_dataset(
         int(size),
         int(config["num_instances"]),

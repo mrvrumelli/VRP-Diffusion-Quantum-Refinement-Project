@@ -28,6 +28,7 @@ from vrp_diffusion_quantum.data.generate_cvrp import CVRPDataset, load_dataset
 from vrp_diffusion_quantum.data.generate_cvrp import _load_config as _load_config_file
 from vrp_diffusion_quantum.data.types import CVRPExample, LabeledSolution
 from vrp_diffusion_quantum.data.types import CVRPInstance as ExampleCVRPInstance
+from vrp_diffusion_quantum.utils.feasibility import validate_labeled_solution
 
 __all__ = [
     "build_examples",
@@ -78,6 +79,19 @@ def build_examples(
     n_customers = dataset.n_customers
     examples: list[CVRPExample] = []
     for instance_idx, label in enumerate(solutions):
+        label_instance_id = int(label["instance_id"])
+        if label_instance_id != instance_idx:
+            raise ValueError(
+                f"label at position {instance_idx} has instance_id={label_instance_id}; "
+                "labels must be ordered and aligned with dataset instances"
+            )
+        label_n_customers = int(label["n_customers"])
+        if label_n_customers != n_customers:
+            raise ValueError(
+                f"label instance_id={label_instance_id} has n_customers={label_n_customers}, "
+                f"expected {n_customers}"
+            )
+
         coords = np.asarray(dataset.coords[instance_idx], dtype=np.float64)
         demands = np.asarray(dataset.demands[instance_idx], dtype=np.float64)
         capacity = float(dataset.capacity[instance_idx])
@@ -106,6 +120,13 @@ def build_examples(
             seed=label.get("seed"),
             runtime_seconds=float(label.get("runtime_seconds", 0.0)),
         )
+        if not solution.feasible:
+            raise ValueError(f"label instance_id={label_instance_id} is marked infeasible")
+        feasibility = validate_labeled_solution(instance, solution)
+        if not feasibility.feasible:
+            details = "; ".join(feasibility.violations)
+            raise ValueError(f"invalid label instance_id={label_instance_id}: {details}")
+
         examples.append(make_example(instance, solution))
     return examples
 

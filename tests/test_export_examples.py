@@ -16,9 +16,11 @@ from vrp_diffusion_quantum.data.export_examples import (
     routes_nodes_to_customer_ids,
 )
 from vrp_diffusion_quantum.data.generate_cvrp import (
+    CVRPDataset,
     generate_dataset_from_config,
     save_dataset,
 )
+from vrp_diffusion_quantum.data.solve_cvrp import route_cost
 
 
 def _config(seed: int = 42, size: int = 5, num_instances: int = 3) -> dict[str, Any]:
@@ -41,15 +43,15 @@ def _config(seed: int = 42, size: int = 5, num_instances: int = 3) -> dict[str, 
     }
 
 
-def _fake_labels(num_instances: int, size: int) -> list[dict[str, Any]]:
+def _fake_labels(dataset: CVRPDataset) -> list[dict[str, Any]]:
     # One route visiting every customer as *node* indices (depot = node 0 excluded).
-    node_route = list(range(1, size + 1))
+    node_route = list(range(1, dataset.n_customers + 1))
     return [
         {
             "instance_id": i,
-            "n_customers": size,
+            "n_customers": dataset.n_customers,
             "routes": [node_route],
-            "cost": 1.0,
+            "cost": route_cost([node_route], dataset.coords[i]),
             "num_vehicles": 1,
             "feasible": True,
             "solver_name": "unit",
@@ -57,7 +59,7 @@ def _fake_labels(num_instances: int, size: int) -> list[dict[str, Any]]:
             "seed": 7,
             "time_budget": None,
         }
-        for i in range(num_instances)
+        for i in range(len(dataset))
     ]
 
 
@@ -69,9 +71,7 @@ def _make_run(tmp_path: Path, config: dict[str, Any]) -> Path:
     (run_dir / "config.yaml").write_text(yaml.safe_dump(config))
     labels_dir = run_dir / "labels"
     labels_dir.mkdir(parents=True, exist_ok=True)
-    (labels_dir / f"cvrp{size}_labels.json").write_text(
-        json.dumps(_fake_labels(len(dataset), size))
-    )
+    (labels_dir / f"cvrp{size}_labels.json").write_text(json.dumps(_fake_labels(dataset)))
     return run_dir
 
 
@@ -123,3 +123,29 @@ def test_export_run_works_without_config(tmp_path: Path) -> None:
     assert len(examples) == config["num_instances"]
     # Raw values survive: integer demands and the real capacity (30).
     assert examples[0].instance.capacity == pytest.approx(30.0)
+
+
+def test_export_rejects_cost_inconsistent_label(tmp_path: Path) -> None:
+    config = _config(num_instances=1)
+    size = config["sizes"][0]
+    run_dir = _make_run(tmp_path, config)
+    labels_path = run_dir / "labels" / f"cvrp{size}_labels.json"
+    labels = json.loads(labels_path.read_text())
+    labels[0]["cost"] = float(labels[0]["cost"]) + 10.0
+    labels_path.write_text(json.dumps(labels))
+
+    with pytest.raises(ValueError, match="cost"):
+        export_run(run_dir)
+
+
+def test_export_rejects_misaligned_label_order(tmp_path: Path) -> None:
+    config = _config(num_instances=2)
+    size = config["sizes"][0]
+    run_dir = _make_run(tmp_path, config)
+    labels_path = run_dir / "labels" / f"cvrp{size}_labels.json"
+    labels = json.loads(labels_path.read_text())
+    labels.reverse()
+    labels_path.write_text(json.dumps(labels))
+
+    with pytest.raises(ValueError, match="ordered and aligned"):
+        export_run(run_dir)
