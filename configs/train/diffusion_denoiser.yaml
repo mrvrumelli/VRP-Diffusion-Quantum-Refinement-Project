@@ -1,0 +1,48 @@
+experiment_name: diffusion_denoiser
+seed: 42
+dataset:
+  name: cvrp_uniform_train
+  path: data/raw/cvrp/20260801_052847_s42_n20-50-100_x10000_dep-random_cust-random_dem-uniform_d20-1-9-50-1-9-100-1-9_cap20-30-50-40-100-50/splits/train
+validation:
+  path: data/raw/cvrp/20260801_052847_s42_n20-50-100_x10000_dep-random_cust-random_dem-uniform_d20-1-9-50-1-9-100-1-9_cap20-30-50-40-100-50/splits/val
+output:
+  root: outputs/train
+model:
+  hidden_dim: 192
+  num_layers: 8
+  time_embed_dim: 192
+  node_encoder_type: gat
+  gat_num_layers: 5
+  gat_num_heads: 8
+  gat_dropout: 0.0
+  # Set by scripts/run_gat_then_diffusion.sh, or pass an explicit path after GAT pretrain.
+  gat_checkpoint: null
+  freeze_node_encoder: true
+schedule:
+  num_timesteps: 700
+  beta_start: 0.0001
+  beta_end: 0.02
+training:
+  epochs: 40
+  learning_rate: 0.0003
+  batch_size: 16
+  device: auto
+  augmentation: true  # ×9: original + 4 geo + 4 demand strategies
+  weighted_bce: true
+  pos_weight_power: 0.5
+  same_size_batches: true
+  adaptive_threshold: true
+  early_stop_patience: 8
+  t_sample: high
+checkpoint:
+  best_metric: sample_f1
+  minimize: false
+sample_eval:
+  every: 2
+  per_size: 8
+  sizes:
+  - 20
+  - 50
+  - 100
+mlflow:
+  enabled: true

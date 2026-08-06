@@ -1,14 +1,9 @@
-"""Dataset save/load format and batching for CVRP examples (task P1.4).
-
-Each `CVRPExample` (coords, demands, capacity, routes, cost, constraint matrix, metadata) is
-saved as one JSON file. `load_dataset` reads every example file in a directory, and
-`collate_batch` pads and stacks a list of examples into batched tensors plus a padding mask,
-for instances of varying `n_customers` in the same batch.
-"""
+"""CVRP example JSON I/O, collate, and size-homogeneous batching."""
 
 from __future__ import annotations
 
 import json
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -92,6 +87,16 @@ def load_dataset(dataset_dir: str | Path) -> list[CVRPExample]:
     """Load every `*.json` example file in `dataset_dir`, sorted by filename for determinism."""
     example_paths = sorted(Path(dataset_dir).glob("*.json"))
     return [load_example(example_path) for example_path in example_paths]
+
+
+def load_examples_by_size(dataset_dir: str | Path, sizes: list[int]) -> list[CVRPExample]:
+    """Load only ``cvrp{size}_*.json`` files for the given customer sizes."""
+    root = Path(dataset_dir)
+    examples: list[CVRPExample] = []
+    for size in sizes:
+        for path in sorted(root.glob(f"cvrp{size}_*.json")):
+            examples.append(load_example(path))
+    return examples
 
 
 @dataclass
@@ -186,3 +191,75 @@ def collate_batch(examples: list[CVRPExample]) -> CVRPBatch:
         feasible=feasible,
         metadata=metadata,
     )
+
+
+def size_homogeneous_chunks(
+    examples: list[CVRPExample],
+    batch_size: int,
+    *,
+    generator: torch.Generator | None = None,
+    shuffle: bool = True,
+    augmentation: bool = False,
+):
+    """Group by ``n_customers``; optional ×9 expand (original + 4 geo + 4 demand)."""
+    if batch_size < 1:
+        raise ValueError(f"batch_size must be >= 1, got {batch_size}")
+    if not examples:
+        return
+
+    from vrp_diffusion_quantum.data.augment import AUGMENT_NUM, augment_example
+
+    by_size: dict[int, list[CVRPExample]] = defaultdict(list)
+    for example in examples:
+        by_size[int(example.instance.n_customers)].append(example)
+
+    for n_customers in sorted(by_size):
+        bucket = by_size[n_customers]
+        if augmentation:
+            factor = AUGMENT_NUM
+            pair_count = len(bucket) * factor
+            if shuffle:
+                gen = generator if generator is not None else torch.Generator().manual_seed(0)
+                size_gen = torch.Generator().manual_seed(
+                    int(gen.initial_seed()) + 1_000_003 * int(n_customers)
+                )
+                order = torch.randperm(pair_count, generator=size_gen).tolist()
+            else:
+                order = list(range(pair_count))
+            for start in range(0, pair_count, batch_size):
+                chunk: list[CVRPExample] = []
+                for flat in order[start : start + batch_size]:
+                    ex_i = int(flat) // factor
+                    variant = int(flat) % factor
+                    chunk.append(augment_example(bucket[ex_i], variant))
+                yield chunk
+            continue
+
+        if shuffle:
+            gen = generator if generator is not None else torch.Generator().manual_seed(0)
+            size_gen = torch.Generator().manual_seed(
+                int(gen.initial_seed()) + 1_000_003 * int(n_customers)
+            )
+            order = torch.randperm(len(bucket), generator=size_gen)
+            bucket = [bucket[int(i)] for i in order]
+        for start in range(0, len(bucket), batch_size):
+            yield bucket[start : start + batch_size]
+
+
+def size_homogeneous_batches(
+    examples: list[CVRPExample],
+    batch_size: int,
+    *,
+    generator: torch.Generator | None = None,
+    shuffle: bool = True,
+    augmentation: bool = False,
+):
+    """Yield collated batches where every example shares the same ``n_customers``."""
+    for chunk in size_homogeneous_chunks(
+        examples,
+        batch_size,
+        generator=generator,
+        shuffle=shuffle,
+        augmentation=augmentation,
+    ):
+        yield collate_batch(chunk)

@@ -231,6 +231,12 @@ data/processed/*
 
 # Experiment tracker output (see docs/coding_standards.md section 6)
 outputs/
+mlruns/
+*.db
+outputs/mlflow.db
+
+!results/
+!results/**/
 
 # Dev container 
 .devcontainer/

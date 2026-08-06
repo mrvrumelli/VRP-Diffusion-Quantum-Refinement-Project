@@ -1,0 +1,27 @@
+experiment_name: gat_pretrain
+seed: 42
+dataset:
+  name: cvrp_uniform_train
+  path: data/raw/cvrp/20260801_052847_s42_n20-50-100_x10000_dep-random_cust-random_dem-uniform_d20-1-9-50-1-9-100-1-9_cap20-30-50-40-100-50/splits/train
+validation:
+  path: data/raw/cvrp/20260801_052847_s42_n20-50-100_x10000_dep-random_cust-random_dem-uniform_d20-1-9-50-1-9-100-1-9_cap20-30-50-40-100-50/splits/val
+output:
+  root: outputs/train
+model:
+  hidden_dim: 192
+  gat_num_layers: 5
+  gat_num_heads: 8
+  dropout: 0.0
+training:
+  epochs: 40
+  learning_rate: 0.001
+  batch_size: 16
+  device: auto
+  augmentation: false
+  weighted_bce: true
+  pos_weight_power: 0.5
+  same_size_batches: true
+  adaptive_threshold: true
+  early_stop_patience: 5
+mlflow:
+  enabled: true

@@ -79,6 +79,26 @@ def test_experiment_tracker_without_dataset_path_skips_dataset_hash(tmp_path: Pa
     assert not (run_dir / "dataset_hash.txt").exists()
 
 
+def test_experiment_tracker_expands_summary_csv_columns(tmp_path: Path) -> None:
+    import csv
+
+    output_root = tmp_path / "outputs"
+    with ExperimentTracker(
+        output_root=output_root,
+        experiment_name="schema_expand",
+        config={},
+        seed=0,
+    ) as tracker:
+        tracker.log_metric_row({"epoch": 0, "val_f1": 0.1})
+        tracker.log_metric_row({"epoch": 1, "val_f1": 0.2, "sample_f1": 0.3})
+        summary = tracker.run_dir / "summary.csv"
+
+    rows = list(csv.DictReader(summary.open()))
+    assert list(rows[0].keys()) == ["epoch", "val_f1", "sample_f1"]
+    assert rows[0]["sample_f1"] == ""
+    assert rows[1]["sample_f1"] == "0.3"
+
+
 def test_experiment_tracker_allows_same_experiment_started_quickly(tmp_path: Path) -> None:
     output_root = tmp_path / "outputs"
 

@@ -403,3 +403,39 @@ def test_collate_batch_preserves_non_zero_depot_mapping() -> None:
     assert batch.customer_node_indices.tolist() == [[0, 1]]
     assert batch.metadata[0]["depot_index"] == 2
     assert batch.metadata[0]["customer_node_indices"] == [0, 1]
+
+
+def test_size_homogeneous_batches_no_cross_size_padding() -> None:
+    from vrp_diffusion_quantum.data.dataset import size_homogeneous_batches
+
+    small_sol = LabeledSolution(
+        routes=[[0, 1]],
+        cost=5.0,
+        num_vehicles=1,
+        feasible=True,
+        solver_name="hand_checked",
+        time_budget=None,
+        seed=0,
+        runtime_seconds=0.001,
+    )
+    examples = [
+        make_example(_small_instance("b2a"), small_sol),
+        _tiny_example("a3a"),
+        make_example(_small_instance("b2b"), small_sol),
+        _tiny_example("a3b"),
+        _tiny_example("a3c"),
+    ]
+    batches = list(size_homogeneous_batches(examples, batch_size=2, shuffle=False))
+    # n=2: 2 examples → 1 batch; n=3: 3 examples → 2 batches
+    assert len(batches) == 3
+    for batch in batches:
+        ns = {int(m["n_customers"]) for m in batch.metadata}
+        assert len(ns) == 1
+        assert bool(batch.customer_mask.all())
+
+    expanded = list(
+        size_homogeneous_batches(examples, batch_size=4, shuffle=False, augmentation=True)
+    )
+    # 5 examples × 9 augment views = 45; batch_size 4 → 12 batches
+    assert len(expanded) == 12
+    assert sum(b.constraint_matrix.shape[0] for b in expanded) == 45

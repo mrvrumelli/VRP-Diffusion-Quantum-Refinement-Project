@@ -153,12 +153,39 @@ class ExperimentTracker:
         )
 
     def log_metric_row(self, row: dict[str, Any]) -> None:
-        """Append one row (e.g. one epoch or eval instance) to summary.csv."""
+        """Append one row (e.g. one epoch or eval instance) to summary.csv.
+
+        Fieldnames are taken from the first row, then expanded if later rows add keys
+        (e.g. periodic ``sample_*`` full-chain metrics). Existing rows are rewritten with
+        blank cells for new columns so DictWriter never rejects the schema.
+        """
         if self._summary_fieldnames is None:
             self._summary_fieldnames = list(row.keys())
+        else:
+            new_keys = [k for k in row.keys() if k not in self._summary_fieldnames]
+            if new_keys:
+                self._summary_fieldnames.extend(new_keys)
+                if self._summary_path.exists():
+                    with self._summary_path.open(newline="") as handle:
+                        old_rows = list(csv.DictReader(handle))
+                    with self._summary_path.open("w", newline="") as handle:
+                        writer = csv.DictWriter(
+                            handle,
+                            fieldnames=self._summary_fieldnames,
+                            extrasaction="ignore",
+                        )
+                        writer.writeheader()
+                        for old in old_rows:
+                            writer.writerow(old)
+
         is_new_file = not self._summary_path.exists()
         with self._summary_path.open("a", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=self._summary_fieldnames)
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=self._summary_fieldnames,
+                extrasaction="ignore",
+                restval="",
+            )
             if is_new_file:
                 writer.writeheader()
             writer.writerow(row)

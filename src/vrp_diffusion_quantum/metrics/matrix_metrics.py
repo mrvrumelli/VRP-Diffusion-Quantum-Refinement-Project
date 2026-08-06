@@ -45,23 +45,48 @@ def roc_auc(y_prob: npt.NDArray[np.float64], y_true: npt.NDArray[np.float64]) ->
 
 @dataclass(frozen=True)
 class PrecisionRecallF1:
-    """Precision, recall, and F1 at a fixed decision threshold."""
+    """Precision, recall, F1, and accuracy at a fixed decision threshold."""
 
     precision: float
     recall: float
     f1: float
+    accuracy: float
 
 
 def precision_recall_f1(
     y_prob: npt.NDArray[np.float64], y_true: npt.NDArray[np.float64], threshold: float = 0.5
 ) -> PrecisionRecallF1:
-    """Precision, recall, and F1 after thresholding `y_prob` at `threshold`."""
+    """Precision, recall, F1, and accuracy after thresholding `y_prob` at `threshold`."""
     y_pred = (y_prob >= threshold).astype(np.int64)
+    y_bin = y_true.astype(np.int64)
     return PrecisionRecallF1(
         precision=float(precision_score(y_true, y_pred, zero_division=0)),
         recall=float(recall_score(y_true, y_pred, zero_division=0)),
         f1=float(f1_score(y_true, y_pred, zero_division=0)),
+        accuracy=float(np.mean(y_pred == y_bin)),
     )
+
+
+DEFAULT_F1_THRESHOLD_GRID = tuple(float(t) for t in np.linspace(0.05, 0.95, 19))
+
+
+def select_best_f1_threshold(
+    y_prob: npt.NDArray[np.float64],
+    y_true: npt.NDArray[np.float64],
+    *,
+    thresholds: tuple[float, ...] | list[float] = DEFAULT_F1_THRESHOLD_GRID,
+) -> tuple[float, PrecisionRecallF1]:
+    """Pick the decision threshold that maximizes F1 on ``(y_prob, y_true)``."""
+    if not thresholds:
+        raise ValueError("thresholds must be non-empty")
+    best_t = float(thresholds[0])
+    best_pr = precision_recall_f1(y_prob, y_true, threshold=best_t)
+    for t in thresholds[1:]:
+        pr = precision_recall_f1(y_prob, y_true, threshold=float(t))
+        if pr.f1 > best_pr.f1:
+            best_t = float(t)
+            best_pr = pr
+    return best_t, best_pr
 
 
 def expected_calibration_error(
@@ -158,24 +183,29 @@ class MatrixMetrics:
     precision: float
     recall: float
     f1: float
+    accuracy: float
     calibration_error: float
     capacity_consistency: float
     num_pairs: int
     num_positive_pairs: int
+    threshold: float
 
 
 def compute_matrix_metrics(
     predictions: list[MatrixPrediction],
     *,
-    threshold: float = 0.5,
+    threshold: float | None = None,
+    adaptive_threshold: bool = True,
+    threshold_grid: tuple[float, ...] | list[float] = DEFAULT_F1_THRESHOLD_GRID,
     num_calibration_bins: int = 10,
 ) -> MatrixMetrics:
     """Compute matrix metrics for a validation batch of `MatrixPrediction`s.
 
-    BCE/AUC/precision/recall/F1/calibration pool off-diagonal customer pairs across every
-    prediction before scoring, so metrics reflect the whole batch rather than an average of
-    per-example scores. `capacity_consistency` is the mean of each example's
-    `capacity_consistency_proxy`.
+    BCE/AUC/calibration pool off-diagonal pairs (threshold-free). Hard metrics
+    (precision/recall/F1/accuracy/capacity) use ``threshold``. When
+    ``adaptive_threshold`` is true (default), sweep ``threshold_grid`` and pick the
+    value that maximizes F1; pass ``adaptive_threshold=False`` with an explicit
+    ``threshold`` to fix binarization.
     """
     if not predictions:
         raise ValueError("cannot compute matrix metrics for an empty list of predictions")
@@ -187,12 +217,19 @@ def compute_matrix_metrics(
             "no off-diagonal customer pairs to score (every example has <= 1 customer)"
         )
 
-    precision_recall = precision_recall_f1(y_prob, y_true, threshold=threshold)
+    if adaptive_threshold or threshold is None:
+        used_threshold, precision_recall = select_best_f1_threshold(
+            y_prob, y_true, thresholds=threshold_grid
+        )
+    else:
+        used_threshold = float(threshold)
+        precision_recall = precision_recall_f1(y_prob, y_true, threshold=used_threshold)
+
     capacity_consistency = float(
         np.mean(
             [
                 capacity_consistency_proxy(
-                    p.m_prob, p.customer_demands, p.capacity, threshold=threshold
+                    p.m_prob, p.customer_demands, p.capacity, threshold=used_threshold
                 )
                 for p in predictions
             ]
@@ -205,8 +242,10 @@ def compute_matrix_metrics(
         precision=precision_recall.precision,
         recall=precision_recall.recall,
         f1=precision_recall.f1,
+        accuracy=precision_recall.accuracy,
         calibration_error=expected_calibration_error(y_prob, y_true, num_bins=num_calibration_bins),
         capacity_consistency=capacity_consistency,
         num_pairs=int(y_prob.size),
         num_positive_pairs=int(np.sum(y_true)),
+        threshold=float(used_threshold),
     )

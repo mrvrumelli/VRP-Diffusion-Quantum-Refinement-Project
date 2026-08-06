@@ -58,6 +58,25 @@ def test_precision_recall_f1_hand_checked() -> None:
     assert result.f1 == pytest.approx(2 / 3)
 
 
+def test_select_best_f1_threshold_prefers_higher_f1() -> None:
+    from vrp_diffusion_quantum.metrics.matrix_metrics import select_best_f1_threshold
+
+    # At 0.5: many FPs; at 0.8: cleaner positives
+    y_true = np.array([1, 0, 0, 0, 1, 0], dtype=np.float64)
+    y_prob = np.array([0.9, 0.6, 0.55, 0.52, 0.85, 0.1], dtype=np.float64)
+    thr, pr = select_best_f1_threshold(y_prob, y_true, thresholds=(0.5, 0.8))
+    assert thr == 0.8
+    assert pr.f1 >= precision_recall_f1(y_prob, y_true, threshold=0.5).f1
+
+
+def test_default_f1_threshold_grid_span() -> None:
+    from vrp_diffusion_quantum.metrics.matrix_metrics import DEFAULT_F1_THRESHOLD_GRID
+
+    assert DEFAULT_F1_THRESHOLD_GRID[0] == pytest.approx(0.05)
+    assert DEFAULT_F1_THRESHOLD_GRID[-1] == pytest.approx(0.95)
+    assert len(DEFAULT_F1_THRESHOLD_GRID) == 19
+
+
 def test_expected_calibration_error_zero_when_perfectly_calibrated() -> None:
     # 10 samples at p=0.3 with exactly 3 positives -> confidence matches observed frequency
     y_prob = np.full(10, 0.3)
