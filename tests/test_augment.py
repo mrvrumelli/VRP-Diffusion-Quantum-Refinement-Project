@@ -1,4 +1,4 @@
-"""Tests for x9 label-preserving CVRP augmentation."""
+"""Tests for x9 distance- and label-preserving CVRP augmentation."""
 
 from __future__ import annotations
 
@@ -9,9 +9,10 @@ from vrp_diffusion_quantum.data.augment import (
     D4_NUM_TRANSFORMS,
     augment_example,
     augment_example_d4,
-    augment_example_node_shuffle,
+    augment_example_rotation,
     expand_examples,
     transform_coords_d4,
+    transform_coords_rotation,
 )
 from vrp_diffusion_quantum.data.dataset import make_example
 from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance, LabeledSolution
@@ -51,19 +52,28 @@ def test_d4_identity_and_count() -> None:
     assert D4_NUM_TRANSFORMS == 8
 
 
-def test_node_shuffle_preserves_m_structure() -> None:
+def _pairwise_distances(coords: np.ndarray) -> np.ndarray:
+    return np.linalg.norm(coords[:, None, :] - coords[None, :, :], axis=-1)
+
+
+def test_arbitrary_rotation_preserves_pairwise_distances() -> None:
     ex = _example()
-    rng = np.random.default_rng(1)
-    sh = augment_example_node_shuffle(ex, rng=rng)
-    assert sh.constraint_matrix.shape == ex.constraint_matrix.shape
-    assert int(sh.constraint_matrix.sum()) == int(ex.constraint_matrix.sum())
-    assert sh.instance.demands[0] == 0.0
+    rotated = augment_example_rotation(ex, 37.0)
+    np.testing.assert_allclose(
+        _pairwise_distances(rotated.instance.coords),
+        _pairwise_distances(ex.instance.coords),
+        atol=1e-12,
+    )
+    assert np.array_equal(rotated.constraint_matrix, ex.constraint_matrix)
+    assert rotated.solution.routes == ex.solution.routes
 
 
 def test_augmentation_x9_preserves_labels_and_feasibility() -> None:
     ex = _example()
     expanded = expand_examples([ex])
     assert len(expanded) == AUGMENT_NUM == 9
+    coordinate_views = {view.instance.coords.round(12).tobytes() for view in expanded}
+    assert len(coordinate_views) == AUGMENT_NUM
     assert np.allclose(expanded[0].instance.coords, ex.instance.coords)
     assert np.allclose(expanded[0].instance.demands, ex.instance.demands)
     for view in expanded[1:5]:
@@ -72,22 +82,30 @@ def test_augmentation_x9_preserves_labels_and_feasibility() -> None:
         assert not np.allclose(view.instance.coords, ex.instance.coords)
     for view in expanded:
         assert validate_labeled_solution(view.instance, view.solution).feasible
-    for view in expanded[5:]:
-        assert set(view.instance.customer_demands().tolist()) == set(
-            ex.instance.customer_demands().tolist()
+        assert np.array_equal(view.constraint_matrix, ex.constraint_matrix)
+        assert view.solution.routes == ex.solution.routes
+        assert np.array_equal(view.instance.demands, ex.instance.demands)
+        np.testing.assert_allclose(
+            _pairwise_distances(view.instance.coords),
+            _pairwise_distances(ex.instance.coords),
+            atol=1e-12,
         )
-        rebuilt = make_example(view.instance, view.solution)
-        assert np.array_equal(view.constraint_matrix, rebuilt.constraint_matrix)
+    for view in expanded[5:]:
+        assert "rotation_degrees" in view.instance.generator_settings
+        assert not np.allclose(view.instance.coords, ex.instance.coords)
 
 
-def test_node_shuffle_variants_are_deterministic_and_distinct() -> None:
-    ex = _example()
-    first = augment_example_node_shuffle(ex, variant=2)
-    repeated = augment_example_node_shuffle(ex, variant=2)
-    other = augment_example_node_shuffle(ex, variant=3)
-    assert np.array_equal(first.instance.coords, repeated.instance.coords)
-    assert first.solution.routes == repeated.solution.routes
-    assert first.instance.instance_id != other.instance.instance_id
+def test_rotation_transform_validates_inputs() -> None:
+    try:
+        transform_coords_rotation(np.zeros((2, 3)), 45.0)
+        raise AssertionError("expected ValueError")
+    except ValueError:
+        pass
+    try:
+        transform_coords_rotation(np.zeros((2, 2)), float("nan"))
+        raise AssertionError("expected ValueError")
+    except ValueError:
+        pass
 
 
 def test_d4_keeps_routes_m() -> None:

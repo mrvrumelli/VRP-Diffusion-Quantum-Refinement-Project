@@ -16,7 +16,7 @@ matrix_predictor:
   hidden_dim: 128
   epochs: 8
   learning_rate: 1.0e-3
-  augmentation: true  # x9: original + 4 geometric + 4 customer-relabeling views
+  augmentation: true  # x9: original + 4 D4 views + 4 45-degree-offset rotations
   weighted_bce: true
   pos_weight_power: 0.5
 

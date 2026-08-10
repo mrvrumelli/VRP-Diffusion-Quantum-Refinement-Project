@@ -29,6 +29,7 @@ cases:
     per_size: 32
   - name: cvrp50_demand_shift
     distribution: shifted_demands
+    # Generate with configs/data/cvrp_shifted_demands.yaml; label, export, and split it.
     path: null
     sizes: [50]
     per_size: 32

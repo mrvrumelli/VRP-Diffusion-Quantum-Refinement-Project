@@ -32,6 +32,25 @@ bash scripts/run_gat_then_diffusion.sh
 Before running the ablation, copy its config and set the training, validation-selection, and
 untouched test directories plus a `best.pt` checkpoint selected during training.
 
+Create those directories from exported, labeled `CVRPExample` JSONs with a seeded,
+size-stratified split. The command refuses to overwrite a non-empty destination and records the
+source hash, exact membership, per-size counts, and split hashes in `split_manifest.json`:
+
+```bash
+python scripts/make_splits.py \
+  --source data/raw/cvrp/<run>/examples \
+  --output data/raw/cvrp/<run>/splits \
+  --seed 42
+```
+
+Generate the separate P3.6 shifted-demand source dataset from its committed config, then label
+and convert it through the dataset app before splitting/evaluating it:
+
+```bash
+python -m vrp_diffusion_quantum.data.generate_cvrp \
+  --config configs/data/cvrp_shifted_demands.yaml
+```
+
 `diffusion_denoiser.yaml` leaves `gat_checkpoint: null` on purpose — use the shell script, or
 pass an explicit path after GAT pretrain. Direct stage-2 with the stock yaml will fail until
 that path is set.
@@ -66,8 +85,9 @@ MLflow: `mlflow ui --backend-store-uri sqlite:///outputs/mlflow.db`
 ### Recipe notes
 
 - **GAT:** no aug + soft √WBCE.
-- **Denoiser:** x9 label-preserving augmentation (original + 4 geometric + 4 customer
-  relabelings) + soft sqrt-WBCE, **T=700**; `t_sample: high` (validation uses the same mode).
+- **Denoiser:** x9 label-preserving geometric augmentation (original + 4 D4 views + 4
+  45-degree-offset rotations) + soft sqrt-WBCE, **T=700**; `t_sample: high` (validation uses
+  the same mode).
 - **Checkpointing:** `best.pt` is selected only from validation metrics during training. The
   ablation tunes soft decision thresholds on the validation split and reports final metrics once
   on a separate test split.

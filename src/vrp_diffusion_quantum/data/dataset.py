@@ -202,7 +202,7 @@ def size_homogeneous_chunks(
     shuffle: bool = True,
     augmentation: bool = False,
 ) -> Iterator[list[CVRPExample]]:
-    """Group by ``n_customers``; optionally expand to nine label-preserving views."""
+    """Group by ``n_customers``; optionally expand to nine geometric views."""
     if batch_size < 1:
         raise ValueError(f"batch_size must be >= 1, got {batch_size}")
     if not examples:

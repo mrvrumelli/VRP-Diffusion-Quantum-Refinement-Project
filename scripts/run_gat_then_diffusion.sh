@@ -21,8 +21,14 @@ echo "[1/2] GAT pretrain ($GAT_CFG)..."
 python scripts/pretrain_gat_encoder.py --config "$GAT_CFG" \
   2>&1 | tee "$GAT_LOG"
 
-GAT_CKPT="$(ls -td outputs/train/${GAT_EXP}_*/checkpoints/gat_encoder_best.pt | head -1)"
-if [[ ! -f "$GAT_CKPT" ]]; then
+GAT_CKPT=""
+for candidate in outputs/train/${GAT_EXP}_*/checkpoints/gat_encoder_best.pt; do
+  [[ -f "$candidate" ]] || continue
+  if [[ -z "$GAT_CKPT" || "$candidate" -nt "$GAT_CKPT" ]]; then
+    GAT_CKPT="$candidate"
+  fi
+done
+if [[ -z "$GAT_CKPT" ]]; then
   echo "ERROR: gat_encoder_best.pt not found under outputs/train/${GAT_EXP}_*" >&2
   exit 1
 fi

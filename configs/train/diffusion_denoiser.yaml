@@ -27,7 +27,7 @@ training:
   learning_rate: 0.0003
   batch_size: 16
   device: auto
-  augmentation: true  # x9: original + 4 geometric + 4 customer-relabeling views
+  augmentation: true  # x9: original + 4 D4 views + 4 45-degree-offset rotations
   weighted_bce: true
   pos_weight_power: 0.5
   same_size_batches: true

@@ -1,7 +1,7 @@
 """Ablation table: P2.1 MatrixPredictor vs P3 diffusion (one-shot + full chain).
 
 Fair P2.1 recipe matches the denoiser data side: full training set, x9 label-preserving
-augmentation (original + 4 geometric + 4 customer relabelings), soft sqrt-WBCE.
+geometric augmentation, soft sqrt-WBCE.
 
   python scripts/eval_m_ablation.py --config configs/eval/m_predictor_ablation.yaml
 
@@ -182,8 +182,8 @@ def _eval_diffusion(
     mode: str,
     seed: int,
     step_stride: int = 1,
-    threshold: float | None = None,
-    adaptive_threshold: bool = True,
+    threshold: float | None,
+    adaptive_threshold: bool,
 ) -> dict[str, float]:
     m_probs = []
     m_hats = []
@@ -388,6 +388,8 @@ def main() -> None:
         device=device,
         mode="one_shot",
         seed=eval_seed,
+        threshold=None,
+        adaptive_threshold=True,
     )
     started = time.perf_counter()
     one_shot = _eval_diffusion(
@@ -416,6 +418,8 @@ def main() -> None:
         mode="full_chain",
         seed=eval_seed,
         step_stride=step_stride,
+        threshold=0.5,
+        adaptive_threshold=False,
     )
     full_row = {
         "method": "P3_full_chain",

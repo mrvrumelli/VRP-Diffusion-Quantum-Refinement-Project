@@ -1,0 +1,17 @@
+config_name: cvrp50_shifted_demands
+seed: 4242
+
+# Dedicated P3.6 demand-shift dataset. Keep it separate from uniform-demand train/val/test data.
+sizes: [50]
+num_instances: 1000
+capacity: null
+depot_mode: random
+customer_mode: random
+demand_mode: many_small_few_large
+
+# Derive a feasible capacity from each instance's demand distribution while keeping route lengths
+# comparable to the source regime.
+route_size: medium
+cluster_decay: 0.04
+
+output_dir: data/raw/cvrp/cvrp50_shifted_demands_s4242
