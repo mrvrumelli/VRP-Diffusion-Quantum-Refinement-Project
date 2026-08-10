@@ -1,15 +1,5 @@
-"""Training entry points and shared training helpers."""
+"""Training entry points.
 
-from vrp_diffusion_quantum.train.train_diffusion import (
-    customer_tensors_from_batch,
-    diffusion_matrix_bce_loss,
-    evaluate_constraint_denoiser,
-    train_constraint_denoiser,
-)
-
-__all__ = [
-    "customer_tensors_from_batch",
-    "diffusion_matrix_bce_loss",
-    "evaluate_constraint_denoiser",
-    "train_constraint_denoiser",
-]
+Import concrete helpers from :mod:`vrp_diffusion_quantum.train.train_diffusion`. Keeping the
+package initializer side-effect free also allows that module to run cleanly via ``python -m``.
+"""

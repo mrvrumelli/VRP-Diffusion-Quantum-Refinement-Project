@@ -7,7 +7,7 @@ name = "vrp-diffusion-quantum"
 version = "0.1.0"
 description = "Reproducible CMD-based CVRP solver with optional quantum local refinement experiments."
 readme = "README.md"
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.12,<3.13"
 license = { text = "Proprietary" }
 authors = [
     { name = "VRP Diffusion Quantum Refinement contributors" },
@@ -16,7 +16,7 @@ dependencies = [
     "matplotlib>=3.8",
     "mlflow>=2.14",
     "networkx>=3.3",
-    "numpy>=1.26",
+    "numpy>=2.0.2,<2.8",
     "ortools>=9.10",
     "pandas>=2.2",
     "pyvrp>=0.10",
@@ -81,7 +81,7 @@ indent-style = "space"
 line-ending = "lf"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 packages = ["vrp_diffusion_quantum"]
 strict = true
 warn_unreachable = true
@@ -91,5 +91,5 @@ warn_unused_configs = true
 # mypy cannot see their signatures. ignore_missing_imports here only suppresses that "no stubs
 # found" note; it does not weaken checking of our own code, which stays under strict = true.
 [[tool.mypy.overrides]]
-module = ["networkx.*", "sklearn.*"]
+module = ["networkx.*", "sklearn.*", "streamlit.*"]
 ignore_missing_imports = true

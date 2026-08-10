@@ -318,3 +318,70 @@ def test_train_diffusion_cli_logs_mlflow(tmp_path: Path) -> None:
     assert (
         "metrics.train_loss" in runs.columns or "metrics.summary_final_train_loss" in runs.columns
     )
+
+
+def test_train_diffusion_cli_completed_resume_exits_cleanly(tmp_path: Path) -> None:
+    """Resuming a checkpoint that reached the configured epochs is a successful no-op."""
+    from vrp_diffusion_quantum.data.dataset import save_example
+
+    root = Path(__file__).resolve().parents[1]
+    dataset_dir = tmp_path / "data"
+    dataset_dir.mkdir()
+    save_example(_example(4, seed=0), dataset_dir / "ex.json")
+    output_root = tmp_path / "out"
+    config_path = tmp_path / "cfg.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "experiment_name: completed_resume",
+                "seed: 0",
+                "dataset:",
+                f"  path: {dataset_dir.resolve().as_posix()}",
+                "validation: {}",
+                "output:",
+                f"  root: {output_root.resolve().as_posix()}",
+                "model:",
+                "  hidden_dim: 8",
+                "  num_layers: 1",
+                "  time_embed_dim: 8",
+                "schedule:",
+                "  num_timesteps: 4",
+                "training:",
+                "  epochs: 1",
+                "  learning_rate: 0.01",
+                "  batch_size: 1",
+                "  device: cpu",
+                "checkpoint:",
+                "  best_metric: val_loss",
+                "  minimize: true",
+                "mlflow:",
+                "  enabled: false",
+                "",
+            ]
+        )
+    )
+    command = [
+        sys.executable,
+        "-m",
+        "vrp_diffusion_quantum.train.train_diffusion",
+        "--config",
+        str(config_path),
+    ]
+    first = subprocess.run(command, cwd=root, check=False, capture_output=True, text=True)
+    assert first.returncode == 0, first.stdout + "\n" + first.stderr
+    first_run = next(output_root.glob("completed_resume_*"))
+    checkpoint = first_run / "checkpoints" / "last.pt"
+
+    resumed = subprocess.run(
+        [*command, "--resume", str(checkpoint)],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert resumed.returncode == 0, resumed.stdout + "\n" + resumed.stderr
+    assert "nothing to train" in resumed.stdout
+    run_dirs = sorted(output_root.glob("completed_resume_*"))
+    assert len(run_dirs) == 2
+    metrics = json.loads((run_dirs[-1] / "metrics.json").read_text())
+    assert metrics["status"] == "already_complete"

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -200,8 +201,8 @@ def size_homogeneous_chunks(
     generator: torch.Generator | None = None,
     shuffle: bool = True,
     augmentation: bool = False,
-):
-    """Group by ``n_customers``; optional ×9 expand (original + 4 geo + 4 demand)."""
+) -> Iterator[list[CVRPExample]]:
+    """Group by ``n_customers``; optionally expand to nine label-preserving views."""
     if batch_size < 1:
         raise ValueError(f"batch_size must be >= 1, got {batch_size}")
     if not examples:
@@ -223,7 +224,7 @@ def size_homogeneous_chunks(
                 size_gen = torch.Generator().manual_seed(
                     int(gen.initial_seed()) + 1_000_003 * int(n_customers)
                 )
-                order = torch.randperm(pair_count, generator=size_gen).tolist()
+                order: list[int] = torch.randperm(pair_count, generator=size_gen).tolist()
             else:
                 order = list(range(pair_count))
             for start in range(0, pair_count, batch_size):
@@ -240,8 +241,8 @@ def size_homogeneous_chunks(
             size_gen = torch.Generator().manual_seed(
                 int(gen.initial_seed()) + 1_000_003 * int(n_customers)
             )
-            order = torch.randperm(len(bucket), generator=size_gen)
-            bucket = [bucket[int(i)] for i in order]
+            order_tensor = torch.randperm(len(bucket), generator=size_gen)
+            bucket = [bucket[int(i)] for i in order_tensor]
         for start in range(0, len(bucket), batch_size):
             yield bucket[start : start + batch_size]
 
@@ -253,7 +254,7 @@ def size_homogeneous_batches(
     generator: torch.Generator | None = None,
     shuffle: bool = True,
     augmentation: bool = False,
-):
+) -> Iterator[CVRPBatch]:
     """Yield collated batches where every example shares the same ``n_customers``."""
     for chunk in size_homogeneous_chunks(
         examples,

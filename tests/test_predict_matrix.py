@@ -142,8 +142,6 @@ def test_load_denoiser_checkpoint_roundtrip(tmp_path: Path) -> None:
         assert torch.allclose(p1, p2)
 
 
-
-
 def test_select_examples_by_size() -> None:
     pool = [_example(4, seed=i) for i in range(3)] + [_example(6, seed=10 + i) for i in range(5)]
     selected = select_examples_by_size(pool, sizes=(4, 6), per_size=2, seed=0)

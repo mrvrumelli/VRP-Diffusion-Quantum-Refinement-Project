@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import numpy as np
+from pyvrp.stop import StoppingCriterion
 
 from vrp_diffusion_quantum.data.generate_cvrp import CVRPDataset, CVRPInstance
 
@@ -188,10 +189,10 @@ def _build_pyvrp_stop(
     *,
     time_limit: float | None,
     no_improvement_seconds: float | None,
-) -> object:
+) -> StoppingCriterion:
     from pyvrp.stop import MaxRuntime, MultipleCriteria
 
-    criteria: list[object] = []
+    criteria: list[StoppingCriterion] = []
     if time_limit is not None:
         criteria.append(MaxRuntime(float(time_limit)))
     if no_improvement_seconds is not None:
@@ -213,7 +214,7 @@ def _solve_pyvrp(
     fleet_mode: FleetMode,
     fleet_size: int | None,
 ) -> list[list[int]]:
-    from pyvrp import Model
+    from pyvrp import Client, Depot, Model
 
     demand_int, capacity_int = _integer_loads(instance)
     coords = instance.coords
@@ -226,7 +227,9 @@ def _solve_pyvrp(
     pyvrp_to_node = [depot_index, *customer_nodes]
 
     model = Model()
-    locations = [model.add_depot(x=float(coords[depot_index, 0]), y=float(coords[depot_index, 1]))]
+    locations: list[Depot | Client] = [
+        model.add_depot(x=float(coords[depot_index, 0]), y=float(coords[depot_index, 1]))
+    ]
     for node_id in customer_nodes:
         locations.append(
             model.add_client(

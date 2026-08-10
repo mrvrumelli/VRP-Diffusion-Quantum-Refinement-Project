@@ -1,13 +1,11 @@
-"""CVRP ×9 augmentation: original + 4 geo + 4 demand strategies.
+"""CVRP x9 augmentation: original + 4 geometric + 4 customer-relabeling views.
 
 Geo views transform coordinates (and keep ``M``/routes aligned in node order).
-Demand strategies reshuffle customer demands while **keeping routes and ``M`` fixed**
-(invariance aug — labeled clusters are not re-solved for capacity).
+Customer relabeling permutes coordinates, demands, routes, and ``M`` together, so every
+augmented example is exactly equivalent to its source and remains feasible.
 """
 
 from __future__ import annotations
-
-from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -17,18 +15,16 @@ from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance, LabeledS
 __all__ = [
     "AUGMENT_NUM",
     "D4_NUM_TRANSFORMS",
-    "transform_coords_d4",
-    "augment_example_d4",
-    "augment_example_demand_shuffle",
-    "augment_example_demand_strategy",
-    "augment_example_node_shuffle",
     "augment_example",
+    "augment_example_d4",
+    "augment_example_node_shuffle",
     "expand_examples",
     "sample_augment_views",
+    "transform_coords_d4",
 ]
 
 D4_NUM_TRANSFORMS = 8
-AUGMENT_NUM = 9  # original + 4 geo + 4 demand strategies
+AUGMENT_NUM = 9  # original + 4 geometric + 4 customer-relabeling views
 
 # Four "main" geo views (skip identity — that is variant 0).
 _GEO_D4_KS = (1, 2, 3, 4)  # 90°, 180°, 270°, reflect-x
@@ -79,102 +75,22 @@ def augment_example_d4(example: CVRPExample, k: int) -> CVRPExample:
     )
 
 
-def _apply_customer_demands(
-    example: CVRPExample,
-    customer_demands: npt.NDArray[np.floating],
-    *,
-    instance_id_suffix: str = "_dsh",
-    extra_settings: dict[str, Any] | None = None,
-) -> CVRPExample:
-    inst = example.instance
-    new_demands = np.asarray(inst.demands, dtype=np.float64).copy()
-    cust = inst.customer_node_indices()
-    new_demands[cust] = np.asarray(customer_demands, dtype=np.float64)
-    settings = {**inst.generator_settings, "demand_shuffle": 1}
-    if extra_settings:
-        settings.update(extra_settings)
-    new_instance = CVRPInstance(
-        coords=np.asarray(inst.coords, dtype=np.float64).copy(),
-        demands=new_demands,
-        capacity=float(inst.capacity),
-        depot_index=int(inst.depot_index),
-        instance_id=f"{inst.instance_id}{instance_id_suffix}",
-        n_customers=int(inst.n_customers),
-        seed=inst.seed,
-        generator_settings=settings,
-    )
-    return CVRPExample(
-        instance=new_instance,
-        solution=example.solution,
-        constraint_matrix=np.asarray(example.constraint_matrix, dtype=np.int64).copy(),
-    )
-
-
-def augment_example_demand_shuffle(
-    example: CVRPExample,
-    *,
-    rng: np.random.Generator | None = None,
-) -> CVRPExample:
-    """Permute customer demands; keep coords, routes, and ``M`` unchanged."""
-    inst = example.instance
-    n = int(inst.n_customers)
-    if n <= 1:
-        return example
-    if rng is None:
-        seed = 0 if inst.seed is None else int(inst.seed)
-        rng = np.random.default_rng(seed + 73_001)
-    old = np.asarray(inst.customer_demands(), dtype=np.float64).copy()
-    return _apply_customer_demands(example, old[rng.permutation(n)])
-
-
-def augment_example_demand_strategy(example: CVRPExample, strategy: int) -> CVRPExample:
-    """One of four demand reshuffles on original geometry (``M`` fixed).
-
-    0: random permutation (seed family A)
-    1: reverse customer-demand order
-    2: cyclic shift by ``n // 2``
-    3: random permutation (seed family B)
-    """
-    if strategy < 0 or strategy > 3:
-        raise ValueError(f"strategy must be in 0..3, got {strategy}")
-    inst = example.instance
-    n = int(inst.n_customers)
-    if n <= 1:
-        return example
-    old = np.asarray(inst.customer_demands(), dtype=np.float64).copy()
-    seed = 0 if inst.seed is None else int(inst.seed)
-    if strategy == 0:
-        rng = np.random.default_rng(seed + 73_001)
-        new = old[rng.permutation(n)]
-    elif strategy == 1:
-        new = old[::-1].copy()
-    elif strategy == 2:
-        shift = max(n // 2, 1)
-        new = np.roll(old, shift)
-    else:
-        rng = np.random.default_rng(seed + 91_007)
-        new = old[rng.permutation(n)]
-    return _apply_customer_demands(
-        example,
-        new,
-        instance_id_suffix=f"_dstr{strategy}",
-        extra_settings={"demand_strategy": int(strategy)},
-    )
-
-
 def augment_example_node_shuffle(
     example: CVRPExample,
     *,
     rng: np.random.Generator | None = None,
+    variant: int = 0,
 ) -> CVRPExample:
     """Permute customer ids globally; remap coords, demands, routes, and ``M``."""
+    if variant < 0:
+        raise ValueError(f"variant must be non-negative, got {variant}")
     inst = example.instance
     n = int(inst.n_customers)
     if n <= 1:
         return example
     if rng is None:
         seed = 0 if inst.seed is None else int(inst.seed)
-        rng = np.random.default_rng(seed + 91_001)
+        rng = np.random.default_rng(seed + 91_001 + 1_009 * variant)
     perm = rng.permutation(n)
     inv = np.empty(n, dtype=np.int64)
     inv[perm] = np.arange(n, dtype=np.int64)
@@ -197,10 +113,14 @@ def augment_example_node_shuffle(
         demands=new_demands,
         capacity=float(inst.capacity),
         depot_index=int(inst.depot_index),
-        instance_id=f"{inst.instance_id}_nsh",
+        instance_id=f"{inst.instance_id}_nsh{variant}",
         n_customers=n,
         seed=inst.seed,
-        generator_settings={**inst.generator_settings, "node_shuffle": 1},
+        generator_settings={
+            **inst.generator_settings,
+            "node_shuffle": 1,
+            "node_shuffle_variant": variant,
+        },
     )
     new_solution = LabeledSolution(
         routes=new_routes,
@@ -216,14 +136,14 @@ def augment_example_node_shuffle(
 
 
 def augment_example(example: CVRPExample, variant: int) -> CVRPExample:
-    """×9 view: original | 4 geo | 4 demand strategies."""
+    """Return one of nine label-preserving geometric or customer-relabeling views."""
     if variant < 0 or variant >= AUGMENT_NUM:
         raise ValueError(f"variant must be in 0..{AUGMENT_NUM - 1}, got {variant}")
     if variant == 0:
         return example
     if variant <= 4:
         return augment_example_d4(example, _GEO_D4_KS[variant - 1])
-    return augment_example_demand_strategy(example, strategy=variant - 5)
+    return augment_example_node_shuffle(example, variant=variant - 5)
 
 
 def expand_examples(examples: list[CVRPExample]) -> list[CVRPExample]:

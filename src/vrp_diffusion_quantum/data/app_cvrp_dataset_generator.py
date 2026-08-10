@@ -20,6 +20,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import yaml
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 # .../src/vrp_diffusion_quantum/data/<this file> -> repo root is parents[3]
 ROOT = Path(__file__).resolve().parents[3]
@@ -48,20 +49,20 @@ else:
     def suggested_capacity(n_customers: int, high_demand: int) -> int:
         n = int(n_customers)
         if n <= 20:
-            floor = max(1, int(round(30 * n / 20))) if n < 20 else 30
+            floor = max(1, round(30 * n / 20)) if n < 20 else 30
         elif n <= 50:
-            floor = int(round(30 + 10 * (n - 20) / 30))
+            floor = round(30 + 10 * (n - 20) / 30)
         elif n <= 100:
-            floor = int(round(40 + 10 * (n - 50) / 50))
+            floor = round(40 + 10 * (n - 50) / 50)
         else:
-            floor = int(round(50 + 0.2 * (n - 100)))
+            floor = round(50 + 0.2 * (n - 100))
         return max(int(high_demand), floor)
 
 
 from vrp_diffusion_quantum.data.export_examples import (  # noqa: E402
     _discover_labeled_sizes as _labeled_sizes,
 )
-from vrp_diffusion_quantum.data.export_examples import (
+from vrp_diffusion_quantum.data.export_examples import (  # noqa: E402
     export_run,
 )
 from vrp_diffusion_quantum.data.solve_cvrp import (  # noqa: E402
@@ -365,7 +366,7 @@ def _style_axes(ax: Axes, title: str) -> None:
         spine.set_color("#2a313c")
 
 
-def _plot_instance(coords: np.ndarray, demands: np.ndarray, title: str) -> plt.Figure:
+def _plot_instance(coords: np.ndarray, demands: np.ndarray, title: str) -> Figure:
     fig, ax = plt.subplots(figsize=(4.4, 4.4))
     fig.patch.set_facecolor("#0b0d10")
     ax.set_facecolor("#151920")
@@ -396,7 +397,7 @@ def _plot_solution(
     capacity: float,
     solution: CVRPSolution,
     title: str,
-) -> plt.Figure:
+) -> Figure:
     fig, ax = plt.subplots(figsize=(5.4, 5.4))
     fig.patch.set_facecolor("#0b0d10")
     ax.set_facecolor("#151920")
@@ -489,16 +490,13 @@ _CURVE_EDITOR = components.declare_component(
 )
 
 
-def _normalize_knots(
-    knots: list[tuple[int, float]], lo: int, hi: int
-) -> list[tuple[int, float]]:
+def _normalize_knots(knots: list[tuple[int, float]], lo: int, hi: int) -> list[tuple[int, float]]:
     """Pin endpoints, clamp weights, sort by capacity, drop duplicate x."""
     lo_i, hi_i = int(lo), int(hi)
     if not knots:
         return [(lo_i, 0.5), (hi_i, 0.5)]
     cleaned = [
-        (int(round(float(np.clip(x, lo_i, hi_i)))), float(np.clip(w, 0.0, 1.0)))
-        for x, w in knots
+        (round(float(np.clip(x, lo_i, hi_i))), float(np.clip(w, 0.0, 1.0))) for x, w in knots
     ]
     cleaned.sort(key=lambda t: t[0])
     merged: list[tuple[int, float]] = []
@@ -545,7 +543,7 @@ def _shape_preset_knots(
 
     ws = ws / float(ws.max()) if float(ws.max()) > 0 else np.ones_like(ws)
     return _normalize_knots(
-        [(int(round(float(x))), float(w)) for x, w in zip(xs, ws, strict=True)],
+        [(round(float(x)), float(w)) for x, w in zip(xs, ws, strict=True)],
         lo_i,
         hi_i,
     )
@@ -629,7 +627,7 @@ def _render_generate(defaults: dict[str, Any], data_root: Path) -> None:
         )
     default_sizes = [int(s) for s in defaults.get("sizes", [20, 50, 100])]
     if "size_options" not in st.session_state:
-        st.session_state.size_options = sorted(set(default_sizes + [20, 50, 100, 200]))
+        st.session_state.size_options = sorted(set([*default_sizes, 20, 50, 100, 200]))
     if "gen_sizes_multi" not in st.session_state:
         st.session_state.gen_sizes_multi = list(default_sizes)
 
@@ -724,7 +722,7 @@ def _render_generate(defaults: dict[str, Any], data_root: Path) -> None:
     if demand_mode == "custom" or random_demand_bounds:
         default_low, default_high = 1, 10
     else:
-        default_low, default_high = demand_bounds_for_mode(demand_mode)  # type: ignore[arg-type]
+        default_low, default_high = demand_bounds_for_mode(demand_mode)
 
     demand_bounds_by_n: dict[int, dict[str, int | None]] = {}
     if random_demand_bounds:
@@ -797,9 +795,7 @@ def _render_generate(defaults: dict[str, Any], data_root: Path) -> None:
     capacity_curve = False
     capacity_by_n: dict[int, int | None] = {int(s): None for s in sizes}
     capacity_max_by_n: dict[int, int | None] = {int(s): None for s in sizes}
-    capacity_weights_by_n: dict[int, list[tuple[int, float]] | None] = {
-        int(s): None for s in sizes
-    }
+    capacity_weights_by_n: dict[int, list[tuple[int, float]] | None] = {int(s): None for s in sizes}
 
     if capacity_mode == "route_size":
         route_preset = st.selectbox(
@@ -900,8 +896,7 @@ def _render_generate(defaults: dict[str, Any], data_root: Path) -> None:
                     step=1,
                     key=f"cap_max_{size}_{high_floor}",
                     help=(
-                        f"Sample in [{high_floor}, max]; "
-                        f"default max is 2× suggested ({suggested})."
+                        f"Sample in [{high_floor}, max]; default max is 2x suggested ({suggested})."
                     ),
                 )
             )
@@ -910,7 +905,8 @@ def _render_generate(defaults: dict[str, Any], data_root: Path) -> None:
         if capacity_curve:
             st.markdown('<div class="section-label">Shape</div>', unsafe_allow_html=True)
             _blurb(
-                "Drag the yellow handles. Double-click to add a point, right-click a handle to remove it. "
+                "Drag the yellow handles. Double-click to add a point, "
+                "right-click a handle to remove it. "
                 "Presets jump-start a shape — then tweak freely."
             )
             for size in sizes:
@@ -936,8 +932,7 @@ def _render_generate(defaults: dict[str, Any], data_root: Path) -> None:
         "capacity_by_n": {str(k): v for k, v in capacity_by_n.items()},
         "capacity_max_by_n": {str(k): v for k, v in capacity_max_by_n.items()},
         "capacity_weights_by_n": {
-            str(k): (list(v) if v is not None else None)
-            for k, v in capacity_weights_by_n.items()
+            str(k): (list(v) if v is not None else None) for k, v in capacity_weights_by_n.items()
         },
         "random_capacity": bool(random_capacity),
         "capacity_curve": bool(capacity_curve),
@@ -1140,7 +1135,7 @@ def _render_solve(solve_defaults: dict[str, Any], data_root: Path) -> None:
         "Exact X (OR-Tools only) pushes the solver to use all X vehicles.",
         key=f"fleet_mode_{solver_name}",
     )
-    fleet_mode: FleetMode = fleet_choice  # type: ignore[assignment]
+    fleet_mode: FleetMode = fleet_choice
     fleet_size_by_n: dict[int, int | None] = {size: None for size in sizes}
     if fleet_mode in ("up_to", "exact") and sizes:
         cols = st.columns(len(sizes))
@@ -1201,7 +1196,7 @@ def _render_solve(solve_defaults: dict[str, Any], data_root: Path) -> None:
         size_fleet = fleet_size_by_n.get(size)
         solutions = solve_dataset(
             dataset,
-            solver=solver_name,  # type: ignore[arg-type]
+            solver=solver_name,
             time_limit=time_limit,
             no_improvement_seconds=no_improvement_seconds,
             fleet_mode=fleet_mode,

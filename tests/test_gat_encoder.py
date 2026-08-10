@@ -1,4 +1,4 @@
-"""Tests for the ×9 GAT node encoder and constraint pretrainer."""
+"""Tests for the x9 GAT node encoder and constraint pretrainer."""
 
 from __future__ import annotations
 

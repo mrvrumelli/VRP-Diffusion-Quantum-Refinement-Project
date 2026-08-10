@@ -89,9 +89,7 @@ def example_to_model_inputs(
     """
     n = example.instance.n_customers
     coords = torch.as_tensor(example.instance.customer_coords(), dtype=torch.float32).unsqueeze(0)
-    demands = torch.as_tensor(example.instance.customer_demands(), dtype=torch.float32).unsqueeze(
-        0
-    )
+    demands = torch.as_tensor(example.instance.customer_demands(), dtype=torch.float32).unsqueeze(0)
     capacity = torch.as_tensor([example.instance.capacity], dtype=torch.float32)
     m_true = torch.as_tensor(example.constraint_matrix, dtype=torch.float32).unsqueeze(0)
     customer_mask = torch.ones(1, n, dtype=torch.bool)
@@ -389,9 +387,7 @@ def evaluate_full_chain_sampling(
         soft_preds, threshold=threshold, adaptive_threshold=adaptive_threshold
     )
     # Generated matrices are already binary — do not re-threshold soft probs for F1.
-    hard_metrics = compute_matrix_metrics(
-        hard_preds, threshold=0.5, adaptive_threshold=False
-    )
+    hard_metrics = compute_matrix_metrics(hard_preds, threshold=0.5, adaptive_threshold=False)
 
     out: dict[str, Any] = {
         "sample_f1": float(hard_metrics.f1),
@@ -406,9 +402,7 @@ def evaluate_full_chain_sampling(
         "sample_step_stride": int(step_stride),
     }
     for n in sorted(by_size_hard):
-        metrics_n = compute_matrix_metrics(
-            by_size_hard[n], threshold=0.5, adaptive_threshold=False
-        )
+        metrics_n = compute_matrix_metrics(by_size_hard[n], threshold=0.5, adaptive_threshold=False)
         out[f"sample_f1_n{n}"] = float(metrics_n.f1)
         out[f"sample_num_examples_n{n}"] = len(by_size_hard[n])
     return out
@@ -466,14 +460,9 @@ def main() -> None:
     examples = select_examples_by_size(
         pool, sizes=args.sizes, per_size=args.per_size, seed=args.seed
     )
-    print(
-        f"scoring {len(examples)} examples "
-        f"(per_size={args.per_size}, sizes={args.sizes})"
-    )
+    print(f"scoring {len(examples)} examples (per_size={args.per_size}, sizes={args.sizes})")
 
-    metrics = evaluate_full_chain_sampling(
-        model, schedule, examples, device=device, seed=args.seed
-    )
+    metrics = evaluate_full_chain_sampling(model, schedule, examples, device=device, seed=args.seed)
     print("=== full T→0 vs m_true ===")
     for key in sorted(metrics):
         print(f"  {key}: {metrics[key]}")
@@ -502,9 +491,7 @@ def main() -> None:
     if args.save_heatmaps > 0:
         n_save = min(args.save_heatmaps, len(examples))
         for i, example in enumerate(examples[:n_save]):
-            coords, demands, capacity, _, mask = example_to_model_inputs(
-                example, device=device
-            )
+            coords, demands, capacity, _, mask = example_to_model_inputs(example, device=device)
             sampled = sample_constraint_matrix(
                 model,
                 schedule,

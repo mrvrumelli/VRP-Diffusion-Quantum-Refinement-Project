@@ -1,0 +1,37 @@
+experiment_name: diffusion_generalization
+seed: 42
+device: auto
+
+# Must be a checkpoint trained only on the declared source regime (CVRP20 uniform here).
+checkpoint: null
+training_regime: cvrp20_uniform_only
+mode: full_chain
+step_stride: 1
+failure_limit: 10
+
+# Used only for threshold selection. It must not overlap any case below.
+selection:
+  path: null
+  sizes: [20]
+  per_size: 16
+
+reference_case: cvrp20_in_distribution
+cases:
+  - name: cvrp20_in_distribution
+    distribution: uniform_demands
+    path: null
+    sizes: [20]
+    per_size: 32
+  - name: cvrp50_size_shift
+    distribution: uniform_demands
+    path: null
+    sizes: [50]
+    per_size: 32
+  - name: cvrp50_demand_shift
+    distribution: shifted_demands
+    path: null
+    sizes: [50]
+    per_size: 32
+
+output:
+  root: outputs/eval

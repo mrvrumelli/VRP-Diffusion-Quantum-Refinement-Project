@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -122,7 +122,7 @@ def _batches(
     generator: torch.Generator | None = None,
     shuffle: bool = True,
     augmentation: bool = False,
-):
+) -> Iterator[CVRPBatch]:
     if batch_size < 1:
         raise ValueError(f"batch_size must be >= 1, got {batch_size}")
     if same_size or augmentation:
@@ -146,7 +146,7 @@ def _example_chunks(
     generator: torch.Generator | None = None,
     shuffle: bool = True,
     augmentation: bool = False,
-):
+) -> Iterator[list[CVRPExample]]:
     if batch_size < 1:
         raise ValueError(f"batch_size must be >= 1, got {batch_size}")
     if same_size or augmentation:
@@ -170,7 +170,7 @@ def _shuffle_and_maybe_augment_online(
     online_augmentation: bool,
     shuffle: bool = True,
 ) -> list[CVRPExample]:
-    """Optionally shuffle; optionally one random ×9 view (geo/demand) per example."""
+    """Optionally shuffle and select one label-preserving augmented view per example."""
     from vrp_diffusion_quantum.data.augment import AUGMENT_NUM, augment_example
 
     if shuffle:
@@ -183,9 +183,8 @@ def _shuffle_and_maybe_augment_online(
         return ordered
     aug_gen = torch.Generator().manual_seed(seed + 17_000 + epoch)
     vs = torch.randint(0, AUGMENT_NUM, (len(ordered),), generator=aug_gen)
-    return [
-        augment_example(ex, int(v)) for ex, v in zip(ordered, vs.tolist(), strict=True)
-    ]
+    return [augment_example(ex, int(v)) for ex, v in zip(ordered, vs.tolist(), strict=True)]
+
 
 def _noise_batch(
     schedule: BernoulliDiffusionSchedule,
@@ -197,9 +196,7 @@ def _noise_batch(
     """Sample per-example timesteps and a corrupted ``m_t`` for ``batch``."""
     batch_size = batch.constraint_matrix.shape[0]
     device = batch.constraint_matrix.device
-    t = schedule.sample_timesteps(
-        batch_size, device=device, generator=generator, mode=t_sample
-    )
+    t = schedule.sample_timesteps(batch_size, device=device, generator=generator, mode=t_sample)
     m_t = schedule.q_sample(
         batch.constraint_matrix,
         t,
@@ -242,17 +239,13 @@ def evaluate_constraint_denoiser(
     predictions: list[MatrixPrediction] = []
 
     model_device = next(model.parameters()).device
-    for chunk in _example_chunks(
-        examples, batch_size, same_size=same_size_batches, shuffle=False
-    ):
+    for chunk in _example_chunks(examples, batch_size, same_size=same_size_batches, shuffle=False):
         batch = collate_batch(chunk)
         if model_device.type != "cpu":
             batch = _batch_to_device(batch, model_device)
         coords, demands, capacity = customer_tensors_from_batch(batch)
         m_t, t = _noise_batch(schedule, batch, generator=generator, t_sample=t_sample)
-        logits = model(
-            coords, demands, capacity, m_t, t, customer_mask=batch.customer_mask
-        )
+        logits = model(coords, demands, capacity, m_t, t, customer_mask=batch.customer_mask)
         total_loss += float(
             diffusion_matrix_bce_loss(
                 logits,
@@ -272,11 +265,7 @@ def evaluate_constraint_denoiser(
             predictions.append(
                 MatrixPrediction.from_example(
                     example,
-                    m_prob[i, :n_customers, :n_customers]
-                    .detach()
-                    .cpu()
-                    .numpy()
-                    .astype(np.float64),
+                    m_prob[i, :n_customers, :n_customers].detach().cpu().numpy().astype(np.float64),
                 )
             )
 
@@ -430,14 +419,10 @@ def train_constraint_denoiser(
             if device is not None:
                 batch = _batch_to_device(batch, device)
             coords, demands, capacity = customer_tensors_from_batch(batch)
-            m_t, t = _noise_batch(
-                schedule, batch, generator=train_generator, t_sample=t_sample
-            )
+            m_t, t = _noise_batch(schedule, batch, generator=train_generator, t_sample=t_sample)
 
             optimizer.zero_grad()
-            logits = model(
-                coords, demands, capacity, m_t, t, customer_mask=batch.customer_mask
-            )
+            logits = model(coords, demands, capacity, m_t, t, customer_mask=batch.customer_mask)
             loss = diffusion_matrix_bce_loss(
                 logits,
                 batch.constraint_matrix,
@@ -445,7 +430,7 @@ def train_constraint_denoiser(
                 weighted=weighted_bce,
                 pos_weight_power=pos_weight_power,
             )
-            loss.backward()
+            loss.backward()  # type: ignore[no-untyped-call]
             optimizer.step()
 
             epoch_loss += float(loss.item())
@@ -828,6 +813,21 @@ def main() -> None:
                 t_sample=str(train_cfg.get("t_sample", "uniform")),
                 sample_step_stride=int(sample_cfg.get("step_stride", 1)),
             )
+
+            if not history:
+                completed_metrics = {
+                    "status": "already_complete",
+                    "num_epochs_configured": int(train_cfg["epochs"]),
+                    "resume_checkpoint": str(args.resume),
+                    "dataset_hash": tracker.dataset_hash,
+                }
+                tracker.log_metrics(completed_metrics)
+                tracker.logger.info(
+                    "resume checkpoint already reached the configured epoch count; "
+                    "no optimization steps were run"
+                )
+                print("checkpoint already reached the configured epoch count; nothing to train")
+                return
 
             final = history[-1]
             summary_metrics = {

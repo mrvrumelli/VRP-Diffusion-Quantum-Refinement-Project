@@ -1,12 +1,11 @@
 """Ablation table: P2.1 MatrixPredictor vs P3 diffusion (one-shot + full chain).
 
-Fair P2.1 recipe matches the denoiser data side: full ~27k train, ×9 expand
-(original + 4 geo + 4 demand), soft √WBCE.
+Fair P2.1 recipe matches the denoiser data side: full training set, x9 label-preserving
+augmentation (original + 4 geometric + 4 customer relabelings), soft sqrt-WBCE.
 
   python scripts/eval_m_ablation.py --config configs/eval/m_predictor_ablation.yaml
 
-Demand ×4 keeps routes/``M`` fixed (invariance aug). Full-chain hard F1 uses sampled
-``m_hat`` @ 0.5; soft AUC/BCE use ``m_prob``.
+Full-chain hard F1 uses sampled ``m_hat`` at 0.5; soft AUC/BCE use ``m_prob``.
 """
 
 from __future__ import annotations
@@ -14,6 +13,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +24,10 @@ import yaml
 from vrp_diffusion_quantum.data.augment import AUGMENT_NUM, expand_examples
 from vrp_diffusion_quantum.data.dataset import load_dataset, load_examples_by_size
 from vrp_diffusion_quantum.data.types import CVRPExample
+from vrp_diffusion_quantum.eval.matrix_ablation import (
+    score_matrix_probabilities,
+    validate_disjoint_examples,
+)
 from vrp_diffusion_quantum.inference.predict_matrix import (
     example_to_model_inputs,
     load_denoiser_checkpoint,
@@ -31,12 +35,9 @@ from vrp_diffusion_quantum.inference.predict_matrix import (
     sample_constraint_matrix,
     select_examples_by_size,
 )
-from vrp_diffusion_quantum.metrics.matrix_metrics import (
-    MatrixPrediction,
-    compute_matrix_metrics,
-)
 from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
 from vrp_diffusion_quantum.models.matrix_predictor import MatrixPredictor
+from vrp_diffusion_quantum.utils.experiment import ExperimentTracker, hash_dataset
 from vrp_diffusion_quantum.utils.runtime import resolve_device
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -51,6 +52,7 @@ _TABLE_COLS = (
     "recall",
     "bce",
     "threshold",
+    "runtime_seconds",
     "f1_n20",
     "f1_n50",
     "f1_n100",
@@ -61,6 +63,13 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     return parser.parse_args()
+
+
+def _resolve_required_path(value: object, *, field: str) -> Path:
+    if not value:
+        raise ValueError(f"{field} must be set in the evaluation config")
+    path = Path(str(value))
+    return path if path.is_absolute() else ROOT / path
 
 
 def _soft_wbce(
@@ -105,7 +114,7 @@ def _train_matrix_predictor(
     n_views = AUGMENT_NUM if augmentation else 1
     print(
         f"P2.1 fair train: n={len(examples)} epochs={epochs} "
-        f"augmentation={augmentation} (×{n_views} → {len(train_pool)}) "
+        f"augmentation={augmentation} (x{n_views} -> {len(train_pool)}) "
         f"weighted_bce={weighted_bce} pos_weight_power={pos_weight_power} device={device}",
         flush=True,
     )
@@ -141,71 +150,13 @@ def _train_matrix_predictor(
 
 
 @torch.no_grad()
-def _score_m_probs(
-    examples: list[CVRPExample],
-    m_probs: list[Any],
-    *,
-    m_hats: list[Any] | None = None,
-    hard_from_hats: bool = False,
-) -> dict[str, float]:
-    """Score soft probs; optionally take hard F1/P/R from binary ``m_hats`` (full-chain)."""
-    soft_preds = [
-        MatrixPrediction.from_example(ex, mp) for ex, mp in zip(examples, m_probs, strict=True)
-    ]
-    soft = compute_matrix_metrics(soft_preds, adaptive_threshold=True)
-    used_thr = float(soft.threshold)
-
-    if hard_from_hats:
-        if m_hats is None:
-            raise ValueError("hard_from_hats requires m_hats")
-        hard_preds = [
-            MatrixPrediction.from_example(ex, hat)
-            for ex, hat in zip(examples, m_hats, strict=True)
-        ]
-        hard = compute_matrix_metrics(hard_preds, threshold=0.5, adaptive_threshold=False)
-        out: dict[str, float] = {
-            "bce": float(soft.bce),
-            "auc": float(soft.auc) if soft.auc is not None else float("nan"),
-            "precision": float(hard.precision),
-            "recall": float(hard.recall),
-            "f1": float(hard.f1),
-            "threshold": 0.5,
-            "calibration_error": float(soft.calibration_error),
-            "capacity_consistency": float(soft.capacity_consistency),
-            "num_examples": float(len(examples)),
-        }
-        size_preds = hard_preds
-        size_thr = 0.5
-    else:
-        out = {
-            "bce": float(soft.bce),
-            "auc": float(soft.auc) if soft.auc is not None else float("nan"),
-            "precision": float(soft.precision),
-            "recall": float(soft.recall),
-            "f1": float(soft.f1),
-            "threshold": used_thr,
-            "calibration_error": float(soft.calibration_error),
-            "capacity_consistency": float(soft.capacity_consistency),
-            "num_examples": float(len(examples)),
-        }
-        size_preds = soft_preds
-        size_thr = used_thr
-
-    by_size: dict[int, list[MatrixPrediction]] = {}
-    for ex, pred in zip(examples, size_preds, strict=True):
-        by_size.setdefault(ex.instance.n_customers, []).append(pred)
-    for n, preds_n in sorted(by_size.items()):
-        out[f"f1_n{n}"] = float(
-            compute_matrix_metrics(
-                preds_n, threshold=size_thr, adaptive_threshold=False
-            ).f1
-        )
-    return out
-
-
-@torch.no_grad()
 def _eval_matrix_predictor(
-    model: MatrixPredictor, examples: list[CVRPExample], device: torch.device
+    model: MatrixPredictor,
+    examples: list[CVRPExample],
+    device: torch.device,
+    *,
+    threshold: float | None = None,
+    adaptive_threshold: bool = True,
 ) -> dict[str, float]:
     m_probs = []
     for example in examples:
@@ -213,7 +164,12 @@ def _eval_matrix_predictor(
         demands = torch.from_numpy(example.instance.customer_demands()).float().to(device)
         m_prob = model(coords, demands, float(example.instance.capacity)).detach().cpu().numpy()
         m_probs.append(m_prob.astype("float64"))
-    return _score_m_probs(examples, m_probs)
+    return score_matrix_probabilities(
+        examples,
+        m_probs,
+        threshold=threshold,
+        adaptive_threshold=adaptive_threshold,
+    )
 
 
 @torch.no_grad()
@@ -226,6 +182,8 @@ def _eval_diffusion(
     mode: str,
     seed: int,
     step_stride: int = 1,
+    threshold: float | None = None,
+    adaptive_threshold: bool = True,
 ) -> dict[str, float]:
     m_probs = []
     m_hats = []
@@ -257,15 +215,17 @@ def _eval_diffusion(
             raise ValueError(f"unknown diffusion mode: {mode}")
         m_probs.append(result.m_prob)
         m_hats.append(result.m_hat)
-    return _score_m_probs(
+    return score_matrix_probabilities(
         examples,
         m_probs,
         m_hats=m_hats,
         hard_from_hats=(mode == "full_chain"),
+        threshold=threshold,
+        adaptive_threshold=adaptive_threshold,
     )
 
 
-def _fmt_cell(value: Any) -> str:
+def _fmt_cell(value: object) -> str:
     if isinstance(value, float):
         return f"{value:.4f}" if value == value else "nan"
     return str(value)
@@ -282,7 +242,7 @@ def _print_table(rows: list[dict[str, Any]]) -> None:
             if isinstance(v, float):
                 cells.append(f"{v:12.4f}" if v == v else f"{'nan':>12}")
             else:
-                cells.append(f"{str(v):>12}")
+                cells.append(f"{v!s:>12}")
         print(" | ".join(cells))
 
 
@@ -320,10 +280,19 @@ def main() -> None:
     cfg_path = args.config if args.config.is_absolute() else ROOT / args.config
     config = yaml.safe_load(cfg_path.read_text())
     seed = int(config["seed"])
-    device = resolve_device()
+    device = resolve_device(config.get("device", "auto"))
 
-    train_path = ROOT / config["dataset"]["train_path"]
-    val_path = ROOT / config["dataset"]["val_path"]
+    train_path = _resolve_required_path(
+        config["dataset"].get("train_path"), field="dataset.train_path"
+    )
+    selection_path = _resolve_required_path(
+        config["dataset"].get("selection_path"), field="dataset.selection_path"
+    )
+    test_path = _resolve_required_path(
+        config["dataset"].get("test_path"), field="dataset.test_path"
+    )
+    if selection_path.resolve() == test_path.resolve():
+        raise ValueError("dataset.selection_path and dataset.test_path must be different")
     sizes = list(config["eval"]["sizes"])
     per_size = int(config["eval"]["per_size"])
     eval_seed = int(config["eval"].get("seed", 0))
@@ -342,15 +311,29 @@ def main() -> None:
         flush=True,
     )
 
-    print("loading val pool…", flush=True)
-    val_pool = load_examples_by_size(val_path, sizes)
-    eval_examples = select_examples_by_size(
-        val_pool, sizes=sizes, per_size=per_size, seed=eval_seed
+    print("loading model-selection pool...", flush=True)
+    selection_pool = load_examples_by_size(selection_path, sizes)
+    selection_examples = select_examples_by_size(
+        selection_pool,
+        sizes=sizes,
+        per_size=int(config["eval"].get("selection_per_size", per_size)),
+        seed=eval_seed,
     )
-    print(f"eval_examples={len(eval_examples)} sizes={sizes} per_size={per_size}", flush=True)
+    print("loading untouched test pool...", flush=True)
+    test_pool = load_examples_by_size(test_path, sizes)
+    test_examples = select_examples_by_size(
+        test_pool, sizes=sizes, per_size=per_size, seed=eval_seed
+    )
+    validate_disjoint_examples(selection_examples, test_examples)
+    print(
+        f"selection_examples={len(selection_examples)} test_examples={len(test_examples)} "
+        f"sizes={sizes} per_size={per_size}",
+        flush=True,
+    )
 
     mp_cfg = config["matrix_predictor"]
-    print("training P2.1 MatrixPredictor (×9 + soft √WBCE)…", flush=True)
+    print("training P2.1 MatrixPredictor (x9 + soft sqrt-WBCE)...", flush=True)
+    started = time.perf_counter()
     predictor = _train_matrix_predictor(
         train_examples,
         hidden_dim=int(mp_cfg["hidden_dim"]),
@@ -362,12 +345,27 @@ def main() -> None:
         weighted_bce=bool(mp_cfg.get("weighted_bce", True)),
         pos_weight_power=float(mp_cfg.get("pos_weight_power", 0.5)),
     )
+    predictor_train_runtime = time.perf_counter() - started
 
-    print("scoring P2.1…", flush=True)
-    p21 = _eval_matrix_predictor(predictor, eval_examples, device)
-    p21_row = {"method": "P2.1_supervised", **p21}
+    print("selecting P2.1 threshold on validation data...", flush=True)
+    p21_selection = _eval_matrix_predictor(predictor, selection_examples, device)
+    started = time.perf_counter()
+    p21 = _eval_matrix_predictor(
+        predictor,
+        test_examples,
+        device,
+        threshold=float(p21_selection["threshold"]),
+        adaptive_threshold=False,
+    )
+    p21_row = {
+        "method": "P2.1_supervised",
+        **p21,
+        "runtime_seconds": time.perf_counter() - started,
+    }
 
-    ckpt = ROOT / config["diffusion"]["checkpoint"]
+    ckpt = _resolve_required_path(
+        config["diffusion"].get("checkpoint"), field="diffusion.checkpoint"
+    )
     if not ckpt.is_file():
         raise FileNotFoundError(
             f"diffusion checkpoint not found: {ckpt}\n"
@@ -382,23 +380,48 @@ def main() -> None:
         beta_end=float(schedule_cfg.get("beta_end", 2e-2)),
     ).to(device)
 
-    print("scoring P3 one-shot…", flush=True)
-    one_shot = _eval_diffusion(
-        model, schedule, eval_examples, device=device, mode="one_shot", seed=eval_seed
+    print("selecting P3 one-shot threshold on validation data...", flush=True)
+    one_shot_selection = _eval_diffusion(
+        model,
+        schedule,
+        selection_examples,
+        device=device,
+        mode="one_shot",
+        seed=eval_seed,
     )
-    one_shot_row = {"method": "P3_one_shot", **one_shot}
+    started = time.perf_counter()
+    one_shot = _eval_diffusion(
+        model,
+        schedule,
+        test_examples,
+        device=device,
+        mode="one_shot",
+        seed=eval_seed,
+        threshold=float(one_shot_selection["threshold"]),
+        adaptive_threshold=False,
+    )
+    one_shot_row = {
+        "method": "P3_one_shot",
+        **one_shot,
+        "runtime_seconds": time.perf_counter() - started,
+    }
 
     print(f"scoring P3 full-chain T→0 (step_stride={step_stride})…", flush=True)
+    started = time.perf_counter()
     full = _eval_diffusion(
         model,
         schedule,
-        eval_examples,
+        test_examples,
         device=device,
         mode="full_chain",
         seed=eval_seed,
         step_stride=step_stride,
     )
-    full_row = {"method": "P3_full_chain", **full}
+    full_row = {
+        "method": "P3_full_chain",
+        **full,
+        "runtime_seconds": time.perf_counter() - started,
+    }
 
     rows = [p21_row, one_shot_row, full_row]
     print("\n=== Ablation table: P2.1 vs P3 ===\n")
@@ -409,28 +432,49 @@ def main() -> None:
         flush=True,
     )
 
-    out_root = ROOT / config["output"]["root"] / config["experiment_name"]
-    out_root.mkdir(parents=True, exist_ok=True)
+    tracker = ExperimentTracker(
+        output_root=ROOT / config["output"]["root"],
+        experiment_name=config["experiment_name"],
+        config=config,
+        seed=seed,
+        dataset_path=test_path,
+    )
+    out_root = tracker.run_dir
     metrics_path = out_root / "ablation_metrics.json"
     csv_path = out_root / "ablation_table.csv"
     md_path = out_root / "ablation_table.md"
     note = (
         f"P2.1 trained on **{len(train_examples)}** examples, "
-        f"×9 augmentation={mp_cfg.get('augmentation')} "
-        f"(demand views keep M/routes fixed), "
-        f"soft √WBCE (power={mp_cfg.get('pos_weight_power', 0.5)}), "
+        f"x9 label-preserving augmentation={mp_cfg.get('augmentation')}, "
+        f"soft sqrt-WBCE (power={mp_cfg.get('pos_weight_power', 0.5)}), "
         f"epochs={mp_cfg['epochs']}. "
         f"P3 checkpoint: `{config['diffusion']['checkpoint']}` "
-        f"(prefer last.pt if full-chain F1 > best.pt sample_f1). "
-        f"Eval: {len(eval_examples)} examples "
+        f"(selected only by validation metrics). "
+        f"Test: {len(test_examples)} untouched examples "
         f"(per_size={per_size}, sizes={sizes}; full-chain hard F1 from m_hat@0.5)."
     )
-    metrics_path.write_text(json.dumps({"config": config, "rows": rows}, indent=2))
+    provenance = {
+        "train_dataset_hash": hash_dataset(train_path),
+        "selection_dataset_hash": hash_dataset(selection_path),
+        "test_dataset_hash": hash_dataset(test_path),
+        "predictor_train_runtime_seconds": predictor_train_runtime,
+        "selection_thresholds": {
+            "P2.1_supervised": p21_selection["threshold"],
+            "P3_one_shot": one_shot_selection["threshold"],
+            "P3_full_chain": 0.5,
+        },
+    }
+    metrics_path.write_text(
+        json.dumps({"config": config, "rows": rows, "provenance": provenance}, indent=2)
+    )
     with csv_path.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
         writer.writeheader()
         writer.writerows(rows)
     _write_markdown_table(md_path, rows, note=note)
+    for row in rows:
+        tracker.log_metric_row(row)
+    tracker.log_metrics({"rows": rows, **provenance})
 
     ckpt_out = out_root / "matrix_predictor.pt"
     torch.save(
@@ -448,6 +492,7 @@ def main() -> None:
     print(f"wrote {csv_path}")
     print(f"wrote {md_path}")
     print(f"wrote {ckpt_out}")
+    tracker.close()
 
 
 if __name__ == "__main__":

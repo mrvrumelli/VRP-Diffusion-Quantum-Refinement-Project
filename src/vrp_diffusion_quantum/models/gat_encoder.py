@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 import torch
 from torch import Tensor, nn
@@ -39,6 +40,7 @@ def compat_layernorm_state_dict(state_dict: Mapping[str, Tensor]) -> dict[str, T
         else:
             remapped[key] = value
     return remapped
+
 
 # Shared with ConstraintDenoiser: [x, y, demand, demand / capacity].
 NODE_FEATURE_DIM = 4
@@ -113,7 +115,7 @@ class _GATLayer(nn.Module):
 
         # Aggregate: [B,N,N,H] x [B,N,H,D] -> [B,N,H,D]
         messages = torch.einsum("bijn,bjnd->bind", attn, h)
-        out = messages.reshape(batch, n_nodes, self.num_heads * self.head_dim)
+        out: Tensor = messages.reshape(batch, n_nodes, self.num_heads * self.head_dim)
         out = self.out_norm(out) * node_mask.unsqueeze(-1)
         return out
 
@@ -165,7 +167,7 @@ class NodeGATEncoder(nn.Module):
         customer_coords: Tensor | None = None,  # [B, N, 2] for distance bias
     ) -> Tensor:
         mask = node_mask.to(dtype=node_features.dtype)
-        h = self.input_proj(node_features) * mask.unsqueeze(-1)
+        h: Tensor = self.input_proj(node_features) * mask.unsqueeze(-1)
         distance: Tensor | None = None
         if customer_coords is not None:
             distance = torch.linalg.norm(
@@ -214,7 +216,8 @@ class GATConstraintPretrainer(nn.Module):
         else:
             node_mask = customer_mask.to(dtype=customer_coords.dtype)
         feats = build_customer_node_features(customer_coords, customer_demands, capacity)
-        return self.encoder(feats, node_mask, customer_coords=customer_coords)
+        encoded: Tensor = self.encoder(feats, node_mask, customer_coords=customer_coords)
+        return encoded
 
     def forward(
         self,
@@ -233,7 +236,7 @@ class GATConstraintPretrainer(nn.Module):
             customer_coords[:, :, None, :] - customer_coords[:, None, :, :], dim=-1, keepdim=True
         )
         pair = torch.cat([hi, hj, torch.abs(hi - hj), dist], dim=-1)
-        logits = self.pair_mlp(pair).squeeze(-1)
+        logits: Tensor = self.pair_mlp(pair).squeeze(-1)
         logits = 0.5 * (logits + logits.transpose(-1, -2))
         if customer_mask is not None:
             mask = customer_mask.to(dtype=logits.dtype)

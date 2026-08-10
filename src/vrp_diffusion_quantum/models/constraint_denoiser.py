@@ -1,4 +1,4 @@
-"""Anisotropic graph denoiser for constraint matrix ``M`` (CMD §IV-B2, eqs. 10–15).
+"""Anisotropic graph denoiser for constraint matrix ``M`` (CMD section IV-B2, eqs. 10-15).
 
 ``h^0 = GAT(G)`` (optional pretrained) + noisy ``m_t`` → logits for clean ``M``.
 Uses LayerNorm; pass ``customer_mask`` to ignore padded customers.
@@ -35,7 +35,7 @@ _EDGE_FEATURE_DIM = 2
 
 
 def sinusoidal_timestep_embedding(timesteps: Tensor, dim: int) -> Tensor:
-    """Sinusoidal timestep embedding (CMD eqs. 14–15)."""
+    """Sinusoidal timestep embedding (CMD eqs. 14-15)."""
     if dim < 1:
         raise ValueError(f"dim must be >= 1, got {dim}")
     half = dim // 2
@@ -52,7 +52,7 @@ def sinusoidal_timestep_embedding(timesteps: Tensor, dim: int) -> Tensor:
 
 
 class _AnisotropicLayer(nn.Module):
-    """One anisotropic gated MP layer (CMD eqs. 10–13)."""
+    """One anisotropic gated MP layer (CMD eqs. 10-13)."""
 
     def __init__(self, hidden_dim: int) -> None:
         super().__init__()
@@ -231,11 +231,10 @@ class ConstraintDenoiser(nn.Module):
         self, customer_coords: Tensor, customer_demands: Tensor, capacity: Tensor, node_mask: Tensor
     ) -> Tensor:
         node_features = build_customer_node_features(customer_coords, customer_demands, capacity)
+        encoded: Tensor
         if self.node_encoder_type == "gat":
             assert isinstance(self.node_encoder, NodeGATEncoder)
-            encoded = self.node_encoder(
-                node_features, node_mask, customer_coords=customer_coords
-            )
+            encoded = self.node_encoder(node_features, node_mask, customer_coords=customer_coords)
         else:
             encoded = self.node_encoder(node_features)
         return encoded * node_mask[..., None]

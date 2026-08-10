@@ -436,6 +436,6 @@ def test_size_homogeneous_batches_no_cross_size_padding() -> None:
     expanded = list(
         size_homogeneous_batches(examples, batch_size=4, shuffle=False, augmentation=True)
     )
-    # 5 examples × 9 augment views = 45; batch_size 4 → 12 batches
+    # 5 examples x 9 augment views = 45; batch_size 4 gives 12 batches.
     assert len(expanded) == 12
     assert sum(b.constraint_matrix.shape[0] for b in expanded) == 45

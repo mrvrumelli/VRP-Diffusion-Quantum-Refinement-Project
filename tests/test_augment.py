@@ -1,4 +1,4 @@
-"""Tests for ×9 CVRP augmentation (original + 4 geo + 4 demand)."""
+"""Tests for x9 label-preserving CVRP augmentation."""
 
 from __future__ import annotations
 
@@ -9,16 +9,16 @@ from vrp_diffusion_quantum.data.augment import (
     D4_NUM_TRANSFORMS,
     augment_example,
     augment_example_d4,
-    augment_example_demand_shuffle,
     augment_example_node_shuffle,
     expand_examples,
     transform_coords_d4,
 )
-from vrp_diffusion_quantum.data.types import CVRPInstance, LabeledSolution
 from vrp_diffusion_quantum.data.dataset import make_example
+from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance, LabeledSolution
+from vrp_diffusion_quantum.utils.feasibility import route_cost, validate_labeled_solution
 
 
-def _example():
+def _example() -> CVRPExample:
     coords = np.array([[0.5, 0.5], [0.2, 0.3], [0.8, 0.1], [0.4, 0.9]], dtype=np.float64)
     demands = np.array([0.0, 1.0, 2.0, 1.0], dtype=np.float64)
     instance = CVRPInstance(
@@ -31,9 +31,10 @@ def _example():
         seed=0,
         generator_settings={},
     )
+    routes = [[0, 1], [2]]
     solution = LabeledSolution(
-        routes=[[0, 1], [2]],
-        cost=1.0,
+        routes=routes,
+        cost=route_cost(instance, routes),
         num_vehicles=2,
         feasible=True,
         solver_name="test",
@@ -59,19 +60,7 @@ def test_node_shuffle_preserves_m_structure() -> None:
     assert sh.instance.demands[0] == 0.0
 
 
-def test_demand_shuffle_keeps_m_and_coords() -> None:
-    ex = _example()
-    rng = np.random.default_rng(2)
-    sh = augment_example_demand_shuffle(ex, rng=rng)
-    assert np.array_equal(sh.constraint_matrix, ex.constraint_matrix)
-    assert np.allclose(sh.instance.coords, ex.instance.coords)
-    assert sh.solution.routes == ex.solution.routes
-    assert set(sh.instance.customer_demands().tolist()) == set(
-        ex.instance.customer_demands().tolist()
-    )
-
-
-def test_augmentation_x9_original_geo_demand() -> None:
+def test_augmentation_x9_preserves_labels_and_feasibility() -> None:
     ex = _example()
     expanded = expand_examples([ex])
     assert len(expanded) == AUGMENT_NUM == 9
@@ -81,12 +70,24 @@ def test_augmentation_x9_original_geo_demand() -> None:
         assert np.array_equal(view.constraint_matrix, ex.constraint_matrix)
         assert view.solution.routes == ex.solution.routes
         assert not np.allclose(view.instance.coords, ex.instance.coords)
+    for view in expanded:
+        assert validate_labeled_solution(view.instance, view.solution).feasible
     for view in expanded[5:]:
-        assert np.array_equal(view.constraint_matrix, ex.constraint_matrix)
-        assert np.allclose(view.instance.coords, ex.instance.coords)
         assert set(view.instance.customer_demands().tolist()) == set(
             ex.instance.customer_demands().tolist()
         )
+        rebuilt = make_example(view.instance, view.solution)
+        assert np.array_equal(view.constraint_matrix, rebuilt.constraint_matrix)
+
+
+def test_node_shuffle_variants_are_deterministic_and_distinct() -> None:
+    ex = _example()
+    first = augment_example_node_shuffle(ex, variant=2)
+    repeated = augment_example_node_shuffle(ex, variant=2)
+    other = augment_example_node_shuffle(ex, variant=3)
+    assert np.array_equal(first.instance.coords, repeated.instance.coords)
+    assert first.solution.routes == repeated.solution.routes
+    assert first.instance.instance_id != other.instance.instance_id
 
 
 def test_d4_keeps_routes_m() -> None:

@@ -1,6 +1,6 @@
 """Pretrain GAT encoder on same-route ``M``; save encoder-only ckpt.
 
-  python scripts/pretrain_gat_encoder.py --config configs/train/gat_pretrain.yaml
+python scripts/pretrain_gat_encoder.py --config configs/train/gat_pretrain.yaml
 """
 
 from __future__ import annotations
@@ -128,9 +128,7 @@ def main() -> None:
                     ordered = [train_examples[int(i)] for i in order]
                 if online_augmentation:
                     aug_gen = torch.Generator().manual_seed(seed + 17_000 + epoch)
-                    vs = torch.randint(
-                        0, AUGMENT_NUM, (len(ordered),), generator=aug_gen
-                    )
+                    vs = torch.randint(0, AUGMENT_NUM, (len(ordered),), generator=aug_gen)
                     ordered = [
                         augment_example(ex, int(v))
                         for ex, v in zip(ordered, vs.tolist(), strict=True)

@@ -1,18 +1,14 @@
-# Fair ablation: P2.1 MatrixPredictor vs P3 diffusion (×9 + soft √WBCE, T=700).
-#
-# Reported table used last.pt (epoch 17) — higher full-chain hard F1 than best.pt
-# (best.pt is selected by sparse in-train sample_f1). Demand ×4 keeps M/routes fixed.
+# Fair ablation: P2.1 MatrixPredictor vs P3 diffusion (x9 + soft sqrt-WBCE, T=700).
 #
 #   python scripts/eval_m_ablation.py --config configs/eval/m_predictor_ablation.yaml
 #
-# Checked-in snapshot: results/m_predictor_ablation_x9_t700_best_fullchain/
-
-experiment_name: m_predictor_ablation_x9_t700_best_fullchain
+experiment_name: m_predictor_ablation
 seed: 42
 
 dataset:
-  train_path: data/raw/cvrp/20260801_052847_s42_n20-50-100_x10000_dep-random_cust-random_dem-uniform_d20-1-9-50-1-9-100-1-9_cap20-30-50-40-100-50/splits/train
-  val_path: data/raw/cvrp/20260801_052847_s42_n20-50-100_x10000_dep-random_cust-random_dem-uniform_d20-1-9-50-1-9-100-1-9_cap20-30-50-40-100-50/splits/val
+  train_path: null
+  selection_path: null
+  test_path: null
 
 max_train_examples: 0  # all ~27k
 
@@ -20,20 +16,21 @@ matrix_predictor:
   hidden_dim: 128
   epochs: 8
   learning_rate: 1.0e-3
-  augmentation: true  # ×9: original + 4 geo + 4 demand
+  augmentation: true  # x9: original + 4 geometric + 4 customer-relabeling views
   weighted_bce: true
   pos_weight_power: 0.5
 
 diffusion:
-  # After training, point at your run. Canonical reported ckpt:
-  checkpoint: outputs/train/diffusion_denoiser_20260806T042656342740Z/checkpoints/last.pt
+  # Use the checkpoint selected by validation metrics during training. Never select on test F1.
+  checkpoint: null
   step_stride: 1
 
 eval:
+  selection_per_size: 16
   per_size: 16
   sizes: [20, 50, 100]
   seed: 0
 
 output:
-  # Local regenerations land under outputs/; committed snapshot is under results/
+  # Each regeneration gets a timestamped, provenance-complete run directory.
   root: outputs/eval

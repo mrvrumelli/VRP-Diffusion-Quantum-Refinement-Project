@@ -145,7 +145,7 @@ def capacity_consistency_proxy(
         if component_demand <= capacity:
             feasible_customers += len(component)
 
-    return feasible_customers / n_customers
+    return float(feasible_customers / n_customers)
 
 
 @dataclass(frozen=True)

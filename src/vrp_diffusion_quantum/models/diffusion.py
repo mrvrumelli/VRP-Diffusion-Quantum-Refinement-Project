@@ -127,7 +127,7 @@ class BernoulliDiffusionSchedule(nn.Module):
         customer_mask: Tensor | None = None,
         generator: torch.Generator | None = None,
     ) -> Tensor:
-        """Sample ``m_t ~ q(x_t | x_0)``; symmetrize + zero diagonal (optional ``customer_mask``)."""
+        """Sample ``m_t ~ q(x_t | x_0)`` and enforce symmetric zero-diagonal structure."""
         prob_one = self.marginal_prob(m_true, t)
         if generator is not None and torch.device(generator.device).type != prob_one.device.type:
             noise = torch.rand(
