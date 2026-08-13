@@ -137,8 +137,18 @@ roughly sorted from low-risk fixes to work that depends on trained models or lon
 - [ ] Re-solve the 1,500-instance audit subset with longer PyVRP budgets (start with 10 and 30
   seconds) and multiple deterministic solver seeds; preserve every candidate rather than only the
   final winner.
-- [ ] Add a resumable parallel label/audit CLI with bounded workers, per-instance deterministic
-  seeds, cached candidates, progress reporting, and failure recovery before launching longer solves.
+- [x] Add a unified resumable parallel label-audit command with bounded workers, four
+  per-instance deterministic PyVRP seeds, size-specific 10/20/40-second budgets, atomic candidate
+  caches, progress reporting, and automatic retry of interrupted/failed runs.
+- [x] Add automatic OR-Tools challenges for every cost-unstable or matrix-ambiguous audit instance
+  plus a deterministic stable control sample of 50 instances per size.
+- [x] Add explicit acceptance reports for feasibility, cost convergence, challenger wins,
+  same-route matrix disagreement, per-customer membership instability, changes from the original
+  one-second labels, vehicle counts, runtime, and cases requiring review.
+- [x] Export all selected best references separately from matrix targets that pass every acceptance
+  check; retain all candidates so ambiguous near-equal solutions are not discarded.
+- [ ] Run `python scripts/run_strong_label_audit.py`, inspect every flagged case, and freeze the
+  resulting config, source hash, candidate cache, summary, metrics, and accepted reference hashes.
 - [ ] Report cost deltas, same-route matrix disagreement, per-customer route-assignment stability,
   feasibility, vehicles, and runtime between the one-second and stronger labels. Similar route
   costs alone are insufficient because CMD learns route membership.

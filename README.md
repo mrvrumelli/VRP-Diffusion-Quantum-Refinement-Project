@@ -90,6 +90,35 @@ python -m vrp_diffusion_quantum.data.generate_cvrp --config configs/data/cvrp_sp
 Here R means random, C clustered, and RC random/clustered. These names describe only the spatial
 stress regimes: they are plain CVRP data, not genuine Solomon CVRPTW instances with time windows.
 
+### Strong-reference label audit
+
+Run or resume the prepared 1,500-instance label audit with one command:
+
+```bash
+python scripts/run_strong_label_audit.py
+```
+
+The committed policy runs four deterministic PyVRP seeds per instance with 10/20/40-second
+budgets for CVRP20/50/100. It then runs an OR-Tools Guided Local Search challenger on every
+cost-unstable or matrix-ambiguous case plus 50 deterministic stable controls per size. Override
+CPU parallelism without changing the solver policy when necessary:
+
+```bash
+python scripts/run_strong_label_audit.py --workers 8
+```
+
+The same command resumes safely. Completed candidates are cached atomically under
+`outputs/label_audit/s7799_strong_reference/candidates/`; failed or interrupted runs are retried.
+The output includes the exact config and hashes, every solver candidate, per-instance JSON,
+`summary.csv`, aggregate `metrics.json`, a run log, all selected best references, and a separate
+`accepted_matrix_examples/` directory containing only references whose cost and route-membership
+stability passed the configured acceptance checks. A strong cost reference may pass while its
+binary matrix target is withheld when near-equal solutions partition customers differently.
+
+This audit is CPU-bound and does not benefit materially from CUDA. Do not run it concurrently with
+other CPU-heavy labeling jobs. The references are strong heuristic labels, not proofs of global
+optimality.
+
 `diffusion_denoiser.yaml` leaves `gat_checkpoint: null` on purpose — use the shell script, or
 pass an explicit path after GAT pretrain. Direct stage-2 with the stock yaml will fail until
 that path is set.

@@ -11,12 +11,20 @@ scripts/run_gat_then_diffusion.sh), the diffusion model here uses node_encoder_t
 trained end-to-end, so there is no separate GAT-pretrain stage -- this keeps the whole
 comparison self-contained and fast, at the cost of matching the tuned recipe less closely.
 
+Subset selection reuses scripts/select_dataset_subset.py's underlying helper
+(vrp_diffusion_quantum.data.subsets.select_example_subset), the same tool
+scripts/run_3060ti_training.sh uses to carve data/processed/s7799_1k_per_size out of the
+pre-split corpus. --splits-root must already contain train/val/test subdirectories, i.e. the
+output of scripts/make_splits.py (e.g. cvrp_s7799_n20-50-100_x66667/splits) -- selecting a
+small per-size sample independently from each pre-split directory keeps the three pools
+disjoint "for free," matching how run_3060ti_training.sh sources its own subsets.
+
 Example:
   python scripts/compare_supervised_vs_diffusion.py \
-      --source cvrp_s7799_n20-50-100_x66667/examples
+      --splits-root cvrp_s7799_n20-50-100_x66667/splits
 
   python scripts/compare_supervised_vs_diffusion.py \
-      --source cvrp_s7799_n20-50-100_x66667/examples \
+      --splits-root cvrp_s7799_n20-50-100_x66667/splits \
       --train-per-size 60 --mp-time-budget 600 --diff-time-budget 600 --skip-full-chain
 """
 
@@ -24,7 +32,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import random
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,7 +39,8 @@ from typing import Any
 
 import torch
 
-from vrp_diffusion_quantum.data.dataset import load_example
+from vrp_diffusion_quantum.data.dataset import load_examples_by_size
+from vrp_diffusion_quantum.data.subsets import select_example_subset
 from vrp_diffusion_quantum.data.types import CVRPExample
 from vrp_diffusion_quantum.eval.matrix_ablation import (
     score_matrix_probabilities,
@@ -56,14 +64,15 @@ _TABLE_COLS = ("method", "f1", "auc", "precision", "recall", "bce", "threshold",
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--source", type=Path, required=True, help="dir of CVRPExample JSONs (e.g. an exported run's examples/)")
+    parser.add_argument("--splits-root", type=Path, required=True, help="dir with train/val/test subdirs, i.e. scripts/make_splits.py output (e.g. cvrp_s7799_n20-50-100_x66667/splits)")
     parser.add_argument("--sizes", type=str, default="20,50,100")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", type=str, default="auto")
     parser.add_argument("--output", type=Path, default=None, help="defaults to outputs/eval/compare_nn_vs_diffusion/<timestamp>")
+    parser.add_argument("--materialization", choices=("hardlink", "copy"), default="hardlink", help="passed through to select_example_subset")
 
     parser.add_argument("--train-per-size", type=int, default=40, help="examples per size for training (same pool for both models)")
-    parser.add_argument("--selection-per-size", type=int, default=8, help="held-out examples per size for threshold selection")
+    parser.add_argument("--val-per-size", type=int, default=8, help="held-out examples per size for threshold selection")
     parser.add_argument("--test-per-size", type=int, default=8, help="untouched examples per size for final scoring")
 
     parser.add_argument("--mp-hidden-dim", type=int, default=64)
@@ -75,12 +84,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--diff-hidden-dim", type=int, default=192)
     parser.add_argument("--diff-num-layers", type=int, default=8)
     parser.add_argument("--diff-time-embed-dim", type=int, default=192)
-    parser.add_argument("--diff-learning-rate", type=float, default=3e-4)
+    parser.add_argument("--diff-learning-rate", type=float, default=1e-3, help="3e-4 is the tuned 40-epoch recipe's value; higher moves faster per-epoch for short diagnostic runs")
     parser.add_argument("--diff-batch-size", type=int, default=16)
     parser.add_argument("--diff-num-timesteps", type=int, default=700)
     parser.add_argument("--diff-time-budget", type=float, default=900.0, help="seconds")
     parser.add_argument("--diff-max-epochs", type=int, default=200, help="safety cap; the time budget usually stops training first")
     parser.add_argument("--no-diff-augmentation", action="store_true", help="disable x9 geometric augmentation (faster per epoch, less data)")
+    parser.add_argument("--diff-t-sample", choices=("uniform", "high"), default="high", help="timestep sampling mode during denoiser training; 'high' (the tuned recipe's setting) biases toward near-max-noise steps, which may starve short runs of learnable signal -- try 'uniform' to check")
+    parser.add_argument("--diff-node-encoder", choices=("linear", "gat"), default="linear", help="node feature encoder; 'linear' keeps this script self-contained (no GAT-pretrain stage), 'gat' uses a randomly-initialized 5-layer GAT trained jointly -- try 'gat' if train_loss plateaus regardless of --diff-t-sample")
+    parser.add_argument("--diff-gat-num-layers", type=int, default=5)
+    parser.add_argument("--diff-gat-num-heads", type=int, default=8)
 
     parser.add_argument("--skip-full-chain", action="store_true", help="skip the expensive full 700-step reverse-diffusion scoring pass")
     parser.add_argument("--full-chain-stride", type=int, default=5, help="visit every Nth diffusion timestep during full-chain generation")
@@ -88,25 +101,42 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _load_subset_by_size(
-    source: Path, sizes: list[int], *, train_n: int, selection_n: int, test_n: int, seed: int
+def _materialize_subset(
+    splits_root: Path,
+    subset_root: Path,
+    sizes: list[int],
+    *,
+    train_n: int,
+    val_n: int,
+    test_n: int,
+    seed: int,
+    materialization: str,
 ) -> dict[str, list[CVRPExample]]:
-    """Deterministically carve disjoint, size-stratified train/selection/test pools."""
-    rng = random.Random(seed)
-    pools: dict[str, list[CVRPExample]] = {"train": [], "selection": [], "test": []}
-    for size in sizes:
-        paths = sorted(source.glob(f"cvrp{size}_*.json"))
-        if not paths:
-            raise FileNotFoundError(f"no cvrp{size}_*.json files under {source}")
-        rng.shuffle(paths)
-        need = train_n + selection_n + test_n
-        if len(paths) < need:
-            raise ValueError(f"only {len(paths)} cvrp{size} examples under {source}, need {need}")
-        offset = 0
-        for split, count in (("train", train_n), ("selection", selection_n), ("test", test_n)):
-            for path in paths[offset : offset + count]:
-                pools[split].append(load_example(path))
-            offset += count
+    """Carve a small per-size subset out of each pre-split train/val/test dir.
+
+    Selecting independently from each already-disjoint split (rather than from one shared
+    pool) keeps the three pools disjoint for free -- the same pattern
+    scripts/run_3060ti_training.sh uses via select_example_subset.
+    """
+    pools: dict[str, list[CVRPExample]] = {}
+    for split_name, per_size, split_seed in (
+        ("train", train_n, seed),
+        ("val", val_n, seed + 1),
+        ("test", test_n, seed + 2),
+    ):
+        source = splits_root / split_name
+        if not source.is_dir():
+            raise NotADirectoryError(
+                f"expected a pre-split dataset dir at {source}; run scripts/make_splits.py "
+                "on the exported CVRPExample JSONs first"
+            )
+        subset_dir = subset_root / split_name
+        manifest = select_example_subset(
+            source, subset_dir, sizes=sizes, per_size=per_size, seed=split_seed,
+            materialization=materialization,
+        )
+        print(f"subset {split_name}: {manifest['counts_by_size']} -> {subset_dir}", flush=True)
+        pools[split_name] = load_examples_by_size(subset_dir, sizes)
     return pools
 
 
@@ -198,13 +228,19 @@ def _train_diffusion(
     time_budget_seconds: float,
     max_epochs: int,
     augmentation: bool,
+    t_sample: str,
+    node_encoder_type: str,
+    gat_num_layers: int,
+    gat_num_heads: int,
 ) -> tuple[ConstraintDenoiser, list[dict[str, Any]]]:
     torch.manual_seed(seed)
     model = ConstraintDenoiser(
         hidden_dim=hidden_dim,
         num_layers=num_layers,
         time_embed_dim=time_embed_dim,
-        node_encoder_type="linear",
+        node_encoder_type=node_encoder_type,  # type: ignore[arg-type]
+        gat_num_layers=gat_num_layers,
+        gat_num_heads=gat_num_heads,
     )
     history: list[dict[str, Any]] = []
 
@@ -219,7 +255,8 @@ def _train_diffusion(
         )
 
     print(
-        f"P3 train: n={len(train_examples)} augmentation={augmentation} "
+        f"P3 train: n={len(train_examples)} augmentation={augmentation} t_sample={t_sample} "
+        f"node_encoder={node_encoder_type} lr={learning_rate} "
         f"time_budget={time_budget_seconds:.0f}s device={device}",
         flush=True,
     )
@@ -238,7 +275,7 @@ def _train_diffusion(
         weighted_bce=True,
         pos_weight_power=0.5,
         adaptive_threshold=True,
-        t_sample="high",
+        t_sample=t_sample,
         sample_eval_examples=None,
         sample_eval_every=None,
         max_runtime_seconds=time_budget_seconds,
@@ -302,27 +339,27 @@ def main() -> None:
     args = parse_args()
     sizes = [int(s) for s in args.sizes.split(",") if s]
     device = resolve_device(args.device)
-    source = args.source if args.source.is_absolute() else ROOT / args.source
+    splits_root = args.splits_root if args.splits_root.is_absolute() else ROOT / args.splits_root
     output_root = args.output if args.output is not None else (
         ROOT / "outputs" / "eval" / "compare_nn_vs_diffusion"
         / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     )
     output_root.mkdir(parents=True, exist_ok=True)
-    print(f"device={device} source={source} output={output_root}", flush=True)
+    print(f"device={device} splits_root={splits_root} output={output_root}", flush=True)
 
     wall_start = time.perf_counter()
-    print("loading subset…", flush=True)
-    pools = _load_subset_by_size(
-        source, sizes,
-        train_n=args.train_per_size, selection_n=args.selection_per_size, test_n=args.test_per_size,
-        seed=args.seed,
+    print("materializing subset via select_example_subset…", flush=True)
+    pools = _materialize_subset(
+        splits_root, output_root / "subset", sizes,
+        train_n=args.train_per_size, val_n=args.val_per_size, test_n=args.test_per_size,
+        seed=args.seed, materialization=args.materialization,
     )
-    train_examples, selection_examples, test_examples = pools["train"], pools["selection"], pools["test"]
-    validate_disjoint_examples(selection_examples, test_examples)
+    train_examples, val_examples, test_examples = pools["train"], pools["val"], pools["test"]
+    validate_disjoint_examples(val_examples, test_examples)
     validate_disjoint_examples(train_examples, test_examples)
-    validate_disjoint_examples(train_examples, selection_examples)
+    validate_disjoint_examples(train_examples, val_examples)
     print(
-        f"train={len(train_examples)} selection={len(selection_examples)} test={len(test_examples)} "
+        f"train={len(train_examples)} val={len(val_examples)} test={len(test_examples)} "
         f"sizes={sizes}",
         flush=True,
     )
@@ -336,7 +373,7 @@ def main() -> None:
         patience=args.mp_patience,
     )
     mp_train_runtime = time.perf_counter() - started
-    mp_selection = _eval_supervised(predictor, selection_examples, device, threshold=None, adaptive_threshold=True)
+    mp_selection = _eval_supervised(predictor, val_examples, device, threshold=None, adaptive_threshold=True)
     started = time.perf_counter()
     mp_test = _eval_supervised(
         predictor, test_examples, device,
@@ -348,18 +385,22 @@ def main() -> None:
     schedule = BernoulliDiffusionSchedule(num_timesteps=args.diff_num_timesteps, beta_start=1e-4, beta_end=2e-2)
     started = time.perf_counter()
     denoiser, diff_history = _train_diffusion(
-        train_examples, selection_examples,
+        train_examples, val_examples,
         hidden_dim=args.diff_hidden_dim, num_layers=args.diff_num_layers,
         time_embed_dim=args.diff_time_embed_dim, schedule=schedule, device=device, seed=args.seed,
         learning_rate=args.diff_learning_rate, batch_size=args.diff_batch_size,
         time_budget_seconds=args.diff_time_budget, max_epochs=args.diff_max_epochs,
         augmentation=not args.no_diff_augmentation,
+        t_sample=args.diff_t_sample,
+        node_encoder_type=args.diff_node_encoder,
+        gat_num_layers=args.diff_gat_num_layers,
+        gat_num_heads=args.diff_gat_num_heads,
     )
     diff_train_runtime = time.perf_counter() - started
     schedule = schedule.to(device)
 
     one_shot_selection = _eval_diffusion(
-        denoiser, schedule, selection_examples, device=device, mode="one_shot",
+        denoiser, schedule, val_examples, device=device, mode="one_shot",
         seed=args.seed, threshold=None, adaptive_threshold=True,
     )
     started = time.perf_counter()
@@ -395,9 +436,9 @@ def main() -> None:
 
     metrics_path = output_root / "comparison_metrics.json"
     metrics_path.write_text(json.dumps({
-        "args": vars(args) | {"source": str(source), "sizes": sizes},
+        "args": vars(args) | {"splits_root": str(splits_root), "sizes": sizes},
         "counts": {
-            "train": len(train_examples), "selection": len(selection_examples), "test": len(test_examples),
+            "train": len(train_examples), "val": len(val_examples), "test": len(test_examples),
         },
         "runtimes_seconds": {
             "mp_train": mp_train_runtime, "diff_train": diff_train_runtime,
