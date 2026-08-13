@@ -16,6 +16,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--train-fraction", type=float, default=0.9)
     parser.add_argument("--val-fraction", type=float, default=0.05)
     parser.add_argument("--test-fraction", type=float, default=0.05)
+    parser.add_argument(
+        "--materialization",
+        choices=("hardlink", "copy"),
+        default="hardlink",
+        help="hardlink avoids duplicating data; copy works across filesystems",
+    )
     return parser.parse_args()
 
 
@@ -28,9 +34,11 @@ def main() -> None:
         train_fraction=args.train_fraction,
         val_fraction=args.val_fraction,
         test_fraction=args.test_fraction,
+        materialization=args.materialization,
     )
     split_summary = manifest["splits"]
     print(f"source_sha256={manifest['source_sha256']}")
+    print(f"materialization={manifest['materialization']}")
     for split_name in ("train", "val", "test"):
         split = split_summary[split_name]
         print(

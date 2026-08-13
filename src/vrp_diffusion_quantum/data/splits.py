@@ -4,18 +4,21 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import shutil
 from collections import defaultdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 
 from vrp_diffusion_quantum.utils.experiment import hash_dataset
 
-__all__ = ["make_dataset_splits"]
+__all__ = ["SplitMaterialization", "make_dataset_splits", "materialize_example"]
 
 _SPLIT_NAMES = ("train", "val", "test")
+SplitMaterialization = Literal["copy", "hardlink"]
+_MATERIALIZATIONS = ("copy", "hardlink")
 
 
 def _validate_fractions(train_fraction: float, val_fraction: float, test_fraction: float) -> None:
@@ -55,6 +58,19 @@ def _ensure_safe_output(source_dir: Path, output_dir: Path) -> None:
         raise FileExistsError(f"output directory is not empty: {output_dir}")
 
 
+def materialize_example(source: Path, target: Path, method: SplitMaterialization) -> None:
+    if method == "copy":
+        shutil.copy2(source, target)
+        return
+    try:
+        os.link(source, target)
+    except OSError as exc:
+        raise OSError(
+            f"could not hard-link {source} to {target}; use materialization='copy' when source "
+            "and output are on different filesystems"
+        ) from exc
+
+
 def make_dataset_splits(
     source_dir: str | Path,
     output_dir: str | Path,
@@ -63,14 +79,21 @@ def make_dataset_splits(
     train_fraction: float = 0.9,
     val_fraction: float = 0.05,
     test_fraction: float = 0.05,
+    materialization: SplitMaterialization = "hardlink",
 ) -> dict[str, Any]:
-    """Copy example JSONs into deterministic, size-stratified split directories.
+    """Materialize example JSONs into deterministic, size-stratified split directories.
 
     The source directory must contain one modeling ``CVRPExample`` per top-level JSON file.
     Existing non-empty output directories are rejected to prevent accidental split mixing or
-    overwrite. The returned manifest is also written to ``split_manifest.json``.
+    overwrite. ``hardlink`` avoids duplicating file contents and requires source and output to be
+    on the same filesystem; split files must then be treated as read-only. The returned manifest
+    is also written to ``split_manifest.json``.
     """
     _validate_fractions(train_fraction, val_fraction, test_fraction)
+    if materialization not in _MATERIALIZATIONS:
+        raise ValueError(
+            f"materialization must be one of {_MATERIALIZATIONS}, got {materialization!r}"
+        )
     source = Path(source_dir).resolve()
     output = Path(output_dir).resolve()
     if not source.is_dir():
@@ -116,13 +139,18 @@ def make_dataset_splits(
         split_dir = output / split_name
         split_dir.mkdir()
         for entry in entries:
-            shutil.copy2(source / str(entry["file"]), split_dir / str(entry["file"]))
+            materialize_example(
+                source / str(entry["file"]),
+                split_dir / str(entry["file"]),
+                materialization,
+            )
 
     manifest: dict[str, Any] = {
         "seed": int(seed),
         "source_dir": str(source),
         "source_sha256": hash_dataset(source),
         "fractions": dict(zip(_SPLIT_NAMES, fractions, strict=True)),
+        "materialization": materialization,
         "splits": {},
     }
     split_manifest = manifest["splits"]

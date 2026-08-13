@@ -61,7 +61,7 @@ def plot_routes(ax: Axes, instance: CVRPInstance, routes: list[list[int]]) -> No
 
 
 def _plot_matrix_heatmap(
-    ax: Axes, matrix: npt.NDArray[np.float64] | npt.NDArray[np.int64], title: str, cmap: str
+    ax: Axes, matrix: npt.NDArray[np.float64] | npt.NDArray[np.uint8], title: str, cmap: str
 ) -> None:
     ax.imshow(matrix, cmap=cmap, vmin=0, vmax=1, origin="upper")
     ax.set_title(title)
@@ -70,7 +70,7 @@ def _plot_matrix_heatmap(
 
 
 def plot_constraint_matrix(
-    ax: Axes, constraint_matrix: npt.NDArray[np.int64], title: str = "constraint_matrix"
+    ax: Axes, constraint_matrix: npt.NDArray[np.uint8], title: str = "constraint_matrix"
 ) -> None:
     """Draw `constraint_matrix` (binary ground truth) as a black/white heatmap on `ax`."""
     _plot_matrix_heatmap(ax, constraint_matrix, title, cmap="Greys")
@@ -94,7 +94,7 @@ def plot_example_sanity_check(example: CVRPExample) -> Figure:
 
 
 def plot_matrix_comparison(
-    m_true: npt.NDArray[np.int64], m_prob: npt.NDArray[np.float64], title: str = ""
+    m_true: npt.NDArray[np.uint8], m_prob: npt.NDArray[np.float64], title: str = ""
 ) -> Figure:
     """Build a 3-panel figure: ground-truth `m_true`, predicted `m_prob`, and |error| (task P2.3).
 

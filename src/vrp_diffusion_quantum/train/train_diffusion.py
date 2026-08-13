@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import time
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
@@ -45,7 +46,13 @@ from vrp_diffusion_quantum.metrics.matrix_metrics import (
 from vrp_diffusion_quantum.models.constraint_denoiser import ConstraintDenoiser
 from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
 from vrp_diffusion_quantum.utils.experiment import ExperimentTracker
-from vrp_diffusion_quantum.utils.runtime import default_mlflow_tracking_uri, resolve_device
+from vrp_diffusion_quantum.utils.runtime import (
+    capture_rng_state,
+    default_mlflow_tracking_uri,
+    resolve_device,
+    restore_rng_state,
+    seed_everything,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -220,6 +227,7 @@ def evaluate_constraint_denoiser(
     decision_threshold: float | None = None,
     adaptive_threshold: bool = True,
     t_sample: str = "uniform",
+    mixed_precision: bool = False,
 ) -> tuple[float, MatrixMetrics]:
     """Return mean val loss and matrix metrics on ``examples``.
 
@@ -239,27 +247,39 @@ def evaluate_constraint_denoiser(
     predictions: list[MatrixPrediction] = []
 
     model_device = next(model.parameters()).device
+    amp_enabled = mixed_precision and model_device.type == "cuda"
     for chunk in _example_chunks(examples, batch_size, same_size=same_size_batches, shuffle=False):
         batch = collate_batch(chunk)
         if model_device.type != "cpu":
             batch = _batch_to_device(batch, model_device)
         coords, demands, capacity = customer_tensors_from_batch(batch)
         m_t, t = _noise_batch(schedule, batch, generator=generator, t_sample=t_sample)
-        logits = model(coords, demands, capacity, m_t, t, customer_mask=batch.customer_mask)
-        total_loss += float(
-            diffusion_matrix_bce_loss(
+        with torch.autocast(
+            device_type=model_device.type,
+            dtype=torch.float16,
+            enabled=amp_enabled,
+        ):
+            logits = model(coords, demands, capacity, m_t, t, customer_mask=batch.customer_mask)
+            loss = diffusion_matrix_bce_loss(
                 logits,
                 batch.constraint_matrix,
                 batch.customer_mask,
                 weighted=weighted_bce,
                 pos_weight_power=pos_weight_power,
-            ).item()
-        )
+            )
+        if not bool(torch.isfinite(loss)):
+            raise FloatingPointError("non-finite validation loss")
+        total_loss += float(loss.item())
         num_batches += 1
 
-        m_prob = model.predict_proba(
-            coords, demands, capacity, m_t, t, customer_mask=batch.customer_mask
-        )
+        with torch.autocast(
+            device_type=model_device.type,
+            dtype=torch.float16,
+            enabled=amp_enabled,
+        ):
+            m_prob = model.predict_proba(
+                coords, demands, capacity, m_t, t, customer_mask=batch.customer_mask
+            )
         for i, example in enumerate(chunk):
             n_customers = example.instance.n_customers
             predictions.append(
@@ -287,6 +307,7 @@ def save_denoiser_checkpoint(
     best_metric_name: str,
     best_metric_value: float,
     extra: dict[str, Any] | None = None,
+    scaler: torch.amp.GradScaler | None = None,
 ) -> Path:
     """Write a resumable checkpoint ``.pt`` (model + optimizer + epoch metrics)."""
     target = Path(path)
@@ -298,7 +319,10 @@ def save_denoiser_checkpoint(
         "metrics": dict(row),
         "best_metric_name": best_metric_name,
         "best_metric_value": float(best_metric_value),
+        "rng_state": capture_rng_state(),
     }
+    if scaler is not None:
+        payload["scaler"] = scaler.state_dict()
     if extra:
         payload["extra"] = extra
     torch.save(payload, target)
@@ -334,6 +358,10 @@ def train_constraint_denoiser(
     adaptive_threshold: bool = True,
     t_sample: str = "uniform",
     sample_step_stride: int = 1,
+    mixed_precision: bool = False,
+    gradient_accumulation_steps: int = 1,
+    gradient_clip_norm: float | None = None,
+    max_runtime_seconds: float | None = None,
 ) -> list[dict[str, Any]]:
     """Train ``model`` to reconstruct clean ``M`` from noisy ``M_t``."""
     if augmentation:
@@ -343,6 +371,12 @@ def train_constraint_denoiser(
         raise ValueError(f"t_sample must be 'uniform' or 'high', got {t_sample!r}")
     if sample_step_stride < 1:
         raise ValueError(f"sample_step_stride must be >= 1, got {sample_step_stride}")
+    if gradient_accumulation_steps < 1:
+        raise ValueError("gradient_accumulation_steps must be >= 1")
+    if gradient_clip_norm is not None and gradient_clip_norm <= 0:
+        raise ValueError("gradient_clip_norm must be positive when set")
+    if max_runtime_seconds is not None and max_runtime_seconds <= 0:
+        raise ValueError("max_runtime_seconds must be positive when set")
     if not train_examples:
         raise ValueError("cannot train on an empty list of examples")
     if num_epochs < 1:
@@ -355,8 +389,13 @@ def train_constraint_denoiser(
     if device is not None:
         model.to(device)
         schedule.to(device)
+    model_device = next(model.parameters()).device
+    if mixed_precision and model_device.type != "cuda":
+        raise ValueError("mixed_precision requires a CUDA device")
+    amp_enabled = mixed_precision and model_device.type == "cuda"
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
     history: list[dict[str, Any]] = []
     ckpt_dir = Path(checkpoint_dir) if checkpoint_dir is not None else None
     if ckpt_dir is not None:
@@ -375,6 +414,10 @@ def train_constraint_denoiser(
             model.to(device)
         if "optimizer" in payload:
             optimizer.load_state_dict(payload["optimizer"])
+        if payload.get("scaler"):
+            scaler.load_state_dict(payload["scaler"])
+        if payload.get("rng_state"):
+            restore_rng_state(payload["rng_state"])
         start_epoch = int(payload.get("epoch", -1)) + 1
         if payload.get("best_metric_value") is not None:
             best_value = float(payload["best_metric_value"])
@@ -394,11 +437,20 @@ def train_constraint_denoiser(
             )
             return history
 
+    training_started = time.perf_counter()
+    total_optimizer_steps = 0
     for epoch in range(start_epoch, num_epochs):
+        epoch_started = time.perf_counter()
+        if model_device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats(model_device)
         model.train()
         train_generator = torch.Generator(device="cpu").manual_seed(seed + epoch)
         epoch_loss = 0.0
         num_batches = 0
+        examples_seen = 0
+        optimizer_steps = 0
+        pending_microbatches = 0
+        last_gradient_norm = float("nan")
         epoch_examples = _shuffle_and_maybe_augment_online(
             train_examples,
             seed=seed,
@@ -408,33 +460,88 @@ def train_constraint_denoiser(
         )
         batch_gen = torch.Generator().manual_seed(seed + 3_000 + epoch)
 
-        for batch in _batches(
-            epoch_examples,
-            batch_size,
-            same_size=same_size_batches or expand_any,
-            generator=batch_gen,
-            shuffle=same_size_batches or expand_any,
-            augmentation=augmentation,
-        ):
-            if device is not None:
-                batch = _batch_to_device(batch, device)
-            coords, demands, capacity = customer_tensors_from_batch(batch)
-            m_t, t = _noise_batch(schedule, batch, generator=train_generator, t_sample=t_sample)
+        optimizer.zero_grad(set_to_none=True)
 
-            optimizer.zero_grad()
-            logits = model(coords, demands, capacity, m_t, t, customer_mask=batch.customer_mask)
-            loss = diffusion_matrix_bce_loss(
-                logits,
-                batch.constraint_matrix,
-                batch.customer_mask,
-                weighted=weighted_bce,
-                pos_weight_power=pos_weight_power,
+        def optimizer_step(*, gradient_scale_correction: float = 1.0) -> float:
+            scaler.unscale_(optimizer)
+            if gradient_scale_correction != 1.0:
+                for parameter in model.parameters():
+                    if parameter.grad is not None:
+                        parameter.grad.mul_(gradient_scale_correction)
+            norm = torch.nn.utils.clip_grad_norm_(
+                model.parameters(),
+                max_norm=gradient_clip_norm if gradient_clip_norm is not None else float("inf"),
+                error_if_nonfinite=True,
             )
-            loss.backward()  # type: ignore[no-untyped-call]
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad(set_to_none=True)
+            return float(norm.detach().cpu())
 
-            epoch_loss += float(loss.item())
-            num_batches += 1
+        try:
+            for batch in _batches(
+                epoch_examples,
+                batch_size,
+                same_size=same_size_batches or expand_any,
+                generator=batch_gen,
+                shuffle=same_size_batches or expand_any,
+                augmentation=augmentation,
+            ):
+                if device is not None:
+                    batch = _batch_to_device(batch, device)
+                coords, demands, capacity = customer_tensors_from_batch(batch)
+                m_t, t = _noise_batch(schedule, batch, generator=train_generator, t_sample=t_sample)
+
+                with torch.autocast(
+                    device_type=model_device.type,
+                    dtype=torch.float16,
+                    enabled=amp_enabled,
+                ):
+                    logits = model(
+                        coords,
+                        demands,
+                        capacity,
+                        m_t,
+                        t,
+                        customer_mask=batch.customer_mask,
+                    )
+                    loss = diffusion_matrix_bce_loss(
+                        logits,
+                        batch.constraint_matrix,
+                        batch.customer_mask,
+                        weighted=weighted_bce,
+                        pos_weight_power=pos_weight_power,
+                    )
+                if not bool(torch.isfinite(loss)):
+                    raise FloatingPointError(f"non-finite training loss at epoch={epoch}")
+                scaled_loss = loss / gradient_accumulation_steps
+                scaler.scale(scaled_loss).backward()  # type: ignore[no-untyped-call]
+                pending_microbatches += 1
+
+                epoch_loss += float(loss.item())
+                num_batches += 1
+                examples_seen += int(batch.coords.shape[0])
+                if pending_microbatches == gradient_accumulation_steps:
+                    last_gradient_norm = optimizer_step()
+                    pending_microbatches = 0
+                    optimizer_steps += 1
+                    total_optimizer_steps += 1
+
+            if pending_microbatches:
+                # Correct the final short accumulation group back to its mean gradient.
+                last_gradient_norm = optimizer_step(
+                    gradient_scale_correction=(gradient_accumulation_steps / pending_microbatches)
+                )
+                optimizer_steps += 1
+                total_optimizer_steps += 1
+        except torch.OutOfMemoryError as exc:
+            if model_device.type == "cuda":
+                torch.cuda.empty_cache()
+            raise RuntimeError(
+                "CUDA out of memory during diffusion training. Reduce training.batch_size, "
+                "increase training.gradient_accumulation_steps, keep mixed_precision enabled, "
+                "or disable x9 augmentation."
+            ) from exc
 
         train_loss = epoch_loss / max(num_batches, 1)
 
@@ -451,6 +558,15 @@ def train_constraint_denoiser(
             decision_threshold=decision_threshold,
             adaptive_threshold=adaptive_threshold,
             t_sample=t_sample,
+            mixed_precision=mixed_precision,
+        )
+        epoch_runtime = time.perf_counter() - epoch_started
+        total_runtime = time.perf_counter() - training_started
+        peak_cuda_memory = (
+            int(torch.cuda.max_memory_allocated(model_device)) if model_device.type == "cuda" else 0
+        )
+        peak_cuda_memory_reserved = (
+            int(torch.cuda.max_memory_reserved(model_device)) if model_device.type == "cuda" else 0
         )
         row: dict[str, Any] = {
             "epoch": epoch,
@@ -465,6 +581,19 @@ def train_constraint_denoiser(
             "val_threshold": val_metrics.threshold,
             "val_calibration_error": val_metrics.calibration_error,
             "val_capacity_consistency": val_metrics.capacity_consistency,
+            "epoch_runtime_seconds": epoch_runtime,
+            "total_runtime_seconds": total_runtime,
+            "train_examples_seen": examples_seen,
+            "train_examples_per_second": examples_seen / max(epoch_runtime, 1e-9),
+            "microbatches": num_batches,
+            "optimizer_steps": optimizer_steps,
+            "optimizer_steps_per_second": optimizer_steps / max(epoch_runtime, 1e-9),
+            "total_optimizer_steps": total_optimizer_steps,
+            "gradient_norm": last_gradient_norm,
+            "mixed_precision": amp_enabled,
+            "gradient_accumulation_steps": gradient_accumulation_steps,
+            "peak_cuda_memory_bytes": peak_cuda_memory,
+            "peak_cuda_memory_reserved_bytes": peak_cuda_memory_reserved,
         }
 
         run_sample = (
@@ -549,6 +678,7 @@ def train_constraint_denoiser(
                 best_metric_name=best_metric,
                 best_metric_value=tracked_best,
                 extra=checkpoint_extra,
+                scaler=scaler,
             )
             callback_row["checkpoint_last"] = str(last_path)
             if is_best and best_value is not None:
@@ -561,6 +691,7 @@ def train_constraint_denoiser(
                     best_metric_name=best_metric,
                     best_metric_value=best_value,
                     extra=checkpoint_extra,
+                    scaler=scaler,
                 )
                 callback_row["checkpoint_best"] = str(best_path)
                 callback_row["is_best"] = True
@@ -581,6 +712,15 @@ def train_constraint_denoiser(
                 early_stop_patience,
                 best_metric,
                 best_value,
+            )
+            break
+
+        if max_runtime_seconds is not None and total_runtime >= max_runtime_seconds:
+            logger.info(
+                "runtime budget reached after epoch=%d: %.1fs >= %.1fs",
+                epoch,
+                total_runtime,
+                max_runtime_seconds,
             )
             break
 
@@ -647,9 +787,18 @@ def main() -> None:
     cfg_path = args.config if args.config.is_absolute() else _ROOT / args.config
     config = yaml.safe_load(cfg_path.read_text())
     seed = int(config["seed"])
-    torch.manual_seed(seed)
+    config["reproducibility"] = seed_everything(
+        seed,
+        deterministic=bool(config.get("training", {}).get("deterministic", False)),
+    )
 
-    dataset_path = _ROOT / config["dataset"]["path"]
+    dataset_path_value = config["dataset"].get("path")
+    if not dataset_path_value:
+        raise ValueError(
+            "dataset.path must be set; use a corpus-specific config such as "
+            "configs/train/diffusion_denoiser_s7799.yaml"
+        )
+    dataset_path = _ROOT / dataset_path_value
     output_root = _ROOT / config["output"]["root"]
     model_cfg = config["model"]
     train_cfg = config["training"]
@@ -795,6 +944,14 @@ def main() -> None:
                     "decision_threshold": decision_threshold,
                     "adaptive_threshold": adaptive_threshold,
                     "pos_weight_power": pos_weight_power,
+                    "training_runtime": {
+                        "mixed_precision": bool(train_cfg.get("mixed_precision", False)),
+                        "gradient_accumulation_steps": int(
+                            train_cfg.get("gradient_accumulation_steps", 1)
+                        ),
+                        "gradient_clip_norm": train_cfg.get("gradient_clip_norm"),
+                        "max_runtime_seconds": train_cfg.get("max_runtime_seconds"),
+                    },
                 },
                 sample_eval_examples=sample_eval_examples,
                 sample_eval_every=sample_eval_every,
@@ -812,6 +969,18 @@ def main() -> None:
                 adaptive_threshold=adaptive_threshold,
                 t_sample=str(train_cfg.get("t_sample", "uniform")),
                 sample_step_stride=int(sample_cfg.get("step_stride", 1)),
+                mixed_precision=bool(train_cfg.get("mixed_precision", False)),
+                gradient_accumulation_steps=int(train_cfg.get("gradient_accumulation_steps", 1)),
+                gradient_clip_norm=(
+                    None
+                    if train_cfg.get("gradient_clip_norm") is None
+                    else float(train_cfg["gradient_clip_norm"])
+                ),
+                max_runtime_seconds=(
+                    None
+                    if train_cfg.get("max_runtime_seconds") is None
+                    else float(train_cfg["max_runtime_seconds"])
+                ),
             )
 
             if not history:
@@ -853,6 +1022,13 @@ def main() -> None:
                 "train_loss_decreased": final["train_loss"] < history[0]["train_loss"],
                 "checkpoint_dir": str(checkpoint_dir),
                 "best_metric": best_metric,
+                "total_runtime_seconds": final["total_runtime_seconds"],
+                "train_examples_per_second": final["train_examples_per_second"],
+                "optimizer_steps_per_second": final["optimizer_steps_per_second"],
+                "peak_cuda_memory_bytes": final["peak_cuda_memory_bytes"],
+                "peak_cuda_memory_reserved_bytes": final["peak_cuda_memory_reserved_bytes"],
+                "mixed_precision": final["mixed_precision"],
+                "gradient_accumulation_steps": final["gradient_accumulation_steps"],
             }
             tracker.log_metrics(summary_metrics)
             if mlflow is not None:

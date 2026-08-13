@@ -1,11 +1,10 @@
-experiment_name: gat_pretrain
+experiment_name: gat_pretrain_s7799
 seed: 42
 dataset:
   name: cvrp_uniform_train
-  # Template: set this to a materialized training split, or use gat_pretrain_s7799.yaml locally.
-  path: null
+  path: cvrp_s7799_n20-50-100_x66667/splits/train
 validation:
-  path: null
+  path: cvrp_s7799_n20-50-100_x66667/splits/val
 output:
   root: outputs/train
 model:

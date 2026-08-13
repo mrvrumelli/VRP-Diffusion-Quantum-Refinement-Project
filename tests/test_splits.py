@@ -103,6 +103,29 @@ def test_make_dataset_splits_is_stratified_disjoint_and_reproducible(tmp_path: P
     for split_name in ("train", "val", "test"):
         assert splits[split_name]["sha256"] == second_splits[split_name]["sha256"]
     assert (tmp_path / "splits_a" / "split_manifest.json").is_file()
+    assert first["materialization"] == "hardlink"
+
+    first_train_file = next((tmp_path / "splits_a" / "train").glob("*.json"))
+    source_file = source / first_train_file.name
+    assert first_train_file.stat().st_ino == source_file.stat().st_ino
+
+
+def test_make_dataset_splits_can_copy_independent_files(tmp_path: Path) -> None:
+    source = tmp_path / "examples"
+    source.mkdir()
+    _write_examples(source, n_customers=2, count=3)
+
+    manifest = make_dataset_splits(
+        source,
+        tmp_path / "copied_splits",
+        seed=0,
+        materialization="copy",
+    )
+
+    copied_file = next((tmp_path / "copied_splits" / "train").glob("*.json"))
+    assert copied_file.read_bytes() == (source / copied_file.name).read_bytes()
+    assert copied_file.stat().st_ino != (source / copied_file.name).stat().st_ino
+    assert manifest["materialization"] == "copy"
 
 
 def test_make_dataset_splits_rejects_bad_or_destructive_targets(tmp_path: Path) -> None:
@@ -114,6 +137,10 @@ def test_make_dataset_splits_rejects_bad_or_destructive_targets(tmp_path: Path) 
         make_dataset_splits(source, tmp_path / "bad_fraction", seed=0, train_fraction=0.8)
     with pytest.raises(ValueError, match="descendants"):
         make_dataset_splits(source, source / "splits", seed=0)
+    with pytest.raises(ValueError, match="materialization"):
+        make_dataset_splits(  # type: ignore[arg-type]
+            source, tmp_path / "bad_materialization", seed=0, materialization="invalid"
+        )
 
     occupied = tmp_path / "occupied"
     occupied.mkdir()

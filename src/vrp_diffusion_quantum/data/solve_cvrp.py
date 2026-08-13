@@ -54,6 +54,8 @@ class CVRPSolution:
         feasible: whether the solution respects capacity and covers every customer.
         solver_name: ``\"pyvrp\"`` or ``\"ortools\"``.
         runtime_seconds: wall-clock time spent solving this instance.
+        time_budget: configured hard wall-clock limit, or ``None`` when using only the
+            no-improvement stopping criterion.
         seed: seed passed to the stochastic solver.
         fleet_mode: fleet constraint used while solving (``unlimited`` / ``up_to`` / ``exact``).
         fleet_size: configured fleet cap / exact size; ``None`` when unlimited.
@@ -67,6 +69,7 @@ class CVRPSolution:
     feasible: bool
     solver_name: str
     runtime_seconds: float
+    time_budget: float | None
     seed: int
     fleet_mode: FleetMode = "unlimited"
     fleet_size: int | None = None
@@ -454,6 +457,7 @@ def solve_instance(
         feasible=feasible,
         solver_name=solver,
         runtime_seconds=float(runtime),
+        time_budget=None if time_limit is None else float(time_limit),
         seed=seed,
         fleet_mode=fleet_mode,
         fleet_size=None if fleet_mode == "unlimited" else fleet_size,

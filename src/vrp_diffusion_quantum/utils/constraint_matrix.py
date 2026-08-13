@@ -35,7 +35,7 @@ def _normalize_n_customers(n_customers: object) -> int:
     return int(n_customers)
 
 
-def build_constraint_matrix(routes: list[list[int]], n_customers: int) -> npt.NDArray[np.int64]:
+def build_constraint_matrix(routes: list[list[int]], n_customers: int) -> npt.NDArray[np.uint8]:
     """Build the customer-customer route-membership constraint matrix M.
 
     Args:
@@ -44,7 +44,7 @@ def build_constraint_matrix(routes: list[list[int]], n_customers: int) -> npt.ND
         n_customers: Total number of customers. `M` has shape `[n_customers, n_customers]`.
 
     Returns:
-        `m_true`, an `int64` array of shape `[n_customers, n_customers]` with `m_true[i, j] == 1`
+        `m_true`, a `uint8` array of shape `[n_customers, n_customers]` with `m_true[i, j] == 1`
         iff `i` and `j` appear in the same route and `i != j`, symmetric, zero diagonal.
 
     Raises:
@@ -55,7 +55,7 @@ def build_constraint_matrix(routes: list[list[int]], n_customers: int) -> npt.ND
     if n_customers < 0:
         raise ValueError(f"n_customers must be non-negative, got {n_customers}")
 
-    m_true = np.zeros((n_customers, n_customers), dtype=np.int64)
+    m_true = np.zeros((n_customers, n_customers), dtype=np.uint8)
     assigned_customers: set[int] = set()
 
     for route in routes:

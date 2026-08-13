@@ -1,0 +1,14 @@
+config_name: cvrp_spatial_rc
+seed: 8803
+
+# Independent-seed, plain-CVRP spatial stress set. "RC" means a random/clustered customer mix;
+# this is inspired by the spatial taxonomy only and is not a Solomon VRPTW benchmark.
+sizes: [20, 50, 100]
+num_instances: 1000
+capacity: null
+depot_mode: random
+customer_mode: random_clustered
+demand_mode: uniform
+route_size: null
+cluster_decay: 0.04
+output_dir: data/raw/cvrp/spatial_stress_rc_s8803

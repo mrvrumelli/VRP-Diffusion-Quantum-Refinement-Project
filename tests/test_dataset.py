@@ -281,6 +281,7 @@ def test_save_and_load_example_round_trips(tmp_path: Path) -> None:
     assert loaded.solution.solver_name == example.solution.solver_name
 
     assert np.array_equal(loaded.constraint_matrix, example.constraint_matrix)
+    assert loaded.constraint_matrix.dtype == np.uint8
 
 
 def test_load_example_rejects_float_constraint_matrix_in_json(tmp_path: Path) -> None:

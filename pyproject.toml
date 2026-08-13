@@ -63,6 +63,9 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "cuda: tests that require a CUDA-capable GPU and CUDA-enabled PyTorch",
+]
 
 [tool.ruff]
 line-length = 100

@@ -74,7 +74,7 @@ def augment_example_d4(example: CVRPExample, k: int) -> CVRPExample:
     return CVRPExample(
         instance=new_instance,
         solution=example.solution,
-        constraint_matrix=np.asarray(example.constraint_matrix, dtype=np.int64).copy(),
+        constraint_matrix=np.asarray(example.constraint_matrix, dtype=np.uint8).copy(),
     )
 
 
@@ -114,7 +114,7 @@ def augment_example_rotation(example: CVRPExample, angle_degrees: float) -> CVRP
     return CVRPExample(
         instance=new_instance,
         solution=example.solution,
-        constraint_matrix=np.asarray(example.constraint_matrix, dtype=np.int64).copy(),
+        constraint_matrix=np.asarray(example.constraint_matrix, dtype=np.uint8).copy(),
     )
 
 

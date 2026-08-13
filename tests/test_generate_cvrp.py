@@ -3,6 +3,7 @@ from typing import get_args
 
 import numpy as np
 import pytest
+import yaml
 
 from vrp_diffusion_quantum.data.generate_cvrp import (
     DEFAULT_CAPACITY_BY_SIZE,
@@ -156,6 +157,29 @@ def test_clustered_mode_is_reproducible() -> None:
     first = generate_dataset(50, num_instances=6, seed=5, customer_mode="clustered")
     second = generate_dataset(50, num_instances=6, seed=5, customer_mode="clustered")
     np.testing.assert_array_equal(first.coords, second.coords)
+
+
+def test_spatial_stress_configs_are_disjoint_and_comparable() -> None:
+    root = Path(__file__).resolve().parents[1]
+    configs = [
+        yaml.safe_load((root / "configs/data/cvrp_spatial_r.yaml").read_text()),
+        yaml.safe_load((root / "configs/data/cvrp_spatial_c.yaml").read_text()),
+        yaml.safe_load((root / "configs/data/cvrp_spatial_rc.yaml").read_text()),
+    ]
+
+    assert [cfg["customer_mode"] for cfg in configs] == [
+        "random",
+        "clustered",
+        "random_clustered",
+    ]
+    assert len({cfg["seed"] for cfg in configs}) == 3
+    assert len({cfg["output_dir"] for cfg in configs}) == 3
+    for config in configs:
+        assert config["sizes"] == [20, 50, 100]
+        assert config["num_instances"] == 1000
+        assert config["depot_mode"] == "random"
+        assert config["demand_mode"] == "uniform"
+        assert config["capacity"] is None
 
 
 # --- depot distribution --------------------------------------------------------------------

@@ -52,11 +52,6 @@ __all__ = [
 ]
 
 _ROOT = Path(__file__).resolve().parents[3]
-_DEFAULT_VAL = _ROOT / (
-    "data/raw/cvrp/"
-    "20260801_052847_s42_n20-50-100_x10000_dep-random_cust-random_dem-uniform_"
-    "d20-1-9-50-1-9-100-1-9_cap20-30-50-40-100-50/splits/val"
-)
 
 
 @dataclass(frozen=True)
@@ -413,7 +408,7 @@ def _parse_sample_eval_args() -> argparse.Namespace:
         description="Full reverse-chain sample eval for a trained CMD denoiser."
     )
     parser.add_argument("--checkpoint", type=Path, required=True)
-    parser.add_argument("--val-dir", type=Path, default=_DEFAULT_VAL)
+    parser.add_argument("--val-dir", type=Path, required=True)
     parser.add_argument("--per-size", type=int, default=16)
     parser.add_argument("--sizes", type=int, nargs="+", default=[20, 50, 100])
     parser.add_argument("--seed", type=int, default=0)

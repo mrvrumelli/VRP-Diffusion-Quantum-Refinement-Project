@@ -1,0 +1,54 @@
+experiment_name: diffusion_denoiser_s7799_1k_cuda
+seed: 42
+dataset:
+  name: cvrp_uniform_train_s7799_1k_per_size
+  path: data/processed/s7799_1k_per_size/train
+validation:
+  path: data/processed/s7799_1k_per_size/val
+output:
+  root: outputs/train
+model:
+  hidden_dim: 192
+  num_layers: 8
+  time_embed_dim: 192
+  node_encoder_type: gat
+  gat_num_layers: 5
+  gat_num_heads: 8
+  gat_dropout: 0.0
+  gat_checkpoint: null
+  freeze_node_encoder: true
+schedule:
+  num_timesteps: 700
+  beta_start: 0.0001
+  beta_end: 0.02
+training:
+  # Bounded 3060 Ti run; 2.5h here plus the 30m GAT budget targets roughly 3h total.
+  # Runtime caps are checked after each completed epoch, so allow for one epoch of overshoot.
+  epochs: 100
+  learning_rate: 0.0003
+  batch_size: 4
+  device: cuda
+  deterministic: false
+  mixed_precision: true
+  gradient_accumulation_steps: 4
+  gradient_clip_norm: 1.0
+  max_runtime_seconds: 9000
+  augmentation: true
+  weighted_bce: true
+  pos_weight_power: 0.5
+  same_size_batches: true
+  adaptive_threshold: true
+  early_stop_patience: 0
+  t_sample: high
+checkpoint:
+  # Available every epoch; full-chain sample F1 remains a less frequent monitoring metric.
+  best_metric: val_auc
+  minimize: false
+sample_eval:
+  every: 2
+  per_size: 2
+  sizes: [20, 50, 100]
+  # Bounded training monitor; use stride 1 for final evaluation.
+  step_stride: 10
+mlflow:
+  enabled: true

@@ -80,6 +80,8 @@ def load_example(path: str | Path) -> CVRPExample:
         runtime_seconds=float(solution_payload["runtime_seconds"]),
     )
 
+    # Preserve the serialized dtype through CVRPExample validation so malformed float values are
+    # rejected before the validated binary matrix is compacted to uint8.
     constraint_matrix = np.array(payload["constraint_matrix"])
     return CVRPExample(instance=instance, solution=solution, constraint_matrix=constraint_matrix)
 

@@ -108,7 +108,7 @@ class CVRPExample:
 
     instance: CVRPInstance
     solution: LabeledSolution
-    constraint_matrix: npt.NDArray[np.int64]  # [n_customers, n_customers], m_true
+    constraint_matrix: npt.NDArray[np.uint8]  # [n_customers, n_customers], m_true
 
     def __post_init__(self) -> None:
         n_customers = self.instance.n_customers
@@ -130,4 +130,4 @@ class CVRPExample:
         if not np.array_equal(self.constraint_matrix, expected):
             raise ValueError("constraint_matrix does not match solution.routes")
 
-        self.constraint_matrix = self.constraint_matrix.astype(np.int64, copy=False)
+        self.constraint_matrix = self.constraint_matrix.astype(np.uint8, copy=False)

@@ -165,8 +165,35 @@ def test_train_constraint_denoiser_writes_checkpoints(tmp_path: Path) -> None:
     assert best_path.is_file()
     payload = torch.load(best_path, map_location="cpu", weights_only=False)
     assert "model" in payload and "optimizer" in payload
+    assert "scaler" in payload and "rng_state" in payload
     assert payload["best_metric_name"] == "val_loss"
     assert int(payload["epoch"]) >= 0
+
+
+def test_train_constraint_denoiser_accumulates_and_logs_runtime() -> None:
+    examples = [_example(5, seed=i) for i in range(3)]
+    model = ConstraintDenoiser(hidden_dim=8, num_layers=1, time_embed_dim=8)
+    schedule = BernoulliDiffusionSchedule(num_timesteps=10)
+
+    history = train_constraint_denoiser(
+        model,
+        schedule,
+        examples,
+        num_epochs=1,
+        learning_rate=0.01,
+        batch_size=2,
+        seed=0,
+        gradient_accumulation_steps=2,
+        gradient_clip_norm=1.0,
+    )
+
+    row = history[0]
+    assert row["microbatches"] == 2
+    assert row["optimizer_steps"] == 1
+    assert row["gradient_accumulation_steps"] == 2
+    assert row["epoch_runtime_seconds"] > 0
+    assert row["train_examples_per_second"] > 0
+    assert np.isfinite(row["gradient_norm"])
 
 
 def test_train_diffusion_script_logs_metrics(tmp_path: Path) -> None:

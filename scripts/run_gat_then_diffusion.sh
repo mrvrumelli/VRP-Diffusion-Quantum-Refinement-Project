@@ -8,6 +8,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 mkdir -p outputs
 export PYTHONUNBUFFERED=1
+VRP_PYTHON_BIN="${VRP_PYTHON_BIN:-python}"
 
 GAT_CFG="${1:-configs/train/gat_pretrain.yaml}"
 DIFF_CFG="${2:-configs/train/diffusion_denoiser.yaml}"
@@ -18,7 +19,7 @@ DIFF_LOG="outputs/${DIFF_EXP}_live.log"
 TMP_CFG="outputs/${DIFF_EXP}_runtime.yaml"
 
 echo "[1/2] GAT pretrain ($GAT_CFG)..."
-python scripts/pretrain_gat_encoder.py --config "$GAT_CFG" \
+"$VRP_PYTHON_BIN" scripts/pretrain_gat_encoder.py --config "$GAT_CFG" \
   2>&1 | tee "$GAT_LOG"
 
 GAT_CKPT=""
@@ -34,7 +35,7 @@ if [[ -z "$GAT_CKPT" ]]; then
 fi
 echo "Using GAT checkpoint: $GAT_CKPT"
 
-python - <<PY
+"$VRP_PYTHON_BIN" - <<PY
 from pathlib import Path
 import yaml
 root = Path("$ROOT")
@@ -46,7 +47,7 @@ print("wrote", out)
 PY
 
 echo "[2/2] Diffusion denoise (frozen GAT) ($TMP_CFG)..."
-python -m vrp_diffusion_quantum.train.train_diffusion --config "$TMP_CFG" \
+"$VRP_PYTHON_BIN" -m vrp_diffusion_quantum.train.train_diffusion --config "$TMP_CFG" \
   2>&1 | tee "$DIFF_LOG"
 
 echo "Pipeline finished."
