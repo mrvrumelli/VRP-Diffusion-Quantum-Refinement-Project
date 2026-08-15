@@ -23,6 +23,23 @@
 - [x] Run exact 700-step full-chain validation and one-time untouched-test evaluation per size.
 - [x] Save environment, driver, configs, manifests, logs, checkpoints, metrics, and decision report.
 
+## Next-stage research plan
+
+The exact full-chain result, rather than noisy-time AUC, determines the next work. Follow
+[`route_partition_ambiguity_plan.md`](route_partition_ambiguity_plan.md) in this order:
+
+- [ ] Implement matrix-to-route decoding, feasibility, cost-gap, repair, and refinement evaluation.
+- [ ] Diagnose reverse-process degradation on stable CVRP20 with fixed comparable samplers.
+- [ ] Add a fixed full-chain validation panel and use it for checkpoint selection.
+- [ ] Add canonical plus frozen oracle best-of-K evaluation for ambiguous audited cases.
+- [ ] Run a one-reference-per-source-per-epoch stochastic probe with matched optimizer steps.
+- [ ] Add training-only consensus targets and pair-confidence masks without weakening the binary
+  `CVRPExample.constraint_matrix` invariant.
+- [ ] Compare policy-v2, exclusion, stochastic, consensus, and masked arms under identical compute.
+- [ ] Require a CVRP100-specific gain without material CVRP20/CVRP50 regression.
+- [ ] Freeze the sampler, target, checkpoint, and decoder before one-time test evaluation.
+- [ ] Generate additional strong labels only after a verified model-side gain.
+
 This is the operational checklist for the Windows 11 / RTX 3060 Ti machine. The first
 1k-per-size run is a pipeline and throughput pilot, not final model training.
 

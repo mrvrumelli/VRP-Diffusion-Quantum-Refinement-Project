@@ -1,128 +1,181 @@
-# Resolving CVRP100 route-partition ambiguity
+# CVRP route-partition ambiguity and full-chain improvement plan
 
-## The problem, precisely
+## Scope and current evidence
 
-The model target is the customer-customer route-membership matrix built by
-[`build_constraint_matrix`](../src/vrp_diffusion_quantum/utils/constraint_matrix.py):
-`M[i,j] = 1` iff customers `i` and `j` are in the same route. Training uses a single hard
-binary `M` per instance and plain BCE-with-logits against it
-(`diffusion_matrix_bce_loss` in
-[`train_diffusion.py`](../src/vrp_diffusion_quantum/train/train_diffusion.py)).
+The model predicts the customer route-membership matrix: `M[i,j] = 1` exactly when customers
+`i` and `j` occur in the same route. Current training uses one hard binary matrix per instance and
+BCE-with-logits in [`train_diffusion.py`](../src/vrp_diffusion_quantum/train/train_diffusion.py).
 
-The audit (`label_audit.py`, see [`label_audit_s7799_decision.md`](label_audit_s7799_decision.md))
-showed that for CVRP100, multiple route partitions routinely tie on cost
-(`near_best_relative_tolerance`) but disagree on which customers share a route
-(`max_near_best_matrix_disagreement`, `max_customer_membership_instability`). Only 47.8% of
-CVRP100 sources are `matrix_target_accepted`. Longer solving (40s → 80s → 120s) fixed
-under-convergence but barely touched this disagreement (80s: only 1/10 matrix-only-ambiguous
-cases became accepted; 120s: 1/18).
+The audit in [`label_audit_s7799_decision.md`](label_audit_s7799_decision.md) found several
+feasible, near-best solver references that disagree on route membership. Only 239/500 CVRP100
+sources passed the strict matrix-stability gate. Increasing solver budgets from 40 to 80 and 120
+seconds did not reliably remove the disagreement.
 
-**This means the ground truth itself is multi-valued for roughly half of CVRP100.** No amount of
-extra solving or extra same-shape training data fixes that; a single hard binary target is the
-wrong representation for those instances. The two probing rounds already ruled out one
-lever (solver time) and one framing (append the alternates as duplicate examples — the
-`mixed/multi-reference` policy's apparent AUC gain vanished once compute-matched, per the
-policy-v2 table in the decision doc). What's left is changing *what* the model is asked to fit
-on ambiguous instances, not how much data or compute it gets.
+This shows that the **available supervision is empirically multi-valued**. It does not prove that
+every competitive candidate is globally optimal, that candidates are equally valid, or that an
+accepted case has a mathematically unique answer. Audit acceptance means only that a case passed
+the declared cost and matrix-stability gates.
 
-## Candidate approaches
+Ambiguity is not the complete explanation for current end-to-end quality:
 
-### 1. Soft/averaged target over near-best matrices (recommended first experiment)
+| Size | Exact untouched-test F1 | Strict test matrix acceptance |
+|---|---:|---:|
+| CVRP20 | 0.4206 | 20/20 |
+| CVRP50 | 0.4522 | 18/20 |
+| CVRP100 | 0.4305 | 9/20 |
 
-For each accepted-cost-but-matrix-unstable instance, `label_audit.py` already computes the set
-of `near_best` PyVRP candidates. Instead of picking one and discarding the rest, build
-`M_soft[i,j] = mean_k(M_k[i,j])` across the near-best candidate matrices and train with BCE
-against `M_soft` (soft targets, not one-hot) rather than replicating each candidate as a
-separate hard-labeled example.
+CVRP20 has stable supervision but still has low full-chain F1. Reverse diffusion and route
+decoding are therefore system-wide primary bottlenecks. Ambiguity-aware supervision is a targeted
+second workstream, especially for CVRP100.
 
-- Why this is different from the multi-reference policy already tried: that policy duplicated
-  *examples* (more optimizer steps per instance), which is exactly the confound the decision doc
-  identified. A soft target changes the *loss target* for the same one-example-per-instance,
-  compute-matched setup — it never leaves the audit's step-matched protocol.
-- Implementation surface: add a `soft_multi_reference` `LabelMode` to
-  `TrainingLabelPolicy`/`materialize_training_labels` in
-  [`training_labels.py`](../src/vrp_diffusion_quantum/data/training_labels.py) that writes a
-  float-valued matrix (or stores the `near_best` route list and averages at load time) instead of
-  a single `LabeledSolution`. `diffusion_matrix_bce_loss` already takes arbitrary float targets
-  via `m_true` — soft labels work unmodified as long as `dataset.py`'s loader accepts non-binary
-  targets.
-- Where to apply it: only on `needs_review` / `matrix_target_accepted=False` instances. Leave
-  stable instances (CVRP20, most of CVRP50, the accepted ~48% of CVRP100) as-is with hard
-  targets, since the audit already confirms those have a real single answer — softening them
-  would only add noise.
+## Workstream A: full-chain sampling and routing utility (primary)
 
-### 2. Mask ambiguous pairs instead of guessing them
+### A1. Establish decoded route-quality evaluation
 
-For each instance, `label_audit.py`'s customer-instability computation (`np.mean(first_m !=
-second_m, axis=1)`) already identifies *which specific `(i,j)` pairs* disagree across near-best
-solutions, not just that the instance as a whole is unstable. Most pairs in a CVRP100 instance
-are *not* ambiguous — only the boundary customers near a route split are.
+Convert predicted matrices into routes and report on fixed frozen examples:
 
-- Build a per-instance confidence/consensus mask: `agree[i,j] = 1` if all near-best candidates
-  agree on whether `i,j` share a route, `0` otherwise. Train BCE only on `agree==1` pairs (set
-  `pair_ok` in `diffusion_matrix_bce_loss` to `pair_ok & agree`), or down-weight disagreeing pairs
-  instead of dropping them.
-- This is likely higher-value than approach 1 for CVRP100 specifically, because the audit's own
-  numbers say the ambiguity is localized (mean matrix disagreement is much smaller than "half the
-  matrix is wrong" — it's boundary customers), so most of a CVRP100 instance's signal is still
-  trustworthy and shouldn't be diluted by averaging.
-- Combine with #1: use the mask to decide *where* to blend probabilities, and use the hard/near-1/near-0
-  target elsewhere.
+- capacity-feasible rate and violation counts;
+- decoded cost and gap to the strongest audited reference;
+- vehicle count and route-size plausibility;
+- decoding, repair, classical-refinement, and quantum-refinement runtime;
+- matrix metrics before and after repair/refinement.
 
-### 3. Stochastic one-reference-per-epoch resampling
+Matrix recovery alone cannot establish whether predictions are useful for routing. This evaluator
+is required before generating a larger label corpus.
 
-Instead of writing multiple materialized files or a fixed soft target, resample which near-best
-candidate is used as the hard label each epoch (fixed seed per epoch, e.g.
-`candidate = near_best[epoch_seed % len(near_best)]`). Over many epochs the expected loss
-approximates the soft target from #1, without a new label format — implemented entirely in the
-`Dataset.__getitem__`/collate path in [`dataset.py`](../src/vrp_diffusion_quantum/data/dataset.py).
+### A2. Diagnose reverse-process degradation on stable CVRP20
 
-- Cheaper to prototype than #1 since it needs no new materialized dataset, only a dataset-side
-  hook that reads the already-cached `near_best` candidates from the audit directory.
-- Downside: noisier per-epoch loss, and still forces one full hard answer per step rather than
-  reflecting genuine uncertainty in a single forward pass — worse than #1 for eval-time
-  calibration, better as a quick sanity check that soft-target-style training helps before
-  investing in #1's data materialization.
+With the same checkpoint and examples, compare:
 
-### 4. Exclude irreducibly ambiguous instances from binary-target training
+- exact 700-step ancestral sampling;
+- deterministic/probability-based transitions;
+- fewer steps using explicitly defined timestep subsequences;
+- realistic initial positive prevalence versus unconstrained noise;
+- alternative Bernoulli schedules and 100/300/700 training timesteps;
+- constraint-guided versus unguided sampling.
 
-For the ~9% of CVRP100 (per the 120s follow-up: only 1/18 resolved) that stay matrix-unstable
-even at 120s, drop them from binary-target training entirely and route them to a held-out
-"structurally ambiguous" evaluation bucket instead of forcing a label. This is the cheapest
-option and a reasonable floor/control to compare 1–3 against — it directly tests whether the
-remaining ambiguous-but-included instances are net helpful or net harmful to include at all.
+Keep inference seed, examples, timestep definition, and hard threshold fixed. Never compare runs
+with different `step_stride` values as if they used the same sampler.
 
-### 5. Reframe evaluation to be partition-invariant
+### A3. Select checkpoints using full-chain evidence
 
-Independent of what training does, `predict_matrix.py` / full-chain eval currently scores against
-one frozen reference matrix per validation/test instance. For instances with multiple accepted
-near-best partitions, evaluate against the *best-matching* near-best reference (max AUC/F1 over
-the accepted candidate set) rather than a single arbitrary one. This doesn't change training but
-stops the eval from penalizing the model for recovering a *different, equally valid* partition
-than the one frozen as ground truth — which is likely inflating the apparent full-chain error on
-CVRP100 independent of any modeling fix above.
+Noisy-time AUC remains a useful diagnostic but should not be the only checkpoint criterion.
+Future bounded runs should evaluate a fixed full-chain validation panel every one or two epochs,
+keep its sampler fixed, and select primarily by full-chain F1 or decoded route quality.
 
-## Recommended sequence
+## Workstream B: ambiguity-aware supervision and evaluation
 
-1. Implement #5 (partition-invariant eval) first — it's cheap, changes nothing about training,
-   and gives a cleaner baseline to measure #1–#3 against. Some of the current CVRP100 full-chain
-   gap may already shrink from this alone.
-2. Run #3 (stochastic resampling) as a fast, low-engineering probe on the existing
-   `needs_review` CVRP100 subset, compute-matched against the current policy-v2 baseline.
-3. If #3 shows a real, compute-matched improvement, invest in #1 (materialized soft targets) plus
-   #2 (pair masking) as the production label policy for CVRP100 — these are more principled and
-   give better-calibrated probabilities than epoch-level resampling.
-4. Use #4 as a control arm in the same comparison: does keeping the worst ~9% help or hurt once
-   1–3 are in place?
+### B1. Partition-invariant evaluation
 
-## Guardrails (carried over from the policy-v2 comparison)
+For audited ambiguous cases, report:
 
-- Match optimizer steps/epochs exactly across arms — the original multi-reference confound was
-  purely a step-count artifact, not a real modeling gain.
-- Keep CVRP20/CVRP50 and the already-accepted CVRP100 instances on hard targets; only change the
-  representation for instances the audit already flagged as `needs_review`.
-- Never select among these options using the untouched test split — use the same frozen
-  validation set and fixed seeds as the existing comparisons in
-  [`3060ti_training_report.md`](3060ti_training_report.md).
-- Record dataset hashes and manifests for any new materialized label set, same as
-  `training_label_manifest.json` does today.
+1. canonical-reference matrix metrics;
+2. best-of-K metrics, labeled **oracle best-known-reference agreement**;
+3. decoded feasibility and route-cost gap.
+
+Freeze the candidate set and competitive-cost tolerance before evaluating models. Use one declared
+matching criterion to choose the oracle reference; do not choose a different reference for every
+metric. Oracle agreement does not prove that a generated partition is feasible or optimal.
+
+### B2. Separate audit categories
+
+| Audit category | First experimental treatment |
+|---|---|
+| Cost-stable, matrix-stable | Hard strongest target |
+| Cost-stable, matrix-unstable | Stochastic or consensus target |
+| Cost-unstable, matrix-stable | Reduced-confidence hard target plus exclusion control |
+| Cost-unstable, matrix-unstable | Masked/exclusion control before consensus training |
+
+The 18-instance 120-second follow-up was deliberately enriched for difficult cases and cannot
+estimate a population percentage. The corpus-wide result remains 261/500 CVRP100 sources needing
+review under the declared audit.
+
+### B3. Compute-matched stochastic-reference probe
+
+For each ambiguous source, select one precomputed competitive hard reference per epoch using a
+deterministic `(seed, epoch, source_id)` rule. Every source contributes at most one example per
+epoch, matching policy-v2 instance weight. Load candidate matrices once; do not read solver JSON
+inside every `Dataset.__getitem__`. Use the selected hard matrix for both `m_t` and the loss target.
+
+This is a probe, not assumed equivalent to consensus BCE. Dynamic class weights and
+reference-dependent forward noising make the objectives different.
+
+### B4. Explicit consensus targets and confidence masks
+
+For cost-stable, matrix-unstable sources, construct:
+
+```text
+target_probability[i,j] = mean_k(M_k[i,j])
+target_confidence[i,j]  = agreement_weight(M_1[i,j], ..., M_K[i,j])
+```
+
+Do **not** weaken `CVRPExample.constraint_matrix`; it should remain binary, symmetric,
+zero-diagonal, and consistent with `solution.routes`. Add training-only target/confidence fields or
+a versioned sidecar referenced by the training-label manifest.
+
+The first consensus experiment should preserve valid hard diffusion states:
+
+1. deterministically sample one competitive hard reference;
+2. construct `m_t` from that hard reference;
+3. predict clean membership probabilities;
+4. score against the consensus target;
+5. mask or down-weight disputed pairs.
+
+Directly noising fractional `m_0` changes the Bernoulli forward process and belongs in a separate,
+explicitly derived experiment. Freeze positive-class weights from the corpus, or account for them
+explicitly, so experimental arms remain comparable.
+
+### B5. Exclusion control
+
+Exclude the least trustworthy category as a control, not as the assumed solution. Report unique
+sources and optimizer steps, and do not silently give retained instances extra updates.
+
+## Controlled experiment
+
+After Workstream A supplies a fixed evaluator, compare:
+
+| Arm | Stable sources | Ambiguous sources | Weight per source |
+|---|---|---|---:|
+| Policy-v2 baseline | Hard | Hard strongest | 1 |
+| Exclusion control | Hard | Excluded by declared category | 0 or 1 |
+| Stochastic reference | Hard | One hard reference per epoch | 1 |
+| Consensus target | Hard | Mean competitive matrix | 1 |
+| Consensus plus mask | Hard | Mean matrix and pair confidence | 1 |
+
+Keep fixed across arms:
+
+- source membership and declared exclusions;
+- optimizer-step budget and effective batch size;
+- seeds, GAT checkpoint, diffusion schedule, and timestep sampler;
+- positive-class weighting definition;
+- validation membership and candidate sets;
+- full-chain seed, timestep sequence, and threshold policy;
+- decoder and refinement budgets.
+
+Report overall and per-size noisy-time metrics, exact full-chain metrics, oracle agreement, decoded
+feasibility/cost, calibration, runtime, and memory. Require a CVRP100-specific improvement without
+material CVRP20/CVRP50 regression before adopting ambiguity-aware supervision.
+
+## Recommended execution order
+
+```text
+1. Implement matrix-to-route feasibility and cost evaluation
+2. Diagnose exact full-chain degradation using stable CVRP20
+3. Freeze canonical plus oracle best-of-K evaluation
+4. Run the compute-matched stochastic-reference probe
+5. Add explicit consensus-target and confidence-mask schema
+6. Compare baseline, exclusion, stochastic, consensus, and masked arms
+7. Repeat exact validation and decoded route evaluation
+8. Generate more strong labels only after a verified model-side gain
+```
+
+## Decision gates
+
+- Do not generate a broad label corpus merely to improve noisy-time metrics.
+- Do not use untouched test data for sampler, threshold, checkpoint, or ambiguity-policy selection.
+- Adopt a new target representation only if it improves fixed full-chain or decoded-route
+  validation under matched compute.
+- Use the untouched test once after the complete sampler, target, checkpoint rule, and decoder are
+  frozen.
+- Preserve originals and version every target sidecar, candidate set, config, manifest, and result
+  with hashes.
