@@ -1,0 +1,28 @@
+config_name: label_audit_s7799_test20_policy_v2
+input_dir: data/processed/s7799_test20_policy_v2_source
+output_dir: outputs/label_audit/s7799_test20_policy_v2
+
+expected_counts_by_size:
+  20: 20
+  50: 20
+  100: 20
+
+pyvrp:
+  base_seeds: [9301, 9302, 9303, 9304]
+  time_budgets_by_size:
+    20: 10.0
+    50: 20.0
+    100: 40.0
+
+ortools:
+  stable_sample_per_size: 5
+
+acceptance:
+  near_best_relative_tolerance: 0.001
+  seed_spread_relative_tolerance: 0.005
+  matrix_disagreement_tolerance: 0.05
+  challenger_improvement_relative_tolerance: 0.000001
+  minimum_near_best_seeds: 2
+
+# Conservative on the 12-thread desktop; leave one third of logical CPUs free.
+workers: 8

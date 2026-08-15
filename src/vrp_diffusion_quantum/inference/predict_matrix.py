@@ -458,7 +458,7 @@ def main() -> None:
     print(f"scoring {len(examples)} examples (per_size={args.per_size}, sizes={args.sizes})")
 
     metrics = evaluate_full_chain_sampling(model, schedule, examples, device=device, seed=args.seed)
-    print("=== full T→0 vs m_true ===")
+    print("=== full T->0 vs m_true ===")
     for key in sorted(metrics):
         print(f"  {key}: {metrics[key]}")
 

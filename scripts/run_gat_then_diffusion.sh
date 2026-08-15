@@ -38,10 +38,9 @@ echo "Using GAT checkpoint: $GAT_CKPT"
 "$VRP_PYTHON_BIN" - <<PY
 from pathlib import Path
 import yaml
-root = Path("$ROOT")
-cfg = yaml.safe_load((root / "$DIFF_CFG").read_text())
+cfg = yaml.safe_load(Path("$DIFF_CFG").read_text())
 cfg["model"]["gat_checkpoint"] = "$GAT_CKPT"
-out = root / "$TMP_CFG"
+out = Path("$TMP_CFG")
 out.write_text(yaml.safe_dump(cfg, sort_keys=False))
 print("wrote", out)
 PY

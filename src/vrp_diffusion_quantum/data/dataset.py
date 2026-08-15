@@ -87,8 +87,12 @@ def load_example(path: str | Path) -> CVRPExample:
 
 
 def load_dataset(dataset_dir: str | Path) -> list[CVRPExample]:
-    """Load every `*.json` example file in `dataset_dir`, sorted by filename for determinism."""
-    example_paths = sorted(Path(dataset_dir).glob("*.json"))
+    """Load example JSON files, excluding dataset metadata, in deterministic order."""
+    example_paths = sorted(
+        path
+        for path in Path(dataset_dir).glob("*.json")
+        if path.name not in {"subset_manifest.json", "training_label_manifest.json"}
+    )
     return [load_example(example_path) for example_path in example_paths]
 
 

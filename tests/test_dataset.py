@@ -314,6 +314,16 @@ def test_load_dataset_reads_all_examples_sorted(tmp_path: Path) -> None:
     assert [example.instance.instance_id for example in examples] == ["toy_0", "toy_1"]
 
 
+def test_load_dataset_ignores_subset_manifest(tmp_path: Path) -> None:
+    save_example(_tiny_example(), tmp_path / "toy_0.json")
+    (tmp_path / "subset_manifest.json").write_text(json.dumps({"count": 1}))
+    (tmp_path / "training_label_manifest.json").write_text(json.dumps({"count": 1}))
+
+    examples = load_dataset(tmp_path)
+
+    assert [example.instance.instance_id for example in examples] == ["toy_0"]
+
+
 def test_load_dataset_on_empty_directory_returns_empty_list(tmp_path: Path) -> None:
     assert load_dataset(tmp_path) == []
 

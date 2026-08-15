@@ -1,0 +1,25 @@
+config_name: label_audit_cvrp100_followup_80s
+input_dir: data/processed/label_audit_cvrp100_followup_80s
+output_dir: outputs/label_audit/cvrp100_followup_80s
+
+expected_counts_by_size:
+  100: 50
+
+pyvrp:
+  # Same derived seeds as the 40-second audit isolate the effect of doubling runtime.
+  base_seeds: [9101, 9102, 9103, 9104]
+  time_budgets_by_size:
+    100: 80.0
+
+ortools:
+  # All stable controls are challenged; unstable examples are always selected automatically.
+  stable_sample_per_size: 10
+
+acceptance:
+  near_best_relative_tolerance: 0.001
+  seed_spread_relative_tolerance: 0.005
+  matrix_disagreement_tolerance: 0.05
+  challenger_improvement_relative_tolerance: 0.000001
+  minimum_near_best_seeds: 2
+
+workers: null

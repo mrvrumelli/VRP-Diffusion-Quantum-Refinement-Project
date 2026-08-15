@@ -42,3 +42,15 @@ def test_select_example_subset_rejects_insufficient_or_occupied_output(tmp_path:
     (occupied / "keep.txt").write_text("keep")
     with pytest.raises(FileExistsError, match="not empty"):
         select_example_subset(source, occupied, sizes=[2], per_size=1, seed=0)
+
+
+def test_select_example_subset_ignores_dataset_manifests(tmp_path: Path) -> None:
+    source = tmp_path / "examples"
+    source.mkdir()
+    _write_examples(source, n_customers=2, count=2)
+    (source / "subset_manifest.json").write_text("{}")
+    (source / "training_label_manifest.json").write_text("{}")
+
+    result = select_example_subset(source, tmp_path / "selected", sizes=[2], per_size=1, seed=0)
+
+    assert result["count"] == 1

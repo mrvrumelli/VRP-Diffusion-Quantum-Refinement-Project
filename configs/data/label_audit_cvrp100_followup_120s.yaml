@@ -1,0 +1,25 @@
+config_name: label_audit_cvrp100_followup_120s
+input_dir: data/processed/label_audit_cvrp100_followup_120s
+output_dir: outputs/label_audit/cvrp100_followup_120s
+
+expected_counts_by_size:
+  100: 18
+
+pyvrp:
+  # Final bounded escalation: only cases still cost-unconverged after 80 seconds.
+  base_seeds: [9101, 9102, 9103, 9104]
+  time_budgets_by_size:
+    100: 120.0
+
+ortools:
+  # Unstable cases are challenged automatically; no additional controls are needed.
+  stable_sample_per_size: 0
+
+acceptance:
+  near_best_relative_tolerance: 0.001
+  seed_spread_relative_tolerance: 0.005
+  matrix_disagreement_tolerance: 0.05
+  challenger_improvement_relative_tolerance: 0.000001
+  minimum_near_best_seeds: 2
+
+workers: null

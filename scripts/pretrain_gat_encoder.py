@@ -203,7 +203,9 @@ def main() -> None:
                         max_norm=(
                             gradient_clip_norm if gradient_clip_norm is not None else float("inf")
                         ),
-                        error_if_nonfinite=True,
+                        # GradScaler handles transient AMP overflow by skipping
+                        # the step and reducing its scale after unscale_.
+                        error_if_nonfinite=not mixed_precision,
                     )
                     scaler.step(optimizer)
                     scaler.update()

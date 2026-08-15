@@ -1,0 +1,32 @@
+experiment_name: gat_pretrain_s7799_policy_v1_smoke_cuda
+seed: 4322
+dataset:
+  name: s7799_policy_v1_smoke
+  path: data/processed/s7799_policy_v1_smoke/train
+validation:
+  path: data/processed/s7799_policy_v1_smoke/val
+output:
+  root: outputs/train
+model:
+  hidden_dim: 192
+  gat_num_layers: 5
+  gat_num_heads: 8
+  dropout: 0.0
+training:
+  epochs: 1
+  learning_rate: 0.001
+  batch_size: 8
+  device: cuda
+  deterministic: false
+  mixed_precision: true
+  gradient_accumulation_steps: 2
+  gradient_clip_norm: 1.0
+  max_runtime_seconds: 600
+  augmentation: false
+  weighted_bce: true
+  pos_weight_power: 0.5
+  same_size_batches: true
+  adaptive_threshold: true
+  early_stop_patience: 0
+mlflow:
+  enabled: false

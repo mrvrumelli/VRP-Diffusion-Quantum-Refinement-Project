@@ -25,6 +25,7 @@ import torch
 import torch.nn.functional as ff
 import yaml
 from torch import Tensor
+from torch.amp.grad_scaler import GradScaler
 
 from vrp_diffusion_quantum.data.dataset import (
     CVRPBatch,
@@ -307,7 +308,7 @@ def save_denoiser_checkpoint(
     best_metric_name: str,
     best_metric_value: float,
     extra: dict[str, Any] | None = None,
-    scaler: torch.amp.GradScaler | None = None,
+    scaler: GradScaler | None = None,
 ) -> Path:
     """Write a resumable checkpoint ``.pt`` (model + optimizer + epoch metrics)."""
     target = Path(path)
@@ -395,7 +396,7 @@ def train_constraint_denoiser(
     amp_enabled = mixed_precision and model_device.type == "cuda"
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
+    scaler = GradScaler("cuda", enabled=amp_enabled)
     history: list[dict[str, Any]] = []
     ckpt_dir = Path(checkpoint_dir) if checkpoint_dir is not None else None
     if ckpt_dir is not None:
@@ -471,7 +472,10 @@ def train_constraint_denoiser(
             norm = torch.nn.utils.clip_grad_norm_(
                 model.parameters(),
                 max_norm=gradient_clip_norm if gradient_clip_norm is not None else float("inf"),
-                error_if_nonfinite=True,
+                # GradScaler records non-finite gradients during unscale_ and skips
+                # the optimizer step below while reducing its scale. Raising here
+                # prevents that normal AMP recovery path from running.
+                error_if_nonfinite=not amp_enabled,
             )
             scaler.step(optimizer)
             scaler.update()

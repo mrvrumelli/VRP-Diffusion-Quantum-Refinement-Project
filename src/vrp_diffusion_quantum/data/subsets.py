@@ -16,6 +16,7 @@ from vrp_diffusion_quantum.utils.experiment import hash_dataset
 __all__ = ["select_example_subset"]
 
 _SIZE_PATTERN = re.compile(r"^cvrp(?P<size>\d+)_.*\.json$")
+_METADATA_FILENAMES = {"subset_manifest.json", "training_label_manifest.json"}
 
 
 def _source_hash(source: Path) -> tuple[str, str]:
@@ -58,6 +59,8 @@ def select_example_subset(
     requested_sizes = set(sizes)
     candidates: dict[int, list[Path]] = defaultdict(list)
     for path in sorted(source.glob("*.json")):
+        if path.name in _METADATA_FILENAMES:
+            continue
         match = _SIZE_PATTERN.match(path.name)
         if match is None:
             raise ValueError(f"cannot determine customer size from filename: {path.name}")

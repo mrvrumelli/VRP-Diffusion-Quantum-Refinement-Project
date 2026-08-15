@@ -1,5 +1,28 @@
 # RTX 3060 Ti training checklist
 
+> **Completed 2026-08-15.** The original 1k/5k/10k/30k roadmap below was written before the
+> strong-label audit established that only 500 audited training sources per size are available.
+> The executed evidence-based curve was 100/250/500 per size. See
+> `docs/3060ti_training_report.md` for the authoritative configs, hashes, metrics, final checkpoint,
+> untouched-test result, and limitations. Remaining unchecked historical items are not prerequisites
+> for the completed bounded policy-v2 run unless a future larger corpus is generated.
+
+## Completed autonomous workflow
+
+- [x] Preserve original train/validation/test files and create only versioned derived datasets.
+- [x] Complete and validate the 1,500-instance strong-label audit with per-size analysis.
+- [x] Run bounded CVRP100 80- and 120-second follow-ups; reject broad longer-time relabeling.
+- [x] Materialize and hash policy-v2 labels: original CVRP20, strongest audited CVRP50/100.
+- [x] Freeze independently audited validation and untouched test subsets.
+- [x] Pass CUDA preflight, CUDA tests, end-to-end smoke, VRAM, numerical-stability, and resume gates.
+- [x] Compare original, canonical, mixed/multi-reference, and compute-matched label policies.
+- [x] Compare timestep sampling, learning rate, and positive-class weighting with fixed validation.
+- [x] Replicate the winning uniform-timestep recipe across three seeds.
+- [x] Run the honest 100/250/500-per-size learning curve and select the full audited pool.
+- [x] Train to an early-stopped 15-epoch ceiling and retain the validation-selected checkpoint.
+- [x] Run exact 700-step full-chain validation and one-time untouched-test evaluation per size.
+- [x] Save environment, driver, configs, manifests, logs, checkpoints, metrics, and decision report.
+
 This is the operational checklist for the Windows 11 / RTX 3060 Ti machine. The first
 1k-per-size run is a pipeline and throughput pilot, not final model training.
 
