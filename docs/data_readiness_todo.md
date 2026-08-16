@@ -2,6 +2,8 @@
 
 This list turns the August 2026 repository data audit into ordered implementation work. Items are
 roughly sorted from low-risk fixes to work that depends on trained models or long experiments.
+The latest completed implementation block is summarized in
+[`autonomous_work_report_2026-08-15.md`](autonomous_work_report_2026-08-15.md).
 
 ## Current inventory
 
@@ -14,8 +16,8 @@ roughly sorted from low-risk fixes to work that depends on trained models or lon
 - [x] Generate 9,000 independent plain-CVRP spatial stress instances (1,000 per size per regime):
   R seed 8801 at `data/raw/cvrp/spatial_stress_r_s8801` (SHA-256
   `d01f088205cbba5491ccd9ca66fbfaeaee8e6c37f1e28cf9fd0ca7dcf1af2f96`), C seed 8802
-  (`cedfc0a8cfeeda99f4bd7183b68ef9edc58062b3e6ae8e6ce4ca2667e8649901`), and RC seed 8803
-  (`84ebcf29dfed244b940b5ca3bf15a8cf117d5aa9b352e44cacead65b223fec5c`).
+  (`f21692b81b933e66abc364d752aeabb9c09544f4ea24fdfa5db41977d24e7f30`), and RC seed 8803
+  (`67c2d07824b999b7415bb12b4051a55081170a3fc2fc69cb270ae386ca71df9b`).
 - [x] Validate all generated spatial sets reload with the expected 1,000 instances per size,
   capacities `{20: 30, 50: 40, 100: 50}`, depot demand zero, and customer demands in `1..9`.
 - [x] Run a preliminary spatial separation check: over 200 CVRP100 instances, mean nearest-neighbor
@@ -34,9 +36,12 @@ roughly sorted from low-risk fixes to work that depends on trained models or lon
   and disk footprint before training.
 - [x] Load JSON constraint matrices as `uint8` instead of platform integers to reduce matrix memory
   by approximately eight times.
-- [ ] Replace eager loading of every JSON example with a lazy/indexed dataset interface.
-- [ ] Store constraint matrices compactly (`uint8` or packed binary) rather than as pretty-printed
-  JSON integer arrays.
+- [x] Replace eager training/validation loading with a path-indexed dataset and bounded optional
+  LRU cache; ordinary size-homogeneous epochs stream batches while stochastic/consensus modes
+  deliberately preload their candidate pool once for deterministic grouping.
+- [x] Store newly written constraint matrices as packed binary (`numpy.packbits`, base64) rather
+  than pretty-printed JSON integer arrays, with strict validation and backward-compatible loading
+  for the historical corpus.
 
 ## RTX 3060 Ti / CUDA migration
 
@@ -165,13 +170,16 @@ roughly sorted from low-risk fixes to work that depends on trained models or lon
   size and committed configs. These are spatially inspired categories, not Solomon VRPTW data.
 - [ ] Label the R/C/RC spatial sets with a documented stronger multi-seed PyVRP policy and export
   immutable `CVRPExample` evaluation files with hashes.
-- [ ] Complete R/C/RC spatial validation with dispersion and cluster metrics and plot representative
-  instances before using the category names in reports (the preliminary nearest-neighbor check is
-  recorded in the inventory).
+- [x] Complete R/C/RC spatial validation over all 9,000 instances with nearest-neighbor,
+  pair-distance, radius, grid-entropy, and fixed-sample silhouette metrics plus a durable 3x3 plot
+  of representative instances.
 - [ ] Generate and label a shifted-demand test set with 1,000 examples per size.
 - [ ] Add capacity, route-size, and depot-placement shifts after the first three stress sets work.
-- [ ] Keep the independent R set separate from the existing random training corpus and verify zero
-  instance/hash overlap before evaluation.
+- [x] Keep the independent R set separate from the existing random training corpus and verify zero
+  exact optimization-input overlap before evaluation. The content-hash audit found 0 overlaps for
+  CVRP20, CVRP50, and CVRP100 across 200,001 training-corpus and 3,000 independent-R instances;
+  its machine-readable report is in
+  `docs/assets/spatial_stress_validation/r_vs_training_overlap.json`.
 - [ ] Decide explicitly whether genuine Solomon data is in scope. Solomon C/R/RC instances are
   CVRPTW and require time windows, service times, scheduling horizons, a CVRPTW feasibility checker,
   data-model changes, and a time-window-aware decoder; do not present the plain-CVRP spatial sets as

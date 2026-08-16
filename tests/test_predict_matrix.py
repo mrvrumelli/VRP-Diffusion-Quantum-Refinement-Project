@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import pytest
 import torch
 
 from vrp_diffusion_quantum.data.dataset import make_example
@@ -100,6 +101,42 @@ def test_sample_constraint_matrix_valid_shape() -> None:
         _assert_valid_hard(snap, n)
 
 
+def test_deterministic_sampler_is_seed_independent() -> None:
+    torch.manual_seed(2)
+    example = _example(5, seed=2)
+    coords, demands, capacity, _m_true, mask = example_to_model_inputs(example)
+    model = ConstraintDenoiser(hidden_dim=16, num_layers=1, time_embed_dim=16)
+    schedule = BernoulliDiffusionSchedule(num_timesteps=5)
+    kwargs = {
+        "coords": coords,
+        "demands": demands,
+        "capacity": capacity,
+        "customer_mask": mask,
+        "transition_mode": "deterministic",
+        "prior_positive_probability": 0.0,
+    }
+    first = sample_constraint_matrix(
+        model, schedule, generator=torch.Generator().manual_seed(1), **kwargs
+    )
+    second = sample_constraint_matrix(
+        model, schedule, generator=torch.Generator().manual_seed(99), **kwargs
+    )
+    assert np.array_equal(first.m_hat, second.m_hat)
+    assert np.allclose(first.m_prob, second.m_prob)
+
+
+def test_sampler_rejects_invalid_prior_and_mode() -> None:
+    example = _example(4, seed=4)
+    coords, demands, capacity, _m_true, mask = example_to_model_inputs(example)
+    model = ConstraintDenoiser(hidden_dim=16, num_layers=1, time_embed_dim=16)
+    schedule = BernoulliDiffusionSchedule(num_timesteps=3)
+    kwargs = {"coords": coords, "demands": demands, "capacity": capacity, "customer_mask": mask}
+    with pytest.raises(ValueError, match="positive_probability"):
+        sample_constraint_matrix(model, schedule, prior_positive_probability=1.1, **kwargs)
+    with pytest.raises(ValueError, match="transition_mode"):
+        sample_constraint_matrix(model, schedule, transition_mode="invalid", **kwargs)  # type: ignore[arg-type]
+
+
 def test_predict_matrix_one_shot_valid() -> None:
     torch.manual_seed(1)
     n = 6
@@ -161,3 +198,6 @@ def test_evaluate_full_chain_sampling_keys() -> None:
     assert metrics["sample_num_examples"] == 2
     assert "sample_f1_n4" in metrics
     assert "sample_f1_n5" in metrics
+    assert metrics["route_num_examples"] == 2
+    assert "route_feasible_rate" in metrics
+    assert "route_mean_cost_gap_percent_n4" in metrics

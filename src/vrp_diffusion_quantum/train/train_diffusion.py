@@ -16,7 +16,7 @@ import argparse
 import logging
 import os
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -27,13 +27,16 @@ import yaml
 from torch import Tensor
 from torch.amp.grad_scaler import GradScaler
 
+from vrp_diffusion_quantum.data.consensus_targets import ConsensusTarget, load_consensus_sidecar
 from vrp_diffusion_quantum.data.dataset import (
     CVRPBatch,
+    IndexedJSONDataset,
     collate_batch,
     load_dataset,
     size_homogeneous_batches,
     size_homogeneous_chunks,
 )
+from vrp_diffusion_quantum.data.training_labels import select_stochastic_references
 from vrp_diffusion_quantum.data.types import CVRPExample
 from vrp_diffusion_quantum.inference.predict_matrix import (
     evaluate_full_chain_sampling,
@@ -95,6 +98,7 @@ def diffusion_matrix_bce_loss(
     *,
     weighted: bool = True,
     pos_weight_power: float = 0.5,
+    pair_weights: Tensor | None = None,
 ) -> Tensor:
     """BCE-with-logits on off-diagonal real pairs.
 
@@ -113,17 +117,62 @@ def diffusion_matrix_bce_loss(
         raise ValueError("no off-diagonal real customer pairs to score")
     targets = m_true[pair_ok].float()
     logits_flat = logits[pair_ok]
-    if not weighted:
-        return ff.binary_cross_entropy_with_logits(logits_flat, targets)
-    pos = targets.sum()
-    neg = targets.numel() - pos
-    ratio = (neg / pos.clamp(min=1.0)).detach()
-    pos_weight = ratio ** float(pos_weight_power)
-    return ff.binary_cross_entropy_with_logits(logits_flat, targets, pos_weight=pos_weight)
+    pos_weight = None
+    if weighted:
+        pos = targets.sum()
+        neg = targets.numel() - pos
+        ratio = (neg / pos.clamp(min=1.0)).detach()
+        pos_weight = ratio ** float(pos_weight_power)
+    losses = ff.binary_cross_entropy_with_logits(
+        logits_flat, targets, pos_weight=pos_weight, reduction="none"
+    )
+    if pair_weights is None:
+        return losses.mean()
+    if pair_weights.shape != logits.shape:
+        raise ValueError("pair_weights shape must match logits")
+    selected_weights = pair_weights[pair_ok].to(losses.dtype)
+    if bool(torch.any(selected_weights < 0)):
+        raise ValueError("pair_weights must be non-negative")
+    denominator = selected_weights.sum()
+    if not bool(denominator > 0):
+        raise ValueError("pair_weights must retain at least one positive valid pair")
+    return (losses * selected_weights).sum() / denominator
+
+
+def _consensus_batch_targets(
+    batch: CVRPBatch,
+    targets: dict[str, ConsensusTarget],
+    *,
+    use_confidence: bool,
+) -> tuple[Tensor, Tensor | None]:
+    probability = batch.constraint_matrix.clone()
+    confidence = torch.ones_like(probability) if use_confidence else None
+    for index, metadata in enumerate(batch.metadata):
+        settings = metadata["generator_settings"]
+        policy = settings.get("training_label_policy") if isinstance(settings, dict) else None
+        source_id = (
+            str(policy["source_file"])
+            if isinstance(policy, dict) and policy.get("source_file")
+            else str(metadata["instance_id"])
+        )
+        if source_id not in targets:
+            raise KeyError(f"consensus target missing for source {source_id}")
+        target = targets[source_id]
+        n = int(metadata["n_customers"])
+        if target.target_probability.shape != (n, n):
+            raise ValueError(f"consensus target shape mismatch for source {source_id}")
+        probability[index, :n, :n] = torch.as_tensor(
+            target.target_probability, device=probability.device, dtype=probability.dtype
+        )
+        if confidence is not None:
+            confidence[index, :n, :n] = torch.as_tensor(
+                target.target_confidence, device=confidence.device, dtype=confidence.dtype
+            )
+    return probability, confidence
 
 
 def _batches(
-    examples: list[CVRPExample],
+    examples: Sequence[CVRPExample],
     batch_size: int,
     *,
     same_size: bool = False,
@@ -133,21 +182,32 @@ def _batches(
 ) -> Iterator[CVRPBatch]:
     if batch_size < 1:
         raise ValueError(f"batch_size must be >= 1, got {batch_size}")
+    if isinstance(examples, IndexedJSONDataset):
+        yield from _indexed_json_batches(
+            examples,
+            batch_size,
+            same_size=same_size,
+            generator=generator,
+            shuffle=shuffle,
+            augmentation=augmentation,
+        )
+        return
+    materialized = list(examples)
     if same_size or augmentation:
         yield from size_homogeneous_batches(
-            examples,
+            materialized,
             batch_size,
             generator=generator,
             shuffle=shuffle,
             augmentation=augmentation,
         )
         return
-    for i in range(0, len(examples), batch_size):
-        yield collate_batch(examples[i : i + batch_size])
+    for i in range(0, len(materialized), batch_size):
+        yield collate_batch(materialized[i : i + batch_size])
 
 
 def _example_chunks(
-    examples: list[CVRPExample],
+    examples: Sequence[CVRPExample],
     batch_size: int,
     *,
     same_size: bool = False,
@@ -157,21 +217,86 @@ def _example_chunks(
 ) -> Iterator[list[CVRPExample]]:
     if batch_size < 1:
         raise ValueError(f"batch_size must be >= 1, got {batch_size}")
+    if isinstance(examples, IndexedJSONDataset):
+        yield from _indexed_json_example_chunks(
+            examples,
+            batch_size,
+            same_size=same_size,
+            generator=generator,
+            shuffle=shuffle,
+            augmentation=augmentation,
+        )
+        return
+    materialized = list(examples)
     if same_size or augmentation:
         yield from size_homogeneous_chunks(
-            examples,
+            materialized,
             batch_size,
             generator=generator,
             shuffle=shuffle,
             augmentation=augmentation,
         )
         return
-    for i in range(0, len(examples), batch_size):
-        yield examples[i : i + batch_size]
+    for i in range(0, len(materialized), batch_size):
+        yield materialized[i : i + batch_size]
+
+
+def _indexed_json_example_chunks(
+    dataset: IndexedJSONDataset,
+    batch_size: int,
+    *,
+    same_size: bool,
+    generator: torch.Generator | None,
+    shuffle: bool,
+    augmentation: bool,
+) -> Iterator[list[CVRPExample]]:
+    from vrp_diffusion_quantum.data.augment import AUGMENT_NUM, augment_example
+
+    buckets = (
+        dataset.indices_by_size() if same_size or augmentation else {0: list(range(len(dataset)))}
+    )
+    base_seed = 0 if generator is None else int(generator.initial_seed())
+    for size in sorted(buckets):
+        indices = buckets[size]
+        pairs = [
+            (index, variant)
+            for index in indices
+            for variant in range(AUGMENT_NUM if augmentation else 1)
+        ]
+        if shuffle:
+            local = torch.Generator().manual_seed(base_seed + 1_000_003 * size)
+            order = torch.randperm(len(pairs), generator=local).tolist()
+            pairs = [pairs[index] for index in order]
+        for start in range(0, len(pairs), batch_size):
+            chunk = []
+            for index, variant in pairs[start : start + batch_size]:
+                example = dataset[index]
+                chunk.append(augment_example(example, variant) if augmentation else example)
+            yield chunk
+
+
+def _indexed_json_batches(
+    dataset: IndexedJSONDataset,
+    batch_size: int,
+    *,
+    same_size: bool,
+    generator: torch.Generator | None,
+    shuffle: bool,
+    augmentation: bool,
+) -> Iterator[CVRPBatch]:
+    for chunk in _indexed_json_example_chunks(
+        dataset,
+        batch_size,
+        same_size=same_size,
+        generator=generator,
+        shuffle=shuffle,
+        augmentation=augmentation,
+    ):
+        yield collate_batch(chunk)
 
 
 def _shuffle_and_maybe_augment_online(
-    examples: list[CVRPExample],
+    examples: Sequence[CVRPExample],
     *,
     seed: int,
     epoch: int,
@@ -218,7 +343,7 @@ def _noise_batch(
 def evaluate_constraint_denoiser(
     model: ConstraintDenoiser,
     schedule: BernoulliDiffusionSchedule,
-    examples: list[CVRPExample],
+    examples: Sequence[CVRPExample],
     *,
     batch_size: int = 8,
     generator: torch.Generator | None = None,
@@ -333,9 +458,9 @@ def save_denoiser_checkpoint(
 def train_constraint_denoiser(
     model: ConstraintDenoiser,
     schedule: BernoulliDiffusionSchedule,
-    train_examples: list[CVRPExample],
+    train_examples: Sequence[CVRPExample],
     *,
-    val_examples: list[CVRPExample] | None = None,
+    val_examples: Sequence[CVRPExample] | None = None,
     num_epochs: int,
     learning_rate: float,
     batch_size: int = 8,
@@ -359,10 +484,16 @@ def train_constraint_denoiser(
     adaptive_threshold: bool = True,
     t_sample: str = "uniform",
     sample_step_stride: int = 1,
+    sample_eval_seed: int | None = None,
+    sample_transition_mode: str = "stochastic",
+    sample_prior_positive_probability: float = 0.5,
     mixed_precision: bool = False,
     gradient_accumulation_steps: int = 1,
     gradient_clip_norm: float | None = None,
     max_runtime_seconds: float | None = None,
+    stochastic_references: bool = False,
+    consensus_targets: dict[str, ConsensusTarget] | None = None,
+    consensus_use_confidence: bool = False,
 ) -> list[dict[str, Any]]:
     """Train ``model`` to reconstruct clean ``M`` from noisy ``M_t``."""
     if augmentation:
@@ -372,6 +503,8 @@ def train_constraint_denoiser(
         raise ValueError(f"t_sample must be 'uniform' or 'high', got {t_sample!r}")
     if sample_step_stride < 1:
         raise ValueError(f"sample_step_stride must be >= 1, got {sample_step_stride}")
+    if sample_transition_mode not in {"stochastic", "deterministic"}:
+        raise ValueError(f"unsupported sample_transition_mode: {sample_transition_mode}")
     if gradient_accumulation_steps < 1:
         raise ValueError("gradient_accumulation_steps must be >= 1")
     if gradient_clip_norm is not None and gradient_clip_norm <= 0:
@@ -452,13 +585,21 @@ def train_constraint_denoiser(
         optimizer_steps = 0
         pending_microbatches = 0
         last_gradient_norm = float("nan")
-        epoch_examples = _shuffle_and_maybe_augment_online(
-            train_examples,
-            seed=seed,
-            epoch=epoch,
-            online_augmentation=online_augmentation,
-            shuffle=not (same_size_batches or expand_any),
+        epoch_source_examples = (
+            select_stochastic_references(list(train_examples), seed=seed, epoch=epoch)
+            if stochastic_references
+            else train_examples
         )
+        if isinstance(epoch_source_examples, IndexedJSONDataset) and not online_augmentation:
+            epoch_examples: Sequence[CVRPExample] = epoch_source_examples
+        else:
+            epoch_examples = _shuffle_and_maybe_augment_online(
+                epoch_source_examples,
+                seed=seed,
+                epoch=epoch,
+                online_augmentation=online_augmentation,
+                shuffle=not (same_size_batches or expand_any),
+            )
         batch_gen = torch.Generator().manual_seed(seed + 3_000 + epoch)
 
         optimizer.zero_grad(set_to_none=True)
@@ -495,6 +636,14 @@ def train_constraint_denoiser(
                     batch = _batch_to_device(batch, device)
                 coords, demands, capacity = customer_tensors_from_batch(batch)
                 m_t, t = _noise_batch(schedule, batch, generator=train_generator, t_sample=t_sample)
+                loss_target = batch.constraint_matrix
+                pair_weights = None
+                if consensus_targets is not None:
+                    loss_target, pair_weights = _consensus_batch_targets(
+                        batch,
+                        consensus_targets,
+                        use_confidence=consensus_use_confidence,
+                    )
 
                 with torch.autocast(
                     device_type=model_device.type,
@@ -511,10 +660,11 @@ def train_constraint_denoiser(
                     )
                     loss = diffusion_matrix_bce_loss(
                         logits,
-                        batch.constraint_matrix,
+                        loss_target,
                         batch.customer_mask,
                         weighted=weighted_bce,
                         pos_weight_power=pos_weight_power,
+                        pair_weights=pair_weights,
                     )
                 if not bool(torch.isfinite(loss)):
                     raise FloatingPointError(f"non-finite training loss at epoch={epoch}")
@@ -588,6 +738,10 @@ def train_constraint_denoiser(
             "epoch_runtime_seconds": epoch_runtime,
             "total_runtime_seconds": total_runtime,
             "train_examples_seen": examples_seen,
+            "unique_train_sources": len(epoch_source_examples),
+            "stochastic_references": stochastic_references,
+            "consensus_targets": consensus_targets is not None,
+            "consensus_use_confidence": consensus_use_confidence,
             "train_examples_per_second": examples_seen / max(epoch_runtime, 1e-9),
             "microbatches": num_batches,
             "optimizer_steps": optimizer_steps,
@@ -613,10 +767,12 @@ def train_constraint_denoiser(
                 schedule,
                 sample_eval_examples,
                 device=device,
-                seed=seed + 20_000 + epoch,
+                seed=seed + 20_000 if sample_eval_seed is None else sample_eval_seed,
                 threshold=0.5,
                 adaptive_threshold=False,
                 step_stride=sample_step_stride,
+                transition_mode=sample_transition_mode,  # type: ignore[arg-type]
+                prior_positive_probability=sample_prior_positive_probability,
             )
             row.update(sample_metrics)
             logger.info(
@@ -809,15 +965,29 @@ def main() -> None:
     schedule_cfg = config.get("schedule", {})
     mlflow_cfg = config.get("mlflow", {})
     ckpt_cfg = config.get("checkpoint", {})
+    consensus_cfg = train_cfg.get("consensus") or {}
 
-    examples = load_dataset(dataset_path)
+    preload_training = bool(train_cfg.get("stochastic_references", False)) or bool(
+        consensus_cfg.get("sidecar")
+    )
+    examples: Sequence[CVRPExample]
+    if bool(config["dataset"].get("lazy", True)) and not preload_training:
+        examples = IndexedJSONDataset(
+            dataset_path,
+            cache_size=int(config["dataset"].get("cache_size", 0)),
+        )
+    else:
+        examples = load_dataset(dataset_path)
     if not examples:
         raise ValueError(f"no examples found under {dataset_path}")
 
     val_cfg = config.get("validation", {})
     val_path = val_cfg.get("path")
     if val_path:
-        val_examples = load_dataset(_ROOT / val_path)
+        val_examples: Sequence[CVRPExample] = IndexedJSONDataset(
+            _ROOT / val_path,
+            cache_size=int(val_cfg.get("cache_size", 0)),
+        )
         if not val_examples:
             raise ValueError(f"no validation examples found under {_ROOT / val_path}")
     else:
@@ -862,6 +1032,12 @@ def main() -> None:
     pos_weight_power = float(train_cfg.get("pos_weight_power", 0.5))
     mlflow_enabled = bool(mlflow_cfg.get("enabled", True))
     sample_cfg = config.get("sample_eval") or {}
+    consensus_targets = None
+    if consensus_cfg.get("sidecar"):
+        consensus_path = Path(str(consensus_cfg["sidecar"]))
+        if not consensus_path.is_absolute():
+            consensus_path = _ROOT / consensus_path
+        consensus_targets = load_consensus_sidecar(consensus_path)
     sample_eval_every = int(sample_cfg["every"]) if sample_cfg.get("every") else None
     sample_eval_examples = None
     if sample_eval_every is not None:
@@ -955,6 +1131,19 @@ def main() -> None:
                         ),
                         "gradient_clip_norm": train_cfg.get("gradient_clip_norm"),
                         "max_runtime_seconds": train_cfg.get("max_runtime_seconds"),
+                        "stochastic_references": bool(
+                            train_cfg.get("stochastic_references", False)
+                        ),
+                        "consensus": consensus_cfg,
+                    },
+                    "sample_eval": {
+                        **sample_cfg,
+                        "resolved_seed": int(sample_cfg.get("seed", seed + 20_000)),
+                        "panel_instance_ids": (
+                            []
+                            if sample_eval_examples is None
+                            else [example.instance.instance_id for example in sample_eval_examples]
+                        ),
                     },
                 },
                 sample_eval_examples=sample_eval_examples,
@@ -973,6 +1162,11 @@ def main() -> None:
                 adaptive_threshold=adaptive_threshold,
                 t_sample=str(train_cfg.get("t_sample", "uniform")),
                 sample_step_stride=int(sample_cfg.get("step_stride", 1)),
+                sample_eval_seed=int(sample_cfg.get("seed", seed + 20_000)),
+                sample_transition_mode=str(sample_cfg.get("transition_mode", "stochastic")),
+                sample_prior_positive_probability=float(
+                    sample_cfg.get("prior_positive_probability", 0.5)
+                ),
                 mixed_precision=bool(train_cfg.get("mixed_precision", False)),
                 gradient_accumulation_steps=int(train_cfg.get("gradient_accumulation_steps", 1)),
                 gradient_clip_norm=(
@@ -985,6 +1179,9 @@ def main() -> None:
                     if train_cfg.get("max_runtime_seconds") is None
                     else float(train_cfg["max_runtime_seconds"])
                 ),
+                stochastic_references=bool(train_cfg.get("stochastic_references", False)),
+                consensus_targets=consensus_targets,
+                consensus_use_confidence=bool(consensus_cfg.get("use_confidence", False)),
             )
 
             if not history:

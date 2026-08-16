@@ -2,18 +2,90 @@
 
 from __future__ import annotations
 
+import base64
 import json
-from collections import defaultdict
-from collections.abc import Iterator
+import re
+from collections import OrderedDict, defaultdict
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, overload
 
 import numpy as np
 import torch
 
 from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance, LabeledSolution
 from vrp_diffusion_quantum.utils.constraint_matrix import build_constraint_matrix
+
+_METADATA_FILES = {"subset_manifest.json", "training_label_manifest.json"}
+
+
+class IndexedJSONDataset(Sequence[CVRPExample]):
+    """Path-indexed JSON dataset with a bounded in-process LRU cache.
+
+    Construction indexes filenames only. Examples are parsed on first access, so callers can
+    inspect, select, or batch a large corpus without retaining every matrix in memory.
+    """
+
+    def __init__(
+        self,
+        dataset_dir: str | Path,
+        *,
+        sizes: Sequence[int] | None = None,
+        cache_size: int = 0,
+    ) -> None:
+        if cache_size < 0:
+            raise ValueError(f"cache_size must be non-negative, got {cache_size}")
+        root = Path(dataset_dir)
+        patterns = ["*.json"] if sizes is None else [f"cvrp{int(size)}_*.json" for size in sizes]
+        paths = {
+            path
+            for pattern in patterns
+            for path in root.glob(pattern)
+            if path.name not in _METADATA_FILES
+        }
+        self.root = root
+        self.paths = tuple(sorted(paths))
+        self.cache_size = cache_size
+        self._cache: OrderedDict[int, CVRPExample] = OrderedDict()
+
+    def __len__(self) -> int:
+        return len(self.paths)
+
+    @overload
+    def __getitem__(self, index: int) -> CVRPExample: ...
+
+    @overload
+    def __getitem__(self, index: slice) -> Sequence[CVRPExample]: ...
+
+    def __getitem__(self, index: int | slice) -> CVRPExample | Sequence[CVRPExample]:
+        if isinstance(index, slice):
+            return [self[item] for item in range(*index.indices(len(self)))]
+        normalized = index if index >= 0 else len(self) + index
+        if not 0 <= normalized < len(self):
+            raise IndexError(index)
+        if normalized in self._cache:
+            example = self._cache.pop(normalized)
+            self._cache[normalized] = example
+            return example
+        example = load_example(self.paths[normalized])
+        if self.cache_size:
+            self._cache[normalized] = example
+            while len(self._cache) > self.cache_size:
+                self._cache.popitem(last=False)
+        return example
+
+    def clear_cache(self) -> None:
+        self._cache.clear()
+
+    def indices_by_size(self) -> dict[int, list[int]]:
+        """Return indexed positions grouped by CVRP size, parsing conventional filenames."""
+        grouped: dict[int, list[int]] = defaultdict(list)
+        for index, path in enumerate(self.paths):
+            match = re.match(r"cvrp(\d+)_", path.name)
+            size = int(match.group(1)) if match else self[index].instance.n_customers
+            grouped[size].append(index)
+        return dict(grouped)
 
 
 def make_example(instance: CVRPInstance, solution: LabeledSolution) -> CVRPExample:
@@ -22,7 +94,12 @@ def make_example(instance: CVRPInstance, solution: LabeledSolution) -> CVRPExamp
     return CVRPExample(instance=instance, solution=solution, constraint_matrix=constraint_matrix)
 
 
-def save_example(example: CVRPExample, path: str | Path) -> None:
+def save_example(
+    example: CVRPExample,
+    path: str | Path,
+    *,
+    compact_matrix: bool = True,
+) -> None:
     """Save one `CVRPExample` as a single JSON file, creating parent directories as needed."""
     payload = {
         "instance": {
@@ -45,8 +122,16 @@ def save_example(example: CVRPExample, path: str | Path) -> None:
             "seed": example.solution.seed,
             "runtime_seconds": example.solution.runtime_seconds,
         },
-        "constraint_matrix": example.constraint_matrix.tolist(),
     }
+    if compact_matrix:
+        packed = np.packbits(example.constraint_matrix.reshape(-1), bitorder="little")
+        payload["constraint_matrix_packed"] = {
+            "encoding": "numpy-packbits-little-base64-v1",
+            "shape": list(example.constraint_matrix.shape),
+            "data": base64.b64encode(packed.tobytes()).decode("ascii"),
+        }
+    else:
+        payload["constraint_matrix"] = example.constraint_matrix.tolist()
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2))
@@ -80,30 +165,33 @@ def load_example(path: str | Path) -> CVRPExample:
         runtime_seconds=float(solution_payload["runtime_seconds"]),
     )
 
-    # Preserve the serialized dtype through CVRPExample validation so malformed float values are
-    # rejected before the validated binary matrix is compacted to uint8.
-    constraint_matrix = np.array(payload["constraint_matrix"])
+    if "constraint_matrix_packed" in payload:
+        matrix_payload = payload["constraint_matrix_packed"]
+        if matrix_payload.get("encoding") != "numpy-packbits-little-base64-v1":
+            raise ValueError(f"unsupported matrix encoding: {matrix_payload.get('encoding')}")
+        shape = tuple(int(value) for value in matrix_payload["shape"])
+        if len(shape) != 2:
+            raise ValueError("packed constraint matrix shape must have two dimensions")
+        raw = base64.b64decode(matrix_payload["data"], validate=True)
+        bit_count = shape[0] * shape[1]
+        unpacked = np.unpackbits(np.frombuffer(raw, dtype=np.uint8), bitorder="little")
+        if unpacked.size < bit_count or len(raw) != (bit_count + 7) // 8:
+            raise ValueError("packed constraint matrix byte length does not match shape")
+        constraint_matrix = unpacked[:bit_count].reshape(shape).astype(np.uint8)
+    else:
+        # Preserve the serialized dtype through validation so malformed floats are rejected.
+        constraint_matrix = np.array(payload["constraint_matrix"])
     return CVRPExample(instance=instance, solution=solution, constraint_matrix=constraint_matrix)
 
 
 def load_dataset(dataset_dir: str | Path) -> list[CVRPExample]:
     """Load example JSON files, excluding dataset metadata, in deterministic order."""
-    example_paths = sorted(
-        path
-        for path in Path(dataset_dir).glob("*.json")
-        if path.name not in {"subset_manifest.json", "training_label_manifest.json"}
-    )
-    return [load_example(example_path) for example_path in example_paths]
+    return list(IndexedJSONDataset(dataset_dir))
 
 
 def load_examples_by_size(dataset_dir: str | Path, sizes: list[int]) -> list[CVRPExample]:
     """Load only ``cvrp{size}_*.json`` files for the given customer sizes."""
-    root = Path(dataset_dir)
-    examples: list[CVRPExample] = []
-    for size in sizes:
-        for path in sorted(root.glob(f"cvrp{size}_*.json")):
-            examples.append(load_example(path))
-    return examples
+    return list(IndexedJSONDataset(dataset_dir, sizes=sizes))
 
 
 @dataclass

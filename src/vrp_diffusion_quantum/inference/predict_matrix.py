@@ -23,7 +23,7 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import torch
@@ -31,6 +31,11 @@ import yaml
 from torch import Tensor
 
 from vrp_diffusion_quantum.data.types import CVRPExample
+from vrp_diffusion_quantum.eval.routing import (
+    RoutingEvaluation,
+    evaluate_decoded_matrix,
+    summarize_routing_evaluations,
+)
 from vrp_diffusion_quantum.metrics.matrix_metrics import (
     MatrixPrediction,
     compute_matrix_metrics,
@@ -151,8 +156,11 @@ def _sample_prior(
     dtype: torch.dtype,
     customer_mask: Tensor | None,
     generator: torch.Generator | None,
+    positive_probability: float = 0.5,
 ) -> Tensor:
-    """Maximum-entropy prior: independent Bern(0.5) on the upper triangle, then symmetrize."""
+    """Independent Bernoulli prior on the upper triangle, then symmetrize."""
+    if not 0.0 <= positive_probability <= 1.0:
+        raise ValueError(f"positive_probability must be in [0, 1], got {positive_probability}")
     noise = _rand_tensor(
         batch_size,
         n_customers,
@@ -161,7 +169,7 @@ def _sample_prior(
         device=device,
         dtype=dtype,
     )
-    hard = (noise < 0.5).to(dtype=dtype)
+    hard = (noise < positive_probability).to(dtype=dtype)
     return symmetrize_zero_diagonal(hard, customer_mask)
 
 
@@ -219,6 +227,8 @@ def sample_constraint_matrix(
     snapshot_every: int | None = None,
     step_stride: int = 1,
     x0_clamp: float = 1e-3,
+    transition_mode: Literal["stochastic", "deterministic"] = "stochastic",
+    prior_positive_probability: float = 0.5,
 ) -> MatrixPredictionResult:
     """Full reverse chain ``t = T-1 → 0`` → final ``m_hat`` / ``m_prob`` (+ optional snapshots).
 
@@ -231,9 +241,14 @@ def sample_constraint_matrix(
             multi-step posterior).
         x0_clamp: clamp soft ``x̂_0`` into ``[x0_clamp, 1 - x0_clamp]`` before the posterior
             so extreme probs do not destabilize multi-step sampling.
+        transition_mode: sample each posterior or deterministically threshold its probability.
+        prior_positive_probability: Bernoulli density of the initial state. Values other than
+            ``0.5`` are diagnostic priors, not samples from the diffusion stationary distribution.
     """
     if step_stride < 1:
         raise ValueError(f"step_stride must be >= 1, got {step_stride}")
+    if transition_mode not in {"stochastic", "deterministic"}:
+        raise ValueError(f"unsupported transition_mode: {transition_mode}")
     model.eval()
     batch_size, n_customers, _ = coords.shape
     device = coords.device
@@ -244,6 +259,7 @@ def sample_constraint_matrix(
         dtype=coords.dtype,
         customer_mask=customer_mask,
         generator=generator,
+        positive_probability=prior_positive_probability,
     )
 
     trajectory: list[np.ndarray] = []
@@ -273,10 +289,14 @@ def sample_constraint_matrix(
             )
         else:
             post = schedule.q_posterior_prob(m_t, m0_prob, t_tensor)
-            noise = _rand_tensor(
-                *post.shape, generator=generator, device=post.device, dtype=post.dtype
-            )
-            m_t = symmetrize_zero_diagonal((noise < post).to(dtype=post.dtype), customer_mask)
+            if transition_mode == "stochastic":
+                noise = _rand_tensor(
+                    *post.shape, generator=generator, device=post.device, dtype=post.dtype
+                )
+                next_state = noise < post
+            else:
+                next_state = post >= threshold
+            m_t = symmetrize_zero_diagonal(next_state.to(dtype=post.dtype), customer_mask)
 
         if snapshot_every is not None and (t_int % snapshot_every == 0 or t_int == 0):
             trajectory.append(m_t[0].detach().cpu().numpy().astype(np.float64))
@@ -288,10 +308,12 @@ def sample_constraint_matrix(
     m_prob = _numpy_symmetrize_zero_diag(m_prob)
 
     logger.info(
-        "sampled constraint matrix n=%d T=%d stride=%d density=%.4f",
+        "sampled constraint matrix n=%d T=%d stride=%d mode=%s prior=%.4f density=%.4f",
         n_customers,
         schedule.num_timesteps,
         step_stride,
+        transition_mode,
+        prior_positive_probability,
         float(m_hat.sum()) / max(n_customers * (n_customers - 1), 1),
     )
     return MatrixPredictionResult(
@@ -347,6 +369,8 @@ def evaluate_full_chain_sampling(
     threshold: float | None = None,
     adaptive_threshold: bool = True,
     step_stride: int = 1,
+    transition_mode: Literal["stochastic", "deterministic"] = "stochastic",
+    prior_positive_probability: float = 0.5,
 ) -> dict[str, Any]:
     """Run full ``T→0`` sampling; hard F1 from ``m_hat``, AUC/BCE from soft ``m_prob``."""
     if not examples:
@@ -356,6 +380,8 @@ def evaluate_full_chain_sampling(
     soft_preds: list[MatrixPrediction] = []
     hard_preds: list[MatrixPrediction] = []
     by_size_hard: dict[int, list[MatrixPrediction]] = {}
+    routing_results: list[RoutingEvaluation] = []
+    routing_by_size: dict[int, list[RoutingEvaluation]] = {}
     hard_thr = 0.5 if threshold is None else float(threshold)
 
     for i, example in enumerate(examples):
@@ -372,11 +398,16 @@ def evaluate_full_chain_sampling(
             threshold=hard_thr,
             snapshot_every=None,
             step_stride=step_stride,
+            transition_mode=transition_mode,
+            prior_positive_probability=prior_positive_probability,
         )
         soft_preds.append(MatrixPrediction.from_example(example, sampled.m_prob))
         hard_preds.append(MatrixPrediction.from_example(example, sampled.m_hat))
         n = example.instance.n_customers
         by_size_hard.setdefault(n, []).append(hard_preds[-1])
+        routing = evaluate_decoded_matrix(example, sampled.m_prob, threshold=hard_thr)
+        routing_results.append(routing)
+        routing_by_size.setdefault(n, []).append(routing)
 
     soft_metrics = compute_matrix_metrics(
         soft_preds, threshold=threshold, adaptive_threshold=adaptive_threshold
@@ -395,11 +426,18 @@ def evaluate_full_chain_sampling(
         "sample_threshold": 0.5,
         "sample_soft_threshold": float(soft_metrics.threshold),
         "sample_step_stride": int(step_stride),
+        "sample_transition_mode": transition_mode,
+        "sample_prior_positive_probability": float(prior_positive_probability),
+        **summarize_routing_evaluations(routing_results),
     }
     for n in sorted(by_size_hard):
         metrics_n = compute_matrix_metrics(by_size_hard[n], threshold=0.5, adaptive_threshold=False)
         out[f"sample_f1_n{n}"] = float(metrics_n.f1)
         out[f"sample_num_examples_n{n}"] = len(by_size_hard[n])
+        route_metrics_n = summarize_routing_evaluations(routing_by_size[n])
+        for key, value in route_metrics_n.items():
+            if key != "route_num_examples":
+                out[f"{key}_n{n}"] = value
     return out
 
 

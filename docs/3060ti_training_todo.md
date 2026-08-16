@@ -6,6 +6,9 @@
 > `docs/3060ti_training_report.md` for the authoritative configs, hashes, metrics, final checkpoint,
 > untouched-test result, and limitations. Remaining unchecked historical items are not prerequisites
 > for the completed bounded policy-v2 run unless a future larger corpus is generated.
+>
+> The 2026-08-15 follow-up implementation and probe summary is in
+> [`autonomous_work_report_2026-08-15.md`](autonomous_work_report_2026-08-15.md).
 
 ## Completed autonomous workflow
 
@@ -28,13 +31,21 @@
 The exact full-chain result, rather than noisy-time AUC, determines the next work. Follow
 [`route_partition_ambiguity_plan.md`](route_partition_ambiguity_plan.md) in this order:
 
-- [ ] Implement matrix-to-route decoding, feasibility, cost-gap, repair, and refinement evaluation.
-- [ ] Diagnose reverse-process degradation on stable CVRP20 with fixed comparable samplers.
-- [ ] Add a fixed full-chain validation panel and use it for checkpoint selection.
-- [ ] Add canonical plus frozen oracle best-of-K evaluation for ambiguous audited cases.
-- [ ] Run a one-reference-per-source-per-epoch stochastic probe with matched optimizer steps.
-- [ ] Add training-only consensus targets and pair-confidence masks without weakening the binary
-  `CVRPExample.constraint_matrix` invariant.
+- [x] Implement capacity-aware matrix-to-route decoding plus feasibility, cost-gap, repair,
+  route-size, vehicle-count, runtime, and matrix-after-decoding evaluation. Classical and quantum
+  refinement runtimes remain pending until those refiners exist.
+- [x] Diagnose reverse-process degradation on stable CVRP20 with fixed comparable samplers; exact
+  stochastic sampling outperformed deterministic transitions and approximate stride-7 sampling.
+- [x] Add a fixed, hashed full-chain validation panel and a portable configuration that selects
+  checkpoints by exact decoded route-cost gap while retaining exact sample F1.
+- [x] Add canonical plus frozen oracle best-of-K matrix evaluation with one declared F1 matching
+  criterion and a single selected reference for every reported oracle metric.
+- [x] Run a one-reference-per-source-per-epoch stochastic probe with 1,500 unique sources and 94
+  matched optimizer steps per epoch; exact fixed-panel F1 improved from 0.4254 to 0.5498 and the
+  decoded gap fell from 76.59% to 43.37%.
+- [x] Add versioned training-only consensus targets and pair-confidence masks without weakening
+  the binary `CVRPExample.constraint_matrix` invariant; hard stochastic references still supply
+  valid forward diffusion states while consensus/masks affect only the clean-target loss.
 - [ ] Compare policy-v2, exclusion, stochastic, consensus, and masked arms under identical compute.
 - [ ] Require a CVRP100-specific gain without material CVRP20/CVRP50 regression.
 - [ ] Freeze the sampler, target, checkpoint, and decoder before one-time test evaluation.

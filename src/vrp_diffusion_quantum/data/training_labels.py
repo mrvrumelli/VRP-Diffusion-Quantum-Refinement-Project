@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -11,10 +12,50 @@ from typing import Any, Literal
 
 from vrp_diffusion_quantum.data.dataset import load_example, make_example, save_example
 from vrp_diffusion_quantum.data.label_audit import SolveCandidate
-from vrp_diffusion_quantum.data.types import LabeledSolution
+from vrp_diffusion_quantum.data.types import CVRPExample, LabeledSolution
 from vrp_diffusion_quantum.utils.experiment import git_commit_hash, hash_dataset
 
 LabelMode = Literal["original", "canonical_else_multi", "multi_reference", "accepted_canonical"]
+
+
+def training_source_id(example: CVRPExample) -> str:
+    """Return the stable source identity shared by materialized candidate references."""
+    policy = example.instance.generator_settings.get("training_label_policy")
+    if isinstance(policy, dict) and policy.get("source_file"):
+        return str(policy["source_file"])
+    return example.instance.instance_id
+
+
+def select_stochastic_references(
+    examples: list[CVRPExample], *, seed: int, epoch: int
+) -> list[CVRPExample]:
+    """Select exactly one preloaded hard reference per source for this epoch.
+
+    Selection is invariant to input ordering and derives solely from ``(seed, epoch, source_id)``.
+    The returned examples remain ordinary binary ``CVRPExample`` objects, so both forward noising
+    and loss use the same selected hard target.
+    """
+    grouped: dict[str, list[CVRPExample]] = {}
+    for example in examples:
+        grouped.setdefault(training_source_id(example), []).append(example)
+    selected: list[CVRPExample] = []
+    for source_id in sorted(grouped):
+        candidates = sorted(
+            grouped[source_id],
+            key=lambda item: (
+                str(
+                    item.instance.generator_settings.get("training_label_policy", {}).get(
+                        "candidate_route_hash", ""
+                    )
+                ),
+                item.solution.cost,
+                item.solution.seed if item.solution.seed is not None else -1,
+            ),
+        )
+        digest = hashlib.sha256(f"{seed}:{epoch}:{source_id}".encode()).digest()
+        index = int.from_bytes(digest[:8], "big") % len(candidates)
+        selected.append(candidates[index])
+    return selected
 
 
 @dataclass(frozen=True)

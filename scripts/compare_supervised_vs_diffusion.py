@@ -33,7 +33,7 @@ from __future__ import annotations
 import argparse
 import json
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -63,40 +63,118 @@ _TABLE_COLS = ("method", "f1", "auc", "precision", "recall", "bce", "threshold",
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--splits-root", type=Path, required=True, help="dir with train/val/test subdirs, i.e. scripts/make_splits.py output (e.g. cvrp_s7799_n20-50-100_x66667/splits)")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--splits-root",
+        type=Path,
+        required=True,
+        help="directory containing train/val/test splits",
+    )
     parser.add_argument("--sizes", type=str, default="20,50,100")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--device", type=str, default="auto")
-    parser.add_argument("--output", type=Path, default=None, help="defaults to outputs/eval/compare_nn_vs_diffusion/<timestamp>")
-    parser.add_argument("--materialization", choices=("hardlink", "copy"), default="hardlink", help="passed through to select_example_subset")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="defaults to outputs/eval/compare_nn_vs_diffusion/<timestamp>",
+    )
+    parser.add_argument(
+        "--materialization",
+        choices=("hardlink", "copy"),
+        default="hardlink",
+        help="passed through to select_example_subset",
+    )
 
-    parser.add_argument("--train-per-size", type=int, default=40, help="examples per size for training (same pool for both models)")
-    parser.add_argument("--val-per-size", type=int, default=8, help="held-out examples per size for threshold selection")
-    parser.add_argument("--test-per-size", type=int, default=8, help="untouched examples per size for final scoring")
+    parser.add_argument(
+        "--train-per-size",
+        type=int,
+        default=40,
+        help="examples per size for training (same pool for both models)",
+    )
+    parser.add_argument(
+        "--val-per-size",
+        type=int,
+        default=8,
+        help="held-out examples per size for threshold selection",
+    )
+    parser.add_argument(
+        "--test-per-size", type=int, default=8, help="untouched examples per size for final scoring"
+    )
 
     parser.add_argument("--mp-hidden-dim", type=int, default=64)
     parser.add_argument("--mp-learning-rate", type=float, default=0.001)
     parser.add_argument("--mp-time-budget", type=float, default=900.0, help="seconds")
-    parser.add_argument("--mp-max-epochs", type=int, default=2000, help="safety cap; the time budget usually stops training first")
-    parser.add_argument("--mp-patience", type=int, default=20, help="stop early if train_loss stops improving for this many epochs")
+    parser.add_argument(
+        "--mp-max-epochs",
+        type=int,
+        default=2000,
+        help="safety cap; the time budget usually stops training first",
+    )
+    parser.add_argument(
+        "--mp-patience",
+        type=int,
+        default=20,
+        help="stop early if train_loss stops improving for this many epochs",
+    )
 
     parser.add_argument("--diff-hidden-dim", type=int, default=192)
     parser.add_argument("--diff-num-layers", type=int, default=8)
     parser.add_argument("--diff-time-embed-dim", type=int, default=192)
-    parser.add_argument("--diff-learning-rate", type=float, default=1e-3, help="3e-4 is the tuned 40-epoch recipe's value; higher moves faster per-epoch for short diagnostic runs")
+    parser.add_argument(
+        "--diff-learning-rate",
+        type=float,
+        default=1e-3,
+        help="learning rate; 3e-4 matches the tuned recipe",
+    )
     parser.add_argument("--diff-batch-size", type=int, default=16)
     parser.add_argument("--diff-num-timesteps", type=int, default=700)
     parser.add_argument("--diff-time-budget", type=float, default=900.0, help="seconds")
-    parser.add_argument("--diff-max-epochs", type=int, default=200, help="safety cap; the time budget usually stops training first")
-    parser.add_argument("--no-diff-augmentation", action="store_true", help="disable x9 geometric augmentation (faster per epoch, less data)")
-    parser.add_argument("--diff-t-sample", choices=("uniform", "high"), default="high", help="timestep sampling mode during denoiser training; 'high' (the tuned recipe's setting) biases toward near-max-noise steps, which may starve short runs of learnable signal -- try 'uniform' to check")
-    parser.add_argument("--diff-node-encoder", choices=("linear", "gat"), default="linear", help="node feature encoder; 'linear' keeps this script self-contained (no GAT-pretrain stage), 'gat' uses a randomly-initialized 5-layer GAT trained jointly -- try 'gat' if train_loss plateaus regardless of --diff-t-sample")
+    parser.add_argument(
+        "--diff-max-epochs",
+        type=int,
+        default=200,
+        help="safety cap; the time budget usually stops training first",
+    )
+    parser.add_argument(
+        "--no-diff-augmentation",
+        action="store_true",
+        help="disable x9 geometric augmentation (faster per epoch, less data)",
+    )
+    parser.add_argument(
+        "--diff-t-sample",
+        choices=("uniform", "high"),
+        default="high",
+        help=(
+            "timestep sampling mode; 'high' biases toward near-max-noise steps, while "
+            "'uniform' can provide more learnable signal in short runs"
+        ),
+    )
+    parser.add_argument(
+        "--diff-node-encoder",
+        choices=("linear", "gat"),
+        default="linear",
+        help=(
+            "node encoder; 'linear' is self-contained, while 'gat' jointly trains a "
+            "randomly initialized five-layer GAT"
+        ),
+    )
     parser.add_argument("--diff-gat-num-layers", type=int, default=5)
     parser.add_argument("--diff-gat-num-heads", type=int, default=8)
 
-    parser.add_argument("--skip-full-chain", action="store_true", help="skip the expensive full 700-step reverse-diffusion scoring pass")
-    parser.add_argument("--full-chain-stride", type=int, default=5, help="visit every Nth diffusion timestep during full-chain generation")
+    parser.add_argument(
+        "--skip-full-chain",
+        action="store_true",
+        help="skip the expensive full 700-step reverse-diffusion scoring pass",
+    )
+    parser.add_argument(
+        "--full-chain-stride",
+        type=int,
+        default=5,
+        help="visit every Nth diffusion timestep during full-chain generation",
+    )
 
     return parser.parse_args()
 
@@ -132,7 +210,11 @@ def _materialize_subset(
             )
         subset_dir = subset_root / split_name
         manifest = select_example_subset(
-            source, subset_dir, sizes=sizes, per_size=per_size, seed=split_seed,
+            source,
+            subset_dir,
+            sizes=sizes,
+            per_size=per_size,
+            seed=split_seed,
             materialization=materialization,
         )
         print(f"subset {split_name}: {manifest['counts_by_size']} -> {subset_dir}", flush=True)
@@ -158,9 +240,15 @@ def _train_supervised(
     best_loss = float("inf")
     epochs_without_improve = 0
     started = time.perf_counter()
-    print(f"P2.1 train: n={len(train_examples)} time_budget={time_budget_seconds:.0f}s device={device}", flush=True)
+    print(
+        f"P2.1 train: n={len(train_examples)} "
+        f"time_budget={time_budget_seconds:.0f}s device={device}",
+        flush=True,
+    )
     for epoch in range(max_epochs):
-        order = torch.randperm(len(train_examples), generator=torch.Generator().manual_seed(seed + epoch))
+        order = torch.randperm(
+            len(train_examples), generator=torch.Generator().manual_seed(seed + epoch)
+        )
         total = 0.0
         for idx in order.tolist():
             example = train_examples[int(idx)]
@@ -177,7 +265,9 @@ def _train_supervised(
         elapsed = time.perf_counter() - started
         history.append({"epoch": epoch, "train_loss": mean_loss, "elapsed_seconds": elapsed})
         if epoch % 10 == 0:
-            print(f"P2.1 epoch={epoch} train_loss={mean_loss:.4f} elapsed={elapsed:.1f}s", flush=True)
+            print(
+                f"P2.1 epoch={epoch} train_loss={mean_loss:.4f} elapsed={elapsed:.1f}s", flush=True
+            )
         if mean_loss < best_loss - 1e-5:
             best_loss = mean_loss
             epochs_without_improve = 0
@@ -248,7 +338,8 @@ def _train_diffusion(
         history.append(row)
         print(
             f"P3 epoch={row.get('epoch')} train_loss={row.get('train_loss', float('nan')):.4f} "
-            f"val_loss={row.get('val_loss', float('nan')):.4f} val_f1={row.get('val_f1', float('nan')):.4f} "
+            f"val_loss={row.get('val_loss', float('nan')):.4f} "
+            f"val_f1={row.get('val_f1', float('nan')):.4f} "
             f"epoch_time={row.get('epoch_runtime_seconds', float('nan')):.1f}s "
             f"total_time={row.get('total_runtime_seconds', float('nan')):.1f}s",
             flush=True,
@@ -305,21 +396,36 @@ def _eval_diffusion(
         gen = torch.Generator(device="cpu").manual_seed(seed + i)
         if mode == "one_shot":
             result = predict_matrix_one_shot(
-                model, schedule, coords=coords, demands=demands, capacity=capacity,
-                customer_mask=mask, generator=gen,
+                model,
+                schedule,
+                coords=coords,
+                demands=demands,
+                capacity=capacity,
+                customer_mask=mask,
+                generator=gen,
             )
         elif mode == "full_chain":
             result = sample_constraint_matrix(
-                model, schedule, coords=coords, demands=demands, capacity=capacity,
-                customer_mask=mask, generator=gen, step_stride=step_stride,
+                model,
+                schedule,
+                coords=coords,
+                demands=demands,
+                capacity=capacity,
+                customer_mask=mask,
+                generator=gen,
+                step_stride=step_stride,
             )
         else:
             raise ValueError(f"unknown diffusion mode: {mode}")
         m_probs.append(result.m_prob)
         m_hats.append(result.m_hat)
     return score_matrix_probabilities(
-        examples, m_probs, m_hats=m_hats, hard_from_hats=(mode == "full_chain"),
-        threshold=threshold, adaptive_threshold=adaptive_threshold,
+        examples,
+        m_probs,
+        m_hats=m_hats,
+        hard_from_hats=(mode == "full_chain"),
+        threshold=threshold,
+        adaptive_threshold=adaptive_threshold,
     )
 
 
@@ -340,9 +446,16 @@ def main() -> None:
     sizes = [int(s) for s in args.sizes.split(",") if s]
     device = resolve_device(args.device)
     splits_root = args.splits_root if args.splits_root.is_absolute() else ROOT / args.splits_root
-    output_root = args.output if args.output is not None else (
-        ROOT / "outputs" / "eval" / "compare_nn_vs_diffusion"
-        / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    output_root = (
+        args.output
+        if args.output is not None
+        else (
+            ROOT
+            / "outputs"
+            / "eval"
+            / "compare_nn_vs_diffusion"
+            / datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+        )
     )
     output_root.mkdir(parents=True, exist_ok=True)
     print(f"device={device} splits_root={splits_root} output={output_root}", flush=True)
@@ -350,9 +463,14 @@ def main() -> None:
     wall_start = time.perf_counter()
     print("materializing subset via select_example_subset…", flush=True)
     pools = _materialize_subset(
-        splits_root, output_root / "subset", sizes,
-        train_n=args.train_per_size, val_n=args.val_per_size, test_n=args.test_per_size,
-        seed=args.seed, materialization=args.materialization,
+        splits_root,
+        output_root / "subset",
+        sizes,
+        train_n=args.train_per_size,
+        val_n=args.val_per_size,
+        test_n=args.test_per_size,
+        seed=args.seed,
+        materialization=args.materialization,
     )
     train_examples, val_examples, test_examples = pools["train"], pools["val"], pools["test"]
     validate_disjoint_examples(val_examples, test_examples)
@@ -368,28 +486,50 @@ def main() -> None:
     started = time.perf_counter()
     predictor, mp_history = _train_supervised(
         train_examples,
-        hidden_dim=args.mp_hidden_dim, learning_rate=args.mp_learning_rate, device=device,
-        seed=args.seed, time_budget_seconds=args.mp_time_budget, max_epochs=args.mp_max_epochs,
+        hidden_dim=args.mp_hidden_dim,
+        learning_rate=args.mp_learning_rate,
+        device=device,
+        seed=args.seed,
+        time_budget_seconds=args.mp_time_budget,
+        max_epochs=args.mp_max_epochs,
         patience=args.mp_patience,
     )
     mp_train_runtime = time.perf_counter() - started
-    mp_selection = _eval_supervised(predictor, val_examples, device, threshold=None, adaptive_threshold=True)
+    mp_selection = _eval_supervised(
+        predictor, val_examples, device, threshold=None, adaptive_threshold=True
+    )
     started = time.perf_counter()
     mp_test = _eval_supervised(
-        predictor, test_examples, device,
-        threshold=float(mp_selection["threshold"]), adaptive_threshold=False,
+        predictor,
+        test_examples,
+        device,
+        threshold=float(mp_selection["threshold"]),
+        adaptive_threshold=False,
     )
-    p21_row = {"method": "P2.1_supervised", **mp_test, "runtime_seconds": time.perf_counter() - started}
+    p21_row = {
+        "method": "P2.1_supervised",
+        **mp_test,
+        "runtime_seconds": time.perf_counter() - started,
+    }
 
     # --- P3 diffusion ConstraintDenoiser ---
-    schedule = BernoulliDiffusionSchedule(num_timesteps=args.diff_num_timesteps, beta_start=1e-4, beta_end=2e-2)
+    schedule = BernoulliDiffusionSchedule(
+        num_timesteps=args.diff_num_timesteps, beta_start=1e-4, beta_end=2e-2
+    )
     started = time.perf_counter()
     denoiser, diff_history = _train_diffusion(
-        train_examples, val_examples,
-        hidden_dim=args.diff_hidden_dim, num_layers=args.diff_num_layers,
-        time_embed_dim=args.diff_time_embed_dim, schedule=schedule, device=device, seed=args.seed,
-        learning_rate=args.diff_learning_rate, batch_size=args.diff_batch_size,
-        time_budget_seconds=args.diff_time_budget, max_epochs=args.diff_max_epochs,
+        train_examples,
+        val_examples,
+        hidden_dim=args.diff_hidden_dim,
+        num_layers=args.diff_num_layers,
+        time_embed_dim=args.diff_time_embed_dim,
+        schedule=schedule,
+        device=device,
+        seed=args.seed,
+        learning_rate=args.diff_learning_rate,
+        batch_size=args.diff_batch_size,
+        time_budget_seconds=args.diff_time_budget,
+        max_epochs=args.diff_max_epochs,
         augmentation=not args.no_diff_augmentation,
         t_sample=args.diff_t_sample,
         node_encoder_type=args.diff_node_encoder,
@@ -400,15 +540,31 @@ def main() -> None:
     schedule = schedule.to(device)
 
     one_shot_selection = _eval_diffusion(
-        denoiser, schedule, val_examples, device=device, mode="one_shot",
-        seed=args.seed, threshold=None, adaptive_threshold=True,
+        denoiser,
+        schedule,
+        val_examples,
+        device=device,
+        mode="one_shot",
+        seed=args.seed,
+        threshold=None,
+        adaptive_threshold=True,
     )
     started = time.perf_counter()
     one_shot_test = _eval_diffusion(
-        denoiser, schedule, test_examples, device=device, mode="one_shot", seed=args.seed,
-        threshold=float(one_shot_selection["threshold"]), adaptive_threshold=False,
+        denoiser,
+        schedule,
+        test_examples,
+        device=device,
+        mode="one_shot",
+        seed=args.seed,
+        threshold=float(one_shot_selection["threshold"]),
+        adaptive_threshold=False,
     )
-    one_shot_row = {"method": "P3_one_shot", **one_shot_test, "runtime_seconds": time.perf_counter() - started}
+    one_shot_row = {
+        "method": "P3_one_shot",
+        **one_shot_test,
+        "runtime_seconds": time.perf_counter() - started,
+    }
 
     rows = [p21_row, one_shot_row]
     full_row: dict[str, Any] | None = None
@@ -416,10 +572,21 @@ def main() -> None:
         print(f"scoring P3 full-chain (step_stride={args.full_chain_stride})…", flush=True)
         started = time.perf_counter()
         full_test = _eval_diffusion(
-            denoiser, schedule, test_examples, device=device, mode="full_chain", seed=args.seed,
-            step_stride=args.full_chain_stride, threshold=0.5, adaptive_threshold=False,
+            denoiser,
+            schedule,
+            test_examples,
+            device=device,
+            mode="full_chain",
+            seed=args.seed,
+            step_stride=args.full_chain_stride,
+            threshold=0.5,
+            adaptive_threshold=False,
         )
-        full_row = {"method": "P3_full_chain", **full_test, "runtime_seconds": time.perf_counter() - started}
+        full_row = {
+            "method": "P3_full_chain",
+            **full_test,
+            "runtime_seconds": time.perf_counter() - started,
+        }
         rows.append(full_row)
 
     print("\n=== P2.1 supervised vs P3 diffusion (constraint matrix M) ===\n", flush=True)
@@ -435,19 +602,28 @@ def main() -> None:
     )
 
     metrics_path = output_root / "comparison_metrics.json"
-    metrics_path.write_text(json.dumps({
-        "args": vars(args) | {"splits_root": str(splits_root), "sizes": sizes},
-        "counts": {
-            "train": len(train_examples), "val": len(val_examples), "test": len(test_examples),
-        },
-        "runtimes_seconds": {
-            "mp_train": mp_train_runtime, "diff_train": diff_train_runtime,
-            "total_wall": time.perf_counter() - wall_start,
-        },
-        "rows": rows,
-        "mp_history": mp_history,
-        "diff_history": diff_history,
-    }, indent=2, default=str))
+    metrics_path.write_text(
+        json.dumps(
+            {
+                "args": vars(args) | {"splits_root": str(splits_root), "sizes": sizes},
+                "counts": {
+                    "train": len(train_examples),
+                    "val": len(val_examples),
+                    "test": len(test_examples),
+                },
+                "runtimes_seconds": {
+                    "mp_train": mp_train_runtime,
+                    "diff_train": diff_train_runtime,
+                    "total_wall": time.perf_counter() - wall_start,
+                },
+                "rows": rows,
+                "mp_history": mp_history,
+                "diff_history": diff_history,
+            },
+            indent=2,
+            default=str,
+        )
+    )
     print(f"\nwrote {metrics_path}", flush=True)
 
 

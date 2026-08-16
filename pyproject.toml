@@ -94,5 +94,5 @@ warn_unused_configs = true
 # mypy cannot see their signatures. ignore_missing_imports here only suppresses that "no stubs
 # found" note; it does not weaken checking of our own code, which stays under strict = true.
 [[tool.mypy.overrides]]
-module = ["networkx.*", "sklearn.*", "streamlit.*"]
+module = ["networkx.*", "scipy.*", "sklearn.*", "streamlit.*"]
 ignore_missing_imports = true

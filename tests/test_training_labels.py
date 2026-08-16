@@ -9,6 +9,8 @@ from vrp_diffusion_quantum.data.dataset import load_dataset, make_example, save_
 from vrp_diffusion_quantum.data.training_labels import (
     TrainingLabelPolicy,
     materialize_training_labels,
+    select_stochastic_references,
+    training_source_id,
 )
 from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance, LabeledSolution
 
@@ -133,3 +135,30 @@ def test_accepted_canonical_skips_ambiguous_target(tmp_path: Path) -> None:
     assert manifest["source_count"] == 1
     assert manifest["label_count"] == 0
     assert load_dataset(output) == []
+
+
+def test_stochastic_reference_selection_is_compute_matched_and_deterministic(
+    tmp_path: Path,
+) -> None:
+    source, audit = _write_audit(tmp_path, accepted=False)
+    output = tmp_path / "multi"
+    materialize_training_labels(
+        source,
+        audit,
+        output,
+        policy=TrainingLabelPolicy(modes_by_size={3: "multi_reference"}),
+    )
+    candidates = load_dataset(output)
+    first = select_stochastic_references(candidates, seed=10, epoch=3)
+    reordered = select_stochastic_references(list(reversed(candidates)), seed=10, epoch=3)
+    assert len(first) == 1
+    assert training_source_id(first[0]) == "cvrp3_0.json"
+    assert first[0].solution.seed == reordered[0].solution.seed
+
+
+def test_stochastic_reference_selection_keeps_one_per_distinct_source() -> None:
+    first = _source_example()
+    second = _source_example()
+    second.instance.instance_id = "tiny_other"
+    selected = select_stochastic_references([first, second], seed=0, epoch=0)
+    assert len(selected) == 2

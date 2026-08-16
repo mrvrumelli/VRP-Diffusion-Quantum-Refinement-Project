@@ -11,7 +11,13 @@ import numpy as np
 import pytest
 import torch
 
-from vrp_diffusion_quantum.data.dataset import collate_batch, make_example
+from vrp_diffusion_quantum.data.consensus_targets import build_consensus_targets
+from vrp_diffusion_quantum.data.dataset import (
+    IndexedJSONDataset,
+    collate_batch,
+    make_example,
+    save_example,
+)
 from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance, LabeledSolution
 from vrp_diffusion_quantum.models.constraint_denoiser import ConstraintDenoiser
 from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
@@ -68,6 +74,20 @@ def test_diffusion_matrix_bce_loss_ignores_diagonal_and_padding() -> None:
     loss = diffusion_matrix_bce_loss(logits, m_true, customer_mask)
     assert torch.isfinite(loss)
     assert loss.item() < 0.1
+
+
+def test_diffusion_loss_confidence_mask_ignores_disputed_pair() -> None:
+    logits = torch.tensor([[[0.0, -100.0, 10.0], [-100.0, 0.0, 10.0], [10.0, 10.0, 0.0]]])
+    target = torch.tensor([[[0.0, 0.5, 1.0], [0.5, 0.0, 1.0], [1.0, 1.0, 0.0]]])
+    confidence = torch.tensor([[[0.0, 0.0, 1.0], [0.0, 0.0, 1.0], [1.0, 1.0, 0.0]]])
+    loss = diffusion_matrix_bce_loss(
+        logits,
+        target,
+        torch.ones(1, 3, dtype=torch.bool),
+        weighted=False,
+        pair_weights=confidence,
+    )
+    assert loss.item() < 0.001
 
 
 def test_train_constraint_denoiser_rejects_empty() -> None:
@@ -194,6 +214,122 @@ def test_train_constraint_denoiser_accumulates_and_logs_runtime() -> None:
     assert row["epoch_runtime_seconds"] > 0
     assert row["train_examples_per_second"] > 0
     assert np.isfinite(row["gradient_norm"])
+
+
+def test_full_chain_checkpoint_selection_uses_fixed_seed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    examples = [_example(4, seed=0)]
+    model = ConstraintDenoiser(hidden_dim=8, num_layers=1, time_embed_dim=8)
+    schedule = BernoulliDiffusionSchedule(num_timesteps=3)
+    observed_seeds: list[int] = []
+
+    def fake_sample_eval(*args: object, **kwargs: object) -> dict[str, object]:
+        del args
+        observed_seeds.append(int(kwargs["seed"]))
+        value = 20.0 - len(observed_seeds)
+        return {
+            "sample_f1": 0.5,
+            "sample_precision": 0.5,
+            "sample_recall": 0.5,
+            "sample_num_examples": 1,
+            "route_mean_cost_gap_percent": value,
+        }
+
+    monkeypatch.setattr(
+        "vrp_diffusion_quantum.train.train_diffusion.evaluate_full_chain_sampling",
+        fake_sample_eval,
+    )
+    ckpt_dir = tmp_path / "checkpoints"
+    history = train_constraint_denoiser(
+        model,
+        schedule,
+        examples,
+        num_epochs=2,
+        learning_rate=0.01,
+        sample_eval_examples=examples,
+        sample_eval_every=1,
+        sample_eval_seed=777,
+        checkpoint_dir=ckpt_dir,
+        best_metric="route_mean_cost_gap_percent",
+        minimize_best=True,
+    )
+
+    assert observed_seeds == [777, 777]
+    assert history[-1]["route_mean_cost_gap_percent"] == 18.0
+    payload = torch.load(ckpt_dir / "best.pt", map_location="cpu", weights_only=False)
+    assert payload["epoch"] == 1
+    assert payload["best_metric_name"] == "route_mean_cost_gap_percent"
+
+
+def test_stochastic_references_keep_one_update_per_source() -> None:
+    first = _example(4, seed=0)
+    alternative = _example(4, seed=1)
+    alternative.instance.instance_id = first.instance.instance_id
+    alternative.instance.generator_settings["training_label_policy"] = {
+        "source_file": "shared.json",
+        "candidate_route_hash": "b",
+    }
+    first.instance.generator_settings["training_label_policy"] = {
+        "source_file": "shared.json",
+        "candidate_route_hash": "a",
+    }
+    model = ConstraintDenoiser(hidden_dim=8, num_layers=1, time_embed_dim=8)
+    history = train_constraint_denoiser(
+        model,
+        BernoulliDiffusionSchedule(num_timesteps=3),
+        [first, alternative],
+        num_epochs=2,
+        learning_rate=0.01,
+        batch_size=1,
+        stochastic_references=True,
+    )
+    assert [row["train_examples_seen"] for row in history] == [1, 1]
+    assert [row["unique_train_sources"] for row in history] == [1, 1]
+
+
+def test_consensus_target_training_keeps_hard_examples_unchanged() -> None:
+    first = _example(4, seed=0)
+    second = _example(4, seed=1)
+    for item, route_hash in ((first, "a"), (second, "b")):
+        item.instance.instance_id = "shared"
+        item.instance.generator_settings["training_label_policy"] = {
+            "source_file": "shared.json",
+            "candidate_route_hash": route_hash,
+        }
+    original = first.constraint_matrix.copy()
+    targets = build_consensus_targets([first, second])
+    model = ConstraintDenoiser(hidden_dim=8, num_layers=1, time_embed_dim=8)
+    history = train_constraint_denoiser(
+        model,
+        BernoulliDiffusionSchedule(num_timesteps=3),
+        [first],
+        num_epochs=1,
+        learning_rate=0.01,
+        consensus_targets=targets,
+        consensus_use_confidence=True,
+    )
+    assert history[0]["consensus_use_confidence"] is True
+    np.testing.assert_array_equal(first.constraint_matrix, original)
+
+
+def test_training_streams_indexed_json_dataset(tmp_path: Path) -> None:
+    for index in range(3):
+        save_example(_example(4, seed=index), tmp_path / f"cvrp4_{index}.json")
+    dataset = IndexedJSONDataset(tmp_path, cache_size=0)
+    model = ConstraintDenoiser(hidden_dim=8, num_layers=1, time_embed_dim=8)
+    history = train_constraint_denoiser(
+        model,
+        BernoulliDiffusionSchedule(num_timesteps=3),
+        dataset,
+        val_examples=dataset,
+        num_epochs=1,
+        learning_rate=0.01,
+        batch_size=2,
+        same_size_batches=True,
+    )
+    assert history[0]["train_examples_seen"] == 3
+    assert dataset._cache == {}  # cache_size=0 never retains parsed matrices
 
 
 def test_train_diffusion_script_logs_metrics(tmp_path: Path) -> None:

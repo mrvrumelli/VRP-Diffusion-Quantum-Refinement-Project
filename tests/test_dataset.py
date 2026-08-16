@@ -6,6 +6,7 @@ import pytest
 import torch
 
 from vrp_diffusion_quantum.data.dataset import (
+    IndexedJSONDataset,
     collate_batch,
     load_dataset,
     load_example,
@@ -263,6 +264,9 @@ def test_save_and_load_example_round_trips(tmp_path: Path) -> None:
     example_path = tmp_path / "toy_0.json"
 
     save_example(example, example_path)
+    payload = json.loads(example_path.read_text())
+    assert "constraint_matrix_packed" in payload
+    assert "constraint_matrix" not in payload
     loaded = load_example(example_path)
 
     assert np.array_equal(loaded.instance.coords, example.instance.coords)
@@ -284,10 +288,32 @@ def test_save_and_load_example_round_trips(tmp_path: Path) -> None:
     assert loaded.constraint_matrix.dtype == np.uint8
 
 
+def test_compact_matrix_is_smaller_and_legacy_format_still_loads(tmp_path: Path) -> None:
+    example = _tiny_example()
+    compact_path = tmp_path / "compact.json"
+    legacy_path = tmp_path / "legacy.json"
+    save_example(example, compact_path)
+    save_example(example, legacy_path, compact_matrix=False)
+    assert compact_path.stat().st_size < legacy_path.stat().st_size
+    np.testing.assert_array_equal(
+        load_example(legacy_path).constraint_matrix, example.constraint_matrix
+    )
+
+
+def test_load_example_rejects_malformed_packed_matrix(tmp_path: Path) -> None:
+    path = tmp_path / "bad.json"
+    save_example(_tiny_example(), path)
+    payload = json.loads(path.read_text())
+    payload["constraint_matrix_packed"]["shape"] = [100, 100]
+    path.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="byte length"):
+        load_example(path)
+
+
 def test_load_example_rejects_float_constraint_matrix_in_json(tmp_path: Path) -> None:
     example = _tiny_example()
     example_path = tmp_path / "toy_0.json"
-    save_example(example, example_path)
+    save_example(example, example_path, compact_matrix=False)
     payload = json.loads(example_path.read_text())
     payload["constraint_matrix"][0][1] = 0.5
     example_path.write_text(json.dumps(payload))
@@ -450,3 +476,56 @@ def test_size_homogeneous_batches_no_cross_size_padding() -> None:
     # 5 examples x 9 augment views = 45; batch_size 4 gives 12 batches.
     assert len(expanded) == 12
     assert sum(b.constraint_matrix.shape[0] for b in expanded) == 45
+
+
+def test_indexed_json_dataset_loads_on_access_and_bounds_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for index in range(3):
+        save_example(_tiny_example(f"cvrp3_{index}"), tmp_path / f"cvrp3_{index}.json")
+    (tmp_path / "training_label_manifest.json").write_text("{}")
+
+    import vrp_diffusion_quantum.data.dataset as dataset_module
+
+    original_load = dataset_module.load_example
+    loaded_paths: list[Path] = []
+
+    def tracking_load(path: str | Path) -> CVRPExample:
+        loaded_paths.append(Path(path))
+        return original_load(path)
+
+    monkeypatch.setattr(dataset_module, "load_example", tracking_load)
+    dataset = IndexedJSONDataset(tmp_path, cache_size=1)
+    assert len(dataset) == 3
+    assert loaded_paths == []
+    assert dataset[0].instance.instance_id == "cvrp3_0"
+    assert dataset[0].instance.instance_id == "cvrp3_0"
+    assert len(loaded_paths) == 1
+    _ = dataset[1]
+    _ = dataset[0]
+    assert len(loaded_paths) == 3
+
+
+def test_indexed_json_dataset_supports_size_filter_slice_and_negative_index(
+    tmp_path: Path,
+) -> None:
+    save_example(_tiny_example("cvrp3_0"), tmp_path / "cvrp3_0.json")
+    small_solution = LabeledSolution(
+        routes=[[0, 1]],
+        cost=1.0,
+        num_vehicles=1,
+        feasible=True,
+        solver_name="test",
+        time_budget=None,
+        seed=0,
+        runtime_seconds=0.0,
+    )
+    save_example(
+        make_example(_small_instance("cvrp2_0"), small_solution),
+        tmp_path / "cvrp2_0.json",
+    )
+    dataset = IndexedJSONDataset(tmp_path, sizes=[3])
+    assert [example.instance.n_customers for example in dataset[:]] == [3]
+    assert dataset[-1].instance.instance_id == "cvrp3_0"
+    with pytest.raises(IndexError):
+        _ = dataset[1]
