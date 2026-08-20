@@ -14,7 +14,7 @@ copying that corpus just to run the audit. `data/processed/label_audit_s7799/sub
 records the exact source hash and seed if you want to verify it against your own copy of the
 corpus.
 
-**The solver results are now preserved too.** The actual audit — 6,000 PyVRP runs plus 446
+The actual audit — 6,000 PyVRP runs plus 446
 OR-Tools challenger runs, ~140,500 + 14,600 CPU-seconds — is the CPU-heavy part. Its completed
 cache (`outputs/label_audit/s7799_strong_reference/`) is force-committed despite `outputs/` being
 gitignored, so you do not need to re-run the solves. `outputs/` stays gitignored for everything
@@ -113,3 +113,22 @@ The decision doc also describes the bounded CVRP100 80-/120-second follow-ups an
 label materialization that build on this audit. Do not start those, and do not start full model
 training, until you've read that document's acceptance gates and Next-stage research plan in
 `docs/3060ti_training_todo.md`.
+
+## 7. Commit your results so nobody re-solves them
+
+Whatever you run from this doc — this audit, the CVRP100 follow-ups, the rc_pilot/rc_full pools,
+or a from-scratch rerun — force-commit its output directory the same way
+`s7799_strong_reference` was committed, since `outputs/` is gitignored by default:
+
+```bash
+git add -f outputs/label_audit/<your_run_name>/
+git commit -m "..."
+git push
+```
+
+Do this even if multiple people are working the same config in parallel: whoever finishes first
+should push, and everyone else should `git pull` before continuing rather than keep solving —
+the resume behavior in step 4 means their next run will pick up the pushed candidates and only
+compute what's genuinely still missing. Commit a partial `candidates/` cache too if you have to
+stop mid-run; a partial cache still saves the next person real CPU time, and you can commit again
+once it finishes.
