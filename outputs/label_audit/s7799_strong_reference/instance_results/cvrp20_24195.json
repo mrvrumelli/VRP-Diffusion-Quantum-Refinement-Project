@@ -1,0 +1,70 @@
+{
+  "acceptance_reasons": [
+    "accepted"
+  ],
+  "challenger_selection_reason": "stable_control",
+  "cost_converged": true,
+  "improvement_over_original": 0.0,
+  "instance_id": "cvrp_s7799_n20-50-100_x66667_cvrp20_24195",
+  "matrix_disagreement_from_original": 0.0,
+  "matrix_stable": true,
+  "matrix_target_accepted": true,
+  "max_customer_membership_instability": 0.0,
+  "max_near_best_matrix_disagreement": 0.0,
+  "mean_near_best_matrix_disagreement": 0.0,
+  "n_customers": 20,
+  "near_best_seed_count": 4,
+  "needs_review": false,
+  "original_cost": 5.7577674325075305,
+  "ortools_beats_pyvrp": false,
+  "ortools_checked": true,
+  "ortools_cost": 5.7577674325075305,
+  "ortools_feasible": true,
+  "pyvrp_best_cost": 5.7577674325075305,
+  "pyvrp_candidate_count": 4,
+  "pyvrp_feasible_count": 4,
+  "pyvrp_seed_spread_relative": 1.5425743226195573e-16,
+  "pyvrp_worst_cost": 5.757767432507531,
+  "reference_accepted": true,
+  "reference_base_seed": 9102,
+  "reference_cost": 5.7577674325075305,
+  "reference_derived_seed": 1725849174,
+  "reference_num_vehicles": 4,
+  "reference_route_hash": "3720133b7f0c47729acec8ad68183107dc5d253e6bd678e91b148bd3f02eb968",
+  "reference_routes": [
+    [
+      17,
+      0,
+      8,
+      6,
+      16,
+      7
+    ],
+    [
+      1,
+      12,
+      10,
+      2,
+      11,
+      5
+    ],
+    [
+      18,
+      19,
+      15,
+      13
+    ],
+    [
+      9,
+      3,
+      4,
+      14
+    ]
+  ],
+  "reference_runtime_seconds": 10.015231699999276,
+  "reference_solver": "pyvrp",
+  "reference_time_budget": 10.0,
+  "relative_improvement_over_original": 0.0,
+  "source_file": "cvrp20_24195.json",
+  "vehicle_count_delta_from_original": 0
+}

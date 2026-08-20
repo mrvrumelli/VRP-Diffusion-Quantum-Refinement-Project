@@ -14,10 +14,19 @@ copying that corpus just to run the audit. `data/processed/label_audit_s7799/sub
 records the exact source hash and seed if you want to verify it against your own copy of the
 corpus.
 
-**What is not preserved:** the solver results themselves. The actual audit — 6,000 PyVRP runs
-plus 446 OR-Tools challenger runs — is the CPU-heavy part, and its cache
-(`outputs/label_audit/s7799_strong_reference/`) is gitignored and was never committed. There is
-no shortcut around re-running the solves; the steps below start that from zero.
+**The solver results are now preserved too.** The actual audit — 6,000 PyVRP runs plus 446
+OR-Tools challenger runs, ~140,500 + 14,600 CPU-seconds — is the CPU-heavy part. Its completed
+cache (`outputs/label_audit/s7799_strong_reference/`) is force-committed despite `outputs/` being
+gitignored, so you do not need to re-run the solves. `outputs/` stays gitignored for everything
+else; only this one completed run was explicitly checked in to save other contributors the CPU
+time.
+
+If you just want the final artifacts, you are done — skip to
+[What comes out](#5-what-comes-out) below. Only continue with steps 1-4 if you want to reproduce
+the run yourself (e.g. to sanity-check it, or because the policy config changed and you need a
+fresh pass). If you do, the same resume behavior in step 4 applies: `run_strong_label_audit.py`
+will see the committed candidates already in `outputs/label_audit/s7799_strong_reference/candidates/`
+and skip them, only computing what's missing.
 
 ## 1. Prerequisites
 

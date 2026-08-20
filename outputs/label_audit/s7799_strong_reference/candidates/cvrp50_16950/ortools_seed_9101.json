@@ -1,0 +1,82 @@
+{
+  "base_seed": 9101,
+  "cost": 9.876021606823196,
+  "derived_seed": 4122444635,
+  "feasible": true,
+  "instance_id": "cvrp_s7799_n20-50-100_x66667_cvrp50_16950",
+  "n_customers": 50,
+  "num_vehicles": 7,
+  "route_hash": "f59b5b9fdf6c892a0da4db25275fdfea7d9b2e034f40c9d3be09404e5ce121be",
+  "routes": [
+    [
+      37,
+      28,
+      26,
+      23,
+      39,
+      29,
+      21
+    ],
+    [
+      36,
+      12,
+      34,
+      25,
+      22,
+      11,
+      4
+    ],
+    [
+      40,
+      48,
+      8,
+      43,
+      5,
+      38,
+      10,
+      32,
+      46
+    ],
+    [
+      35,
+      6,
+      45,
+      16,
+      3,
+      31,
+      41,
+      33
+    ],
+    [
+      14,
+      15,
+      0,
+      24,
+      17,
+      2
+    ],
+    [
+      18,
+      20,
+      1,
+      47,
+      9,
+      19,
+      7,
+      49
+    ],
+    [
+      42,
+      30,
+      27,
+      44,
+      13
+    ]
+  ],
+  "runtime_seconds": 20.01725179999994,
+  "schema_version": 1,
+  "solver_name": "ortools",
+  "source_file": "cvrp50_16950.json",
+  "time_budget": 20.0,
+  "violations": []
+}

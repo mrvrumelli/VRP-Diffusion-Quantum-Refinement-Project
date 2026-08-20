@@ -1,0 +1,26 @@
+schema_version: 1
+input_dir: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\data\processed\label_audit_s7799
+input_sha256: 42e8cd106e434e66eb57a7e1521edb90259355e55c17456ff1298fd2bff17e7f
+counts_by_size:
+  '100': 500
+  '20': 500
+  '50': 500
+policy:
+  pyvrp_base_seeds:
+  - 9101
+  - 9102
+  - 9103
+  - 9104
+  time_budgets_by_size:
+    '20': 10.0
+    '50': 20.0
+    '100': 40.0
+  ortools_stable_sample_per_size: 50
+  workers: null
+  acceptance:
+    near_best_relative_tolerance: 0.001
+    seed_spread_relative_tolerance: 0.005
+    matrix_disagreement_tolerance: 0.05
+    challenger_improvement_relative_tolerance: 1.0e-06
+    minimum_near_best_seeds: 2
+workers_resolved: 11
