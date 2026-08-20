@@ -229,6 +229,12 @@ data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 
+# Committed exception: the deterministic 1,500-instance strong-label-audit input pool.
+# Regenerating it needs the 18 GB cvrp_s7799_n20-50-100_x66667 corpus, so it is checked in
+# to let contributors run scripts/run_strong_label_audit.py without copying that corpus first.
+!data/processed/label_audit_s7799/
+!data/processed/label_audit_s7799/**
+
 # Self-contained CVRP dataset drops at repo root (e.g. cvrp_s7799_n20-50-100_x66667/)
 /cvrp_s*_n*_x*/
 
