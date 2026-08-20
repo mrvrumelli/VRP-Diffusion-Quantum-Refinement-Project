@@ -1,0 +1,6022 @@
+{
+  "seed": 4201,
+  "source_dir": "/Users/MUSTAFAMERT/Desktop/VRP-Diffusion-Quantum-Refinement-Project/cvrp_s7799_n20-50-100_x66667/splits/train",
+  "source_sha256": "df2f9986318807d02d2484bbabc11737e5985797fa8f6ffb008ccb8599fdc56a",
+  "source_hash_origin": "/Users/MUSTAFAMERT/Desktop/VRP-Diffusion-Quantum-Refinement-Project/cvrp_s7799_n20-50-100_x66667/splits/split_manifest.json",
+  "sizes": [
+    20,
+    50,
+    100
+  ],
+  "per_size": 500,
+  "count": 1500,
+  "counts_by_size": {
+    "20": 500,
+    "50": 500,
+    "100": 500
+  },
+  "materialization": "hardlink",
+  "examples_sha256": "8f9c27abfec57d77d3fb140d24b6e13aac759c5ac7aed3f0a930e0e0fc6d4b82",
+  "examples": [
+    {
+      "file": "cvrp20_0171.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_0229.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_0432.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_0828.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_0959.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_0983.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_10019.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_10031.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_10215.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_10287.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_10302.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_1089.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_10891.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_11055.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_11112.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_11228.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_11373.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_11394.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_11404.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_11413.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_11416.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_11574.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_11672.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_11939.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_11952.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_11985.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_12204.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_12449.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_1262.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_12638.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_12692.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_12731.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_12872.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_12878.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_12901.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_12969.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_1322.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_13250.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_13392.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_1342.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_13485.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_13641.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_13820.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_13869.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_13943.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_1420.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_14205.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_14281.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_14387.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_14510.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_14571.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_14805.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_14868.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_14904.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_1497.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_15054.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_15152.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_15264.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_15429.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_15507.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_15641.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_15673.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_15690.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_1581.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_16049.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_16061.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_16260.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_16369.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_16399.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_16602.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_16672.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_1677.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_16786.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_17187.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_17504.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_17633.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_17826.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_17874.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_17985.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_18073.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_18261.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_18323.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_18404.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_18710.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_18835.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_19179.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_19196.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_19368.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_19512.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_19535.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_19656.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_19682.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_19685.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_1985.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_19895.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_19924.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_20180.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_20187.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_20266.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_20435.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_20642.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_20992.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_21069.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_21139.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_21172.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_21198.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_21237.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_21576.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_21681.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_21899.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_22045.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_22104.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_2214.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_2238.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_22527.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_2253.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_22726.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_22985.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_23212.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_23240.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_23642.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_23662.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_23686.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_23754.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_2378.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_23869.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_23874.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_23918.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_23967.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_2411.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_24149.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_24188.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_24195.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_24339.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_24417.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_24940.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_25209.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_25223.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_25465.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_25579.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_25662.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_25736.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_25788.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_26513.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_26731.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_2684.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_26894.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_2708.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_27583.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_27608.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_27701.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_2774.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_27935.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_27965.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_28000.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_28207.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_28287.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_2847.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_28545.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_28579.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_2883.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_28881.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_28937.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_28995.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_29158.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_29220.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_29225.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_29255.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_29337.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_29478.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_29530.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_2967.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_29693.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_29778.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_29802.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_30079.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_30090.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_30190.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_30206.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_30250.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_3026.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_30383.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_30452.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_30547.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_30552.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_30736.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_30791.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_31008.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_31437.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_31606.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_31715.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_31785.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_32008.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_32077.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_32117.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_32262.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_32281.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_32357.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_32363.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_32468.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_32502.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_32590.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_32949.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_32954.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_33091.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_33114.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_33313.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_33566.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_33735.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_33908.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_33921.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_34008.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_34113.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_34299.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_34787.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_35654.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_35718.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_3599.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_36008.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_36484.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_36493.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_36697.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_36767.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_36800.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_37039.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_37078.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_37168.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_37735.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_37899.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_38272.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_38323.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_38423.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_38515.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_38566.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_3871.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_38770.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_38863.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_38907.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_38996.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_39026.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_39235.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_39237.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_39585.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_39897.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_39902.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_40245.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_40269.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_40360.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_4048.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_40539.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_40828.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_40927.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_41083.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_41106.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_41146.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_41227.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_41244.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_41291.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_41846.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_42051.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_42098.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_42147.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_42324.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_42326.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_42435.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_42441.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_42462.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_4251.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_42596.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_42638.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_42729.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_42787.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_43057.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_43213.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_43467.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_43543.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_43553.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_43675.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_4376.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_43831.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_43965.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_44097.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_44282.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_44327.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_44594.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_44603.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_44662.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_44664.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_44944.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_45008.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_45023.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_45071.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_45149.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_45155.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_45347.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_45499.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_45581.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_45757.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_45795.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_45851.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_45913.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_45999.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_46186.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_46200.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_46303.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_4631.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_46368.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_46736.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_46833.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_47294.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_47349.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_47564.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_47580.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_47745.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_47817.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_47863.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_48010.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_48064.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_48068.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_48075.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_48089.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_48161.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_48195.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_48359.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_48693.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_48812.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_48940.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_4902.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_49061.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_49156.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_49415.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_49429.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_49492.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_49628.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_49668.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_49682.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_49687.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_50427.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_50473.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_50509.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_50554.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_50637.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_50663.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_50820.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_51106.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_51109.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_51200.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_51207.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_51327.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_51610.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_51917.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_51973.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_52259.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_52270.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_52315.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_52383.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_52408.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_52433.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_5247.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_52472.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_52679.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_52964.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_52990.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_53069.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_5308.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_53251.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_53273.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_53487.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_53730.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_53875.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_53959.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_53961.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_53997.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_54046.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_5410.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_54247.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_54318.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_54474.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_54778.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_54825.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_5490.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_54976.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_55127.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_55269.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_55273.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_55304.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_55357.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_55376.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_55439.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_5564.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_55711.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_55928.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_56106.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_56113.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_56185.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_56297.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_56680.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_56735.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_56850.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_56864.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_56994.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_57055.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_57083.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_57146.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_5715.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_57288.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_5732.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_57343.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_57446.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_57564.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_57682.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_57687.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_5769.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_5781.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_57946.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_5822.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_58234.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_58343.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_58394.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_58594.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_59294.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_59326.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_5945.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_59706.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_59720.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_59781.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_59825.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_59886.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_59959.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_60098.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_60292.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_60293.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_60331.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_60460.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_60572.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_61035.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_61144.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_61405.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_61478.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_6155.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_61603.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_61681.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_6197.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_62181.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_6227.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_62300.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_62386.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_62728.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_62738.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_63182.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_63324.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_63374.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_63471.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_63509.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_63515.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_63573.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_63622.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_63725.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_6393.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_63931.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_6407.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_64710.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_64882.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_6495.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_64996.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_65478.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_65877.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_65943.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_66066.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_66148.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_66306.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_66334.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_66429.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_66441.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_66462.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_66538.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_6848.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_6883.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_7011.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_7159.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_7310.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_7319.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_7399.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_7939.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_8062.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_8204.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_8258.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_8298.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_8313.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_8397.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_8402.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_8741.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_8756.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_9076.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_9559.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_9626.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_9827.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_9857.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_9890.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp20_9986.json",
+      "n_customers": 20
+    },
+    {
+      "file": "cvrp50_0030.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_0290.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_0313.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_0364.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_0384.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_0418.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_0426.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_0464.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_0592.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_0605.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_10172.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_10180.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_10182.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_10312.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_10448.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_10542.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_10590.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_10689.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_10721.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_1079.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_1094.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_10968.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_11107.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_11244.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_11321.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_11337.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_11613.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_11747.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_1175.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_11761.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_11850.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_12000.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_1241.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_12774.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_13087.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_13097.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_13122.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_13176.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_13318.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_13338.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_1370.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_13705.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_13867.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_13913.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_14003.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_14065.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_14074.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_14109.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_14133.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_14172.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_14400.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_1446.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_14566.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_14667.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_14951.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_15101.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_15150.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_15154.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_15263.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_15306.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_15563.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_15940.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16055.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16096.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16161.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16163.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16185.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_1630.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16383.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16555.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16702.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16710.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16740.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16756.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16835.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16850.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_1690.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_16950.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_17166.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_17211.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_17445.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_17560.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_17604.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_17629.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_1764.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_1767.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_17902.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_17946.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_18136.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_18297.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_18355.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_18535.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_18592.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_18844.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_1902.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_1908.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_19088.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_19095.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_19578.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_19594.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_19651.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_19983.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_20003.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_20086.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_20192.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_20268.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_20633.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_20854.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_21043.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_21166.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_21562.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_21698.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_21723.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_21859.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_21909.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_21942.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_22194.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_22207.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_22381.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_22400.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_2244.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_22523.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_22545.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_22686.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_22737.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_22779.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_22812.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_22940.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_23120.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_23195.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_23209.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_23246.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_23507.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_23516.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_23553.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_23721.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_23737.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_23949.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_2415.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_24320.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_24597.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_24671.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_24696.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_24740.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_25227.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_25556.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_25563.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_2577.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_25811.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_25936.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_26136.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_26216.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_26229.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_26506.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_26522.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_2661.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_26685.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_27142.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_27225.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_27278.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_27949.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_28074.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_28239.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_28431.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_28432.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_28532.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_28683.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_28853.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_28868.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_28988.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_29096.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_29176.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_29358.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_29478.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_29517.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_29636.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_30287.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_30493.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_30567.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_30590.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_30999.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_31132.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_31189.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_31219.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_3124.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_3130.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_31517.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_31839.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_31996.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_32045.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_32105.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_32768.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_32791.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_32823.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_33043.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_33108.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_3329.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_33405.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_33453.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_3353.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_33561.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_33594.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_33712.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_33881.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_34120.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_34247.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_34304.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_34413.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_34455.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_34799.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_34822.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_34998.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_35088.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_35090.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_35119.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_35249.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_35515.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_3588.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_36182.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_36565.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_36577.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_36788.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_36854.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_37009.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_37031.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_3704.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_37090.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_37293.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_37581.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_37600.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_37639.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_3774.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_38065.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_38108.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_38176.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_38283.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_38343.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_38497.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_38631.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_38650.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_38682.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_38829.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_38899.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_39027.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_39114.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_39161.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_39169.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_39205.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_3925.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_39495.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_39656.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_39747.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_39788.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_39922.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_40190.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_40290.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_40449.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_40505.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_40835.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_40865.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_4135.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_41594.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_41681.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_41836.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_42029.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_42031.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_42164.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_42227.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_42254.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_42715.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_42722.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_43120.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_43180.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_43278.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_43696.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_43698.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_43831.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_43943.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_44120.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_44238.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_44471.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_4454.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_44643.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_44867.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_44881.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_44953.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_45162.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_4529.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_45422.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_4547.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_45487.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_45565.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_4573.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_45770.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_46144.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_46273.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_46538.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_46572.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_4660.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_46879.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_47008.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_47018.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_47143.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_47321.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_47373.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_47390.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_47430.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_47730.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_47887.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_4803.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_48123.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_48171.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_48243.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_48370.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_4842.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_48693.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_48811.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_48979.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_49120.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_49348.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_49404.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_49407.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_49677.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_49780.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_49892.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_49914.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_50125.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_50195.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_50375.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_50386.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_50479.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_50839.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_50898.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_50939.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_51018.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_51058.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_5112.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_51199.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_51457.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_51623.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_5166.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_51776.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_51940.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52049.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52055.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52086.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52096.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52134.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52227.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52250.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52283.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52346.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52768.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52800.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52919.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52952.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_52974.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_53024.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_53069.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_53233.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_53519.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_53535.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_53764.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_53776.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_53811.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_53861.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_54005.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_54108.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_54122.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_54396.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_54400.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_54529.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_54537.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_54625.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_54627.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_54744.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_54884.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_54890.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_54953.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_55139.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_55461.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_55934.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_55949.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_55977.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_56031.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_56102.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_56617.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_56648.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_56739.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_56861.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_57088.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_57281.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_57307.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_57472.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_57650.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_57668.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_57722.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_57894.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_57901.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_5793.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_57958.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_58003.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_5809.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_58394.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_58395.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_58447.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_58453.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_58594.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_58662.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_58686.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_58695.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_5875.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_58784.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_58830.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_59172.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_59188.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_59297.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_59546.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_59908.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_60126.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_60209.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_60362.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_6043.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_60557.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_60571.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_60599.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_60667.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_60718.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_60732.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_61569.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_61848.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_61850.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_62236.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_62326.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_62483.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_6249.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_62697.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_62720.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_62730.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_62896.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_63020.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_63135.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_63189.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_6356.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_63763.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_63842.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_63905.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_63961.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_64012.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_64200.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_64396.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_64455.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_64549.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_64735.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_64931.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_65029.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_65641.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_65675.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_65873.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_66019.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_66056.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_66111.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_6614.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_66270.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_66436.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_66560.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_6729.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_6849.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_7180.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_7213.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_7234.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_7379.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_7524.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_7587.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_7833.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_7965.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8178.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8187.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8203.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8262.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8328.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8344.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8384.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8386.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8442.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8449.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8472.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8573.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8633.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8673.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8724.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8730.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8735.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_8859.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_9121.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_9128.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_9209.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_9241.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_9252.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp50_9793.json",
+      "n_customers": 50
+    },
+    {
+      "file": "cvrp100_0007.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_0377.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_0496.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_0639.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_0689.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_0839.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_0905.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_0938.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_10101.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_10332.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_10607.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_10674.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_10820.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_10878.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_10911.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_10959.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_11000.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_11033.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_11173.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_11210.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_11550.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_1169.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_11794.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_12053.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_12156.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_12195.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_1221.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_12522.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_12665.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_1279.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_12908.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_12923.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_1293.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_13068.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_13104.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_13277.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_1365.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_13668.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_13914.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_14073.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_14183.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_14550.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_1463.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_14895.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_15241.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_1559.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_15642.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_15722.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_15824.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_16092.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_16123.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_1619.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_16688.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_16694.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_16870.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_1696.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_17086.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_17175.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_17190.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_1737.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_17411.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_1745.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_1762.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_17706.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_1776.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_17830.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_17844.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_17879.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_17944.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_17958.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_17960.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_18129.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_18300.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_18312.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_18382.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_18549.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_18882.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_18898.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_19077.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_19291.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_19495.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_19556.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_19586.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_19767.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_19831.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_19838.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_20010.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_20097.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_20160.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_20267.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_20549.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_20685.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_20726.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_20821.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_20970.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_21016.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_21122.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_21192.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_21228.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_21269.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_21337.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_2149.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_21759.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_21763.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_21894.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_21909.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_21995.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_22031.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_22252.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_22454.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_22627.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_23034.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_23078.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_2322.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_23571.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_23575.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_23653.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_23786.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_23833.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_24088.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_24196.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_24395.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_24461.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_24577.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_24589.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_24738.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_2484.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_25004.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_25052.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_25155.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_25157.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_25350.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_25837.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_25894.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_25903.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_26073.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_26200.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_2629.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_26468.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_26885.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_2698.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_2711.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_27222.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_2739.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_27625.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_27857.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_28054.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_28281.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_28298.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_2853.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_28598.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_28640.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_28846.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_28963.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_29124.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_29173.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_2929.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_29364.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_29429.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_29431.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_29736.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_29771.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_29815.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_30116.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_30319.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_30380.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_30396.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_30419.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_30607.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_3098.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_31167.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_31340.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_31412.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_31552.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_31600.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_31644.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_31819.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_31826.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_31862.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_31982.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_32090.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_32168.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_32404.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_3245.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_32456.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_32511.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_32834.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_33076.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_3331.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_33365.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_33429.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_33434.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_33520.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_33593.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_33604.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_33658.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_33669.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_33730.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_33867.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_33970.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_3430.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_34370.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_34534.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_34580.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_34757.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_34968.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_35127.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_35317.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_35328.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_35342.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_35558.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_35959.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_36177.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_36310.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_36328.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_36335.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_3643.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_36438.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_36440.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_36518.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_36576.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_36608.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_36734.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_36762.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_36780.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_3696.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_37098.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_37298.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_37411.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_37490.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_37514.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_37580.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_37749.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_38097.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_3820.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_3855.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_38880.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_38967.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_39277.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_39389.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_39453.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_3949.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_39666.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_39765.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_39787.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_39879.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_39904.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_40071.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_40084.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_40292.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_40487.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_4081.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_40892.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_40919.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_41037.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_41039.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_41303.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_41336.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_4160.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_41782.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_4180.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_41800.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_41897.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_41967.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_4226.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_42317.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_42370.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_42474.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_42676.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_42699.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_42749.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_42971.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_43024.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_43133.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_43510.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_43600.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_43672.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_43802.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_4393.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_44182.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_44280.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_4429.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_44293.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_44308.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_4449.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_44610.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_44901.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_45020.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_45022.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_45079.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_45198.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_45251.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_45506.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_45596.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_4592.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_45999.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_46209.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_4647.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_46828.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_47089.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_47318.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_47323.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_47325.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_47520.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_47588.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_47625.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_47886.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_4821.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_48264.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_48279.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_48344.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_48383.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_48684.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_48702.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_48854.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_49056.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_49088.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_49093.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_49225.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_49326.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_49484.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_49539.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_49778.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_49785.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_49798.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_49959.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_5006.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_50064.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_50165.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_5019.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_50296.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_50703.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_50769.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_50809.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_50908.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_51110.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_51253.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_51668.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_51701.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_51887.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_51974.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_5215.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_52175.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_52250.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_52275.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_52348.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_52604.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_52616.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_52668.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_52714.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_52817.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_52829.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_52907.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_52928.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_53051.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_53099.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_53228.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_53251.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_53254.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_53351.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_53501.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_53681.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_53706.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_5396.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_53980.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_54016.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_5449.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_5463.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_54883.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_54949.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_54994.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55040.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55053.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55131.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55134.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55326.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55379.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55534.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55538.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55592.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55624.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55644.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55665.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55706.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55720.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55735.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55769.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55790.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55818.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_55932.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_5601.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_56142.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_56145.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_56155.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_5625.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_56297.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_56445.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_5653.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_56571.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_56666.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_56845.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_56904.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_56941.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_57044.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_57047.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_57094.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_57635.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_57715.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_57800.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_57991.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_58007.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_58018.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_58129.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_58140.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_58153.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_58176.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_58401.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_58456.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_5863.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_5876.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_5892.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_58925.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_59255.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_59356.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_59432.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_59790.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_60016.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_60552.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_60578.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_60946.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_6102.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_61156.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_61221.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_61281.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_61375.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_61411.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_61432.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_61630.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_61675.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_6168.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_6188.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_61968.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_62123.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_62287.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_62330.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_62638.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_6284.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_62910.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_63132.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_63240.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_63323.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_63379.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_63566.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_63724.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_64055.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_64113.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_64116.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_6417.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_64768.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_64849.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_6506.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_65214.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_65259.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_65279.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_65538.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_65710.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_65760.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_6584.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_65863.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_66024.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_66080.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_66112.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_66251.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_66259.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_66449.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_66501.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_6732.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_6961.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_7063.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_7088.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_7115.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_7167.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_7549.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_7823.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_8142.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_8144.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_8164.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_8267.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_8284.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_8554.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_8580.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_8699.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_8780.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_8862.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_8934.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_8957.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_9013.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_9150.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_9330.json",
+      "n_customers": 100
+    },
+    {
+      "file": "cvrp100_9837.json",
+      "n_customers": 100
+    }
+  ]
+}

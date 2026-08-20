@@ -92,6 +92,10 @@ stress regimes: they are plain CVRP data, not genuine Solomon CVRPTW instances w
 
 ### Strong-reference label audit
 
+See `docs/label_audit_runbook.md` for full step-by-step instructions, including why the
+1,500-instance input pool is committed at `data/processed/label_audit_s7799/` (skips needing the
+18 GB corpus) and what still has to be recomputed (the solver results). Short version:
+
 Run or resume the prepared 1,500-instance label audit with one command:
 
 ```bash
