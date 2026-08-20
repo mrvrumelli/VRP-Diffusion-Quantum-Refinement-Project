@@ -1,0 +1,26 @@
+config_name: label_audit_rc_pilot
+input_dir: outputs/label_audit_pilot/pooled
+output_dir: outputs/label_audit/rc_pilot
+# This config audits the pooled r/c/rc pilot examples/ directories together (60 total, 20/regime,
+# size 20 only). It is a timing pilot for scoping the full R/C/RC audit, not a real accepted
+# reference set — do not use its outputs as training or evaluation labels.
+
+expected_counts_by_size:
+  20: 60
+
+pyvrp:
+  base_seeds: [9101, 9102, 9103, 9104]
+  time_budgets_by_size:
+    20: 10.0
+
+ortools:
+  stable_sample_per_size: 10
+
+acceptance:
+  near_best_relative_tolerance: 0.001
+  seed_spread_relative_tolerance: 0.005
+  matrix_disagreement_tolerance: 0.05
+  challenger_improvement_relative_tolerance: 0.000001
+  minimum_near_best_seeds: 2
+
+workers: null

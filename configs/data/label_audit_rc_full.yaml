@@ -1,0 +1,36 @@
+config_name: label_audit_rc_full
+input_dir: outputs/label_audit_full/pooled
+output_dir: outputs/label_audit/rc_full
+# Full independent R/C/RC spatial-stress strong-label audit: 3 regimes x 3 sizes x 1,000 instances
+# = 9,000 total, pooled from outputs/label_audit_full/{r,c,rc}/examples with a regime-prefixed
+# filename to avoid collisions. Policy matches the proven label_audit_strong_s7799.yaml settings
+# used for the original 1,500-instance training-label audit.
+
+expected_counts_by_size:
+  20: 3000
+  50: 3000
+  100: 3000
+
+pyvrp:
+  base_seeds: [9101, 9102, 9103, 9104]
+  time_budgets_by_size:
+    20: 10.0
+    50: 20.0
+    100: 40.0
+
+ortools:
+  stable_sample_per_size: 50
+
+acceptance:
+  near_best_relative_tolerance: 0.001
+  seed_spread_relative_tolerance: 0.005
+  matrix_disagreement_tolerance: 0.05
+  challenger_improvement_relative_tolerance: 0.000001
+  minimum_near_best_seeds: 2
+
+# 8 workers matches the cached rc_full run (218 candidates already solved and reusable via resume).
+# Confirmed safe to raise to 11-12 (thermal test stayed under 70C at full 12-worker load) but doing
+# so against this output_dir requires a fresh output_dir instead, since the audit's resume check
+# compares the full policy including `workers` and refuses to continue a run under different
+# settings (`ValueError: existing audit config differs`) -- see 3060ti_training_todo.md.
+workers: 8
