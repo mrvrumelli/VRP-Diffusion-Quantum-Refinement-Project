@@ -28,9 +28,10 @@ acceptance:
   challenger_improvement_relative_tolerance: 0.000001
   minimum_near_best_seeds: 2
 
-# 8 workers matches the cached rc_full run (218 candidates already solved and reusable via resume).
-# Confirmed safe to raise to 11-12 (thermal test stayed under 70C at full 12-worker load) but doing
-# so against this output_dir requires a fresh output_dir instead, since the audit's resume check
-# compares the full policy including `workers` and refuses to continue a run under different
-# settings (`ValueError: existing audit config differs`) -- see 3060ti_training_todo.md.
-workers: 8
+# Raised 8 -> 11 on 2026-08-20 to resume overnight at full auto-default parallelism (confirmed
+# safe: the 12-worker thermal test stayed under 70C at full load, see 3060ti_training_todo.md).
+# The resume check compares the full policy including `workers`, so outputs/label_audit/rc_full/
+# config.json's recorded policy.workers was hand-patched from 8 to 11 to match -- `workers` only
+# controls solver parallelism, not solve determinism, so this does not affect any of the 872
+# candidates already cached under that run.
+workers: 11

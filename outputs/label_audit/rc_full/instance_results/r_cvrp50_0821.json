@@ -1,0 +1,106 @@
+{
+  "acceptance_reasons": [
+    "accepted"
+  ],
+  "challenger_selection_reason": "not_selected",
+  "cost_converged": true,
+  "improvement_over_original": -1.7763568394002505e-15,
+  "instance_id": "r_cvrp50_0821",
+  "matrix_disagreement_from_original": 0.0,
+  "matrix_stable": true,
+  "matrix_target_accepted": true,
+  "max_customer_membership_instability": 0.0,
+  "max_near_best_matrix_disagreement": 0.0,
+  "mean_near_best_matrix_disagreement": 0.0,
+  "n_customers": 50,
+  "near_best_seed_count": 4,
+  "needs_review": false,
+  "original_cost": 8.651378989583911,
+  "ortools_beats_pyvrp": false,
+  "ortools_checked": false,
+  "ortools_cost": null,
+  "ortools_feasible": false,
+  "pyvrp_best_cost": 8.651378989583913,
+  "pyvrp_candidate_count": 4,
+  "pyvrp_feasible_count": 4,
+  "pyvrp_seed_spread_relative": 4.106528777756583e-16,
+  "pyvrp_worst_cost": 8.651378989583916,
+  "reference_accepted": true,
+  "reference_base_seed": 9101,
+  "reference_cost": 8.651378989583913,
+  "reference_derived_seed": 1376912994,
+  "reference_num_vehicles": 7,
+  "reference_route_hash": "186bf374643ce438e9e39999a5c7af8740d6e4daa870f401c4bfd8341e63bd06",
+  "reference_routes": [
+    [
+      22,
+      23,
+      12,
+      11,
+      32,
+      0,
+      38,
+      48
+    ],
+    [
+      29,
+      3,
+      4,
+      47,
+      8,
+      10,
+      33,
+      35,
+      39
+    ],
+    [
+      18,
+      30,
+      43,
+      14,
+      45,
+      21,
+      5,
+      40,
+      36
+    ],
+    [
+      31,
+      41,
+      46,
+      17,
+      15,
+      27
+    ],
+    [
+      44,
+      34,
+      13,
+      37,
+      26,
+      7,
+      49,
+      42,
+      16,
+      6,
+      19
+    ],
+    [
+      28,
+      9,
+      25,
+      20,
+      24,
+      2
+    ],
+    [
+      1
+    ]
+  ],
+  "reference_runtime_seconds": 20.071973099999013,
+  "reference_solver": "pyvrp",
+  "reference_time_budget": 20.0,
+  "relative_improvement_over_original": -2.053264388878292e-16,
+  "source_file": "r_cvrp50_0821.json",
+  "vehicle_count_delta_from_original": 0
+}

@@ -1,0 +1,106 @@
+{
+  "acceptance_reasons": [
+    "accepted"
+  ],
+  "challenger_selection_reason": "not_selected",
+  "cost_converged": true,
+  "improvement_over_original": 0.0,
+  "instance_id": "c_cvrp50_0225",
+  "matrix_disagreement_from_original": 0.0,
+  "matrix_stable": true,
+  "matrix_target_accepted": true,
+  "max_customer_membership_instability": 0.0,
+  "max_near_best_matrix_disagreement": 0.0,
+  "mean_near_best_matrix_disagreement": 0.0,
+  "n_customers": 50,
+  "near_best_seed_count": 4,
+  "needs_review": false,
+  "original_cost": 9.367333538563791,
+  "ortools_beats_pyvrp": false,
+  "ortools_checked": false,
+  "ortools_cost": null,
+  "ortools_feasible": false,
+  "pyvrp_best_cost": 9.367333538563791,
+  "pyvrp_candidate_count": 4,
+  "pyvrp_feasible_count": 4,
+  "pyvrp_seed_spread_relative": 3.7926627296599994e-16,
+  "pyvrp_worst_cost": 9.367333538563795,
+  "reference_accepted": true,
+  "reference_base_seed": 9102,
+  "reference_cost": 9.367333538563791,
+  "reference_derived_seed": 3616554827,
+  "reference_num_vehicles": 7,
+  "reference_route_hash": "c580bef3fae4648c76dc077ddcf8c995ae47c9467c3c4ece2506a8e419a1bfd8",
+  "reference_routes": [
+    [
+      15,
+      38,
+      19,
+      40,
+      3,
+      7,
+      23,
+      10
+    ],
+    [
+      13,
+      27,
+      31,
+      37,
+      1,
+      44,
+      35,
+      39
+    ],
+    [
+      18,
+      26,
+      36,
+      16,
+      30,
+      46,
+      43,
+      9
+    ],
+    [
+      14,
+      48,
+      2,
+      33,
+      41
+    ],
+    [
+      11,
+      32,
+      17,
+      12,
+      28,
+      47
+    ],
+    [
+      6,
+      45,
+      5,
+      21,
+      0,
+      34,
+      8,
+      49,
+      24,
+      29
+    ],
+    [
+      20,
+      4,
+      25,
+      22,
+      42
+    ]
+  ],
+  "reference_runtime_seconds": 20.025145600000542,
+  "reference_solver": "pyvrp",
+  "reference_time_budget": 20.0,
+  "relative_improvement_over_original": 0.0,
+  "source_file": "c_cvrp50_0225.json",
+  "vehicle_count_delta_from_original": 0
+}

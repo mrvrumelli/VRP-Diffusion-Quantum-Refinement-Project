@@ -1,0 +1,106 @@
+{
+  "acceptance_reasons": [
+    "accepted"
+  ],
+  "challenger_selection_reason": "not_selected",
+  "cost_converged": true,
+  "improvement_over_original": 0.0,
+  "instance_id": "rc_cvrp50_0342",
+  "matrix_disagreement_from_original": 0.0,
+  "matrix_stable": true,
+  "matrix_target_accepted": true,
+  "max_customer_membership_instability": 0.0,
+  "max_near_best_matrix_disagreement": 0.0,
+  "mean_near_best_matrix_disagreement": 0.0,
+  "n_customers": 50,
+  "near_best_seed_count": 4,
+  "needs_review": false,
+  "original_cost": 8.774876101210374,
+  "ortools_beats_pyvrp": false,
+  "ortools_checked": false,
+  "ortools_cost": null,
+  "ortools_feasible": false,
+  "pyvrp_best_cost": 8.774876101210374,
+  "pyvrp_candidate_count": 4,
+  "pyvrp_feasible_count": 4,
+  "pyvrp_seed_spread_relative": 2.0243668616075688e-16,
+  "pyvrp_worst_cost": 8.774876101210376,
+  "reference_accepted": true,
+  "reference_base_seed": 9102,
+  "reference_cost": 8.774876101210374,
+  "reference_derived_seed": 3121377953,
+  "reference_num_vehicles": 7,
+  "reference_route_hash": "6c01eb4d161c378dd0ed16dc26f97f6820de8f61a62f67329b126715baf890af",
+  "reference_routes": [
+    [
+      41,
+      14,
+      47,
+      39,
+      28
+    ],
+    [
+      24,
+      22,
+      19,
+      16,
+      2,
+      4,
+      20
+    ],
+    [
+      13,
+      34,
+      27,
+      3,
+      18,
+      31,
+      7,
+      6
+    ],
+    [
+      15,
+      26,
+      36,
+      32,
+      30,
+      5,
+      1,
+      38,
+      48
+    ],
+    [
+      8,
+      43,
+      10,
+      9,
+      23
+    ],
+    [
+      12,
+      37,
+      49,
+      46,
+      25,
+      33,
+      44,
+      17,
+      11
+    ],
+    [
+      40,
+      35,
+      29,
+      42,
+      45,
+      0,
+      21
+    ]
+  ],
+  "reference_runtime_seconds": 20.025727400003234,
+  "reference_solver": "pyvrp",
+  "reference_time_budget": 20.0,
+  "relative_improvement_over_original": 0.0,
+  "source_file": "rc_cvrp50_0342.json",
+  "vehicle_count_delta_from_original": 0
+}

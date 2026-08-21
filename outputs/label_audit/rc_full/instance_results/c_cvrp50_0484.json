@@ -1,0 +1,106 @@
+{
+  "acceptance_reasons": [
+    "accepted"
+  ],
+  "challenger_selection_reason": "not_selected",
+  "cost_converged": true,
+  "improvement_over_original": 0.0,
+  "instance_id": "c_cvrp50_0484",
+  "matrix_disagreement_from_original": 0.0,
+  "matrix_stable": true,
+  "matrix_target_accepted": true,
+  "max_customer_membership_instability": 0.0,
+  "max_near_best_matrix_disagreement": 0.0,
+  "mean_near_best_matrix_disagreement": 0.0,
+  "n_customers": 50,
+  "near_best_seed_count": 4,
+  "needs_review": false,
+  "original_cost": 10.49884894534507,
+  "ortools_beats_pyvrp": false,
+  "ortools_checked": false,
+  "ortools_cost": null,
+  "ortools_feasible": false,
+  "pyvrp_best_cost": 10.49884894534507,
+  "pyvrp_candidate_count": 4,
+  "pyvrp_feasible_count": 4,
+  "pyvrp_seed_spread_relative": 1.6919538976583173e-16,
+  "pyvrp_worst_cost": 10.498848945345072,
+  "reference_accepted": true,
+  "reference_base_seed": 9101,
+  "reference_cost": 10.49884894534507,
+  "reference_derived_seed": 3696811022,
+  "reference_num_vehicles": 7,
+  "reference_route_hash": "4bc2ce1e36ce99c64f0f063cebd5d9c386ea82d2217229b5a1030b31b8d966ee",
+  "reference_routes": [
+    [
+      35,
+      40,
+      38,
+      12,
+      25,
+      33,
+      44,
+      41,
+      1,
+      36
+    ],
+    [
+      42,
+      9,
+      5,
+      24,
+      34,
+      46,
+      20,
+      48
+    ],
+    [
+      39,
+      10,
+      17,
+      0,
+      18
+    ],
+    [
+      2,
+      13,
+      22,
+      26,
+      4,
+      31,
+      30
+    ],
+    [
+      21,
+      47,
+      49,
+      15,
+      27,
+      7,
+      19
+    ],
+    [
+      14,
+      3,
+      11,
+      8,
+      43,
+      28,
+      23
+    ],
+    [
+      37,
+      45,
+      29,
+      6,
+      32,
+      16
+    ]
+  ],
+  "reference_runtime_seconds": 20.067863299998862,
+  "reference_solver": "pyvrp",
+  "reference_time_budget": 20.0,
+  "relative_improvement_over_original": 0.0,
+  "source_file": "c_cvrp50_0484.json",
+  "vehicle_count_delta_from_original": 0
+}

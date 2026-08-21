@@ -4,6 +4,7 @@ Step-by-step instructions for a new contributor to run
 `scripts/run_strong_label_audit.py`. Read `docs/label_audit_s7799_decision.md` first for what
 the audit already found and decided; this document only covers executing it.
 
+
 ## What is already done
 
 The audit's 1,500-instance input pool (500 each of CVRP20/50/100, deterministically selected
@@ -27,6 +28,13 @@ the run yourself (e.g. to sanity-check it, or because the policy config changed 
 fresh pass). If you do, the same resume behavior in step 4 applies: `run_strong_label_audit.py`
 will see the committed candidates already in `outputs/label_audit/s7799_strong_reference/candidates/`
 and skip them, only computing what's missing.
+
+**The 9,000-instance R/C/RC spatial-stress audit is also done and committed.** Completed
+2026-08-21 (36,000/36,000 PyVRP runs, 1,641/1,641 OR-Tools challenger runs, zero solver errors;
+8,255 references accepted, 7,509 accepted matrix examples). Its cache is force-committed the same
+way at `outputs/label_audit/rc_full/`, config `configs/data/label_audit_rc_full.yaml` (resolved at
+`workers: 11`). See `docs/3060ti_training_todo.md` section "Generate additional strong labels" for
+the full history of this run (pilot timing, thermal testing, the 8→11 worker resume).
 
 ## 1. Prerequisites
 

@@ -1,0 +1,46 @@
+{
+  "base_seed": 9101,
+  "cost": 7.677912904883991,
+  "derived_seed": 597274216,
+  "feasible": true,
+  "instance_id": "rc_cvrp20_0527",
+  "n_customers": 20,
+  "num_vehicles": 4,
+  "route_hash": "37d48352ff2e798bce6c45c414083189f1e13bf356dbe73085f8a48384fe620e",
+  "routes": [
+    [
+      15,
+      4,
+      8,
+      12,
+      18
+    ],
+    [
+      5,
+      2,
+      11,
+      7,
+      3
+    ],
+    [
+      16,
+      13,
+      9,
+      10,
+      19,
+      17
+    ],
+    [
+      0,
+      6,
+      14,
+      1
+    ]
+  ],
+  "runtime_seconds": 10.008183700003428,
+  "schema_version": 1,
+  "solver_name": "pyvrp",
+  "source_file": "rc_cvrp20_0527.json",
+  "time_budget": 10.0,
+  "violations": []
+}

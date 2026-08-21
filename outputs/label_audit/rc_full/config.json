@@ -1,0 +1,33 @@
+{
+  "counts_by_size": {
+    "100": 3000,
+    "20": 3000,
+    "50": 3000
+  },
+  "input_dir": "C:\\Users\\Administrator\\Documents\\GitHub\\VRP-Diffusion-Quantum-Refinement-Project\\outputs\\label_audit_full\\pooled",
+  "input_sha256": "626006f44e752c2a7ffe497e34b52f2f8a33a794a2ec9bd8426bfc140664c4fb",
+  "policy": {
+    "acceptance": {
+      "challenger_improvement_relative_tolerance": 1e-06,
+      "matrix_disagreement_tolerance": 0.05,
+      "minimum_near_best_seeds": 2,
+      "near_best_relative_tolerance": 0.001,
+      "seed_spread_relative_tolerance": 0.005
+    },
+    "ortools_stable_sample_per_size": 50,
+    "pyvrp_base_seeds": [
+      9101,
+      9102,
+      9103,
+      9104
+    ],
+    "time_budgets_by_size": {
+      "100": 40.0,
+      "20": 10.0,
+      "50": 20.0
+    },
+    "workers": 11
+  },
+  "schema_version": 1,
+  "workers_resolved": 11
+}

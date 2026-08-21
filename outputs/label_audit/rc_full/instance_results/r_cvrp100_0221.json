@@ -1,0 +1,169 @@
+{
+  "acceptance_reasons": [
+    "pyvrp_cost_not_converged",
+    "route_membership_ambiguous"
+  ],
+  "challenger_selection_reason": "unstable_cost",
+  "cost_converged": false,
+  "improvement_over_original": 0.32482800649530574,
+  "instance_id": "r_cvrp100_0221",
+  "matrix_disagreement_from_original": 0.07151515151515152,
+  "matrix_stable": false,
+  "matrix_target_accepted": false,
+  "max_customer_membership_instability": 0.0,
+  "max_near_best_matrix_disagreement": 0.0,
+  "mean_near_best_matrix_disagreement": 0.0,
+  "n_customers": 100,
+  "near_best_seed_count": 1,
+  "needs_review": true,
+  "original_cost": 20.325211307658055,
+  "ortools_beats_pyvrp": false,
+  "ortools_checked": true,
+  "ortools_cost": 22.115705360995292,
+  "ortools_feasible": true,
+  "pyvrp_best_cost": 20.00038330116275,
+  "pyvrp_candidate_count": 4,
+  "pyvrp_feasible_count": 4,
+  "pyvrp_seed_spread_relative": 0.0071220454105155526,
+  "pyvrp_worst_cost": 20.142826939261347,
+  "reference_accepted": false,
+  "reference_base_seed": 9102,
+  "reference_cost": 20.00038330116275,
+  "reference_derived_seed": 1289827397,
+  "reference_num_vehicles": 13,
+  "reference_route_hash": "d2ea6e39cf9c168bd5cd00e66e0417fdac83560e3d06ab177df3c25f91371f46",
+  "reference_routes": [
+    [
+      96,
+      54,
+      8,
+      52,
+      93,
+      49,
+      50,
+      17
+    ],
+    [
+      39,
+      87,
+      34,
+      92,
+      90,
+      48,
+      30,
+      38
+    ],
+    [
+      40,
+      16,
+      65,
+      7,
+      22,
+      46,
+      76,
+      4,
+      56,
+      10
+    ],
+    [
+      85,
+      12,
+      1,
+      35,
+      53,
+      26,
+      59,
+      66,
+      21,
+      95
+    ],
+    [
+      24,
+      73,
+      98,
+      81,
+      15,
+      62,
+      43
+    ],
+    [
+      33,
+      55,
+      44,
+      69,
+      45,
+      23,
+      70,
+      28
+    ],
+    [
+      11,
+      58,
+      74,
+      37,
+      5,
+      6,
+      71,
+      79
+    ],
+    [
+      75,
+      31,
+      47,
+      67,
+      72,
+      91,
+      13,
+      63
+    ],
+    [
+      88
+    ],
+    [
+      20,
+      19,
+      2,
+      9,
+      41,
+      57,
+      14,
+      77,
+      86,
+      18
+    ],
+    [
+      83,
+      94,
+      29,
+      32,
+      0,
+      64,
+      80,
+      60
+    ],
+    [
+      27,
+      36,
+      84,
+      3,
+      25,
+      78,
+      97
+    ],
+    [
+      42,
+      99,
+      89,
+      82,
+      51,
+      68,
+      61
+    ]
+  ],
+  "reference_runtime_seconds": 40.08673440000712,
+  "reference_solver": "pyvrp",
+  "reference_time_budget": 40.0,
+  "relative_improvement_over_original": 0.015981531585500332,
+  "source_file": "r_cvrp100_0221.json",
+  "vehicle_count_delta_from_original": 0
+}

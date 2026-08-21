@@ -151,12 +151,20 @@ The exact full-chain result, rather than noisy-time AUC, determines the next wor
     earlier caution was reasonable to raise but the actual risk was low. The 12-worker test run was
     stopped after confirming this (its `rc_full_12w` output can be deleted or ignored — it holds no
     unique progress; the real progress is in `rc_full`'s 218 cached candidates).
-  - **Open decision**: given confirmed thermal safety, resuming the real `rc_full` run (218 cached
-    candidates) at `workers: 12` or `workers: 11` (auto-default) instead of 8 would finish faster
-    (~21-22hr instead of ~30hr) with no demonstrated downside. Resuming at `workers: 8` still works
-    too via the exact command above; just edit `workers:` in
-    `configs/data/label_audit_rc_full.yaml` back to `outputs/label_audit/rc_full` as `output_dir`
-    first if it was left pointed at `rc_full_12w`.
+  - **Resolved 2026-08-20/21 — resumed at 11 workers, run complete.** With 872 candidates already
+    cached (progressed further than the 218 noted above before this doc entry was updated), the
+    resume check's config-equality comparison would have refused a `workers: 8 → 11` change against
+    the same `output_dir` (`existing audit config differs`) since it compares the full `policy`
+    dict, not just `workers_resolved`. `workers` only controls solver parallelism, not what gets
+    solved, so `outputs/label_audit/rc_full/config.json`'s recorded `policy.workers` was hand-patched
+    from 8 to 11 to match the new config, preserving all 872 cached candidates rather than re-solving
+    them. Launched detached (`nohup ... & disown`, logged to
+    `outputs/logs/rc_full_audit_11worker_20260820T235436.log`) at 23:54 on 2026-08-20; completed
+    cleanly at 22:07 on 2026-08-21 (~22h13m total). **Final: 9,000/9,000 instances, 36,000/36,000
+    PyVRP runs, 1,641/1,641 OR-Tools challenger runs, zero solver errors, 8,255 references accepted,
+    7,509 accepted matrix examples, 1,491 needs-review.** Output force-committed to git at
+    `outputs/label_audit/rc_full/` the same way `s7799_strong_reference` was, so nobody needs to
+    re-run this.
 
 This is the operational checklist for the Windows 11 / RTX 3060 Ti machine. The first
 1k-per-size run is a pipeline and throughput pilot, not final model training.
