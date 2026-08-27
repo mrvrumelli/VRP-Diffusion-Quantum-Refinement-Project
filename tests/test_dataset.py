@@ -59,6 +59,33 @@ def _tiny_example(instance_id: str = "toy_0") -> CVRPExample:
     return make_example(_tiny_instance(instance_id), _tiny_solution())
 
 
+def _grid_example(n_customers: int = 20, instance_id: str = "grid_0") -> CVRPExample:
+    """An example whose constraint matrix is large enough for bit packing to pay off."""
+    customer_coords = [[float(index % 5), float(index // 5)] for index in range(n_customers)]
+    instance = CVRPInstance(
+        coords=np.array([[0.0, 0.0], *customer_coords]),
+        demands=np.array([0.0, *([1.0] * n_customers)]),
+        capacity=5.0,
+        depot_index=0,
+        instance_id=instance_id,
+        n_customers=n_customers,
+        seed=0,
+        generator_settings={"kind": "hand_crafted"},
+    )
+    routes = [list(range(start, start + 5)) for start in range(0, n_customers, 5)]
+    solution = LabeledSolution(
+        routes=routes,
+        cost=float(len(routes)),
+        num_vehicles=len(routes),
+        feasible=True,
+        solver_name="hand_checked",
+        time_budget=None,
+        seed=0,
+        runtime_seconds=0.001,
+    )
+    return make_example(instance, solution)
+
+
 def test_cvrp_instance_rejects_coords_shape_mismatch() -> None:
     with pytest.raises(ValueError, match="coords shape"):
         CVRPInstance(
@@ -289,7 +316,7 @@ def test_save_and_load_example_round_trips(tmp_path: Path) -> None:
 
 
 def test_compact_matrix_is_smaller_and_legacy_format_still_loads(tmp_path: Path) -> None:
-    example = _tiny_example()
+    example = _grid_example()
     compact_path = tmp_path / "compact.json"
     legacy_path = tmp_path / "legacy.json"
     save_example(example, compact_path)

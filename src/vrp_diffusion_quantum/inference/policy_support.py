@@ -229,9 +229,7 @@ def _inference_timesteps(
         return list(range(num_timesteps - 1, -1, -1))
     span = num_timesteps - 1
     spaced = [
-        int(round(span * (1.0 - index / (num_inference_steps - 1))))
-        if num_inference_steps > 1
-        else 0
+        round(span * (1.0 - index / (num_inference_steps - 1))) if num_inference_steps > 1 else 0
         for index in range(num_inference_steps)
     ]
     # Rounding can collide on adjacent entries; keep the chain strictly descending.

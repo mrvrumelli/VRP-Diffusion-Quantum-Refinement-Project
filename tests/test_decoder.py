@@ -369,6 +369,20 @@ def test_select_start_nodes_prefers_customers_near_the_depot() -> None:
     assert distances == sorted(distances)
 
 
+def test_paper_num_starts_uses_every_customer_up_to_the_cap() -> None:
+    batch = _batch([6, 9], seed=111)
+    # Padding makes every instance decode the same number of starts, so the smallest one sets
+    # the count and no rollout wraps around onto a duplicate start.
+    assert paper_num_starts(batch.node_mask) == 6
+    assert paper_num_starts(batch.node_mask, cap=4) == 4
+
+    beyond_cap = torch.ones(1, POMO_START_NODE_CAP + 20, dtype=torch.bool)
+    assert paper_num_starts(beyond_cap) == POMO_START_NODE_CAP
+
+    with pytest.raises(ValueError, match="cap must be >= 1"):
+        paper_num_starts(batch.node_mask, cap=0)
+
+
 def test_actions_to_routes_splits_on_the_depot() -> None:
     batch = _batch([4], seed=101)
     actions = torch.tensor([[1, 2, 0, 3, 4, 0]])

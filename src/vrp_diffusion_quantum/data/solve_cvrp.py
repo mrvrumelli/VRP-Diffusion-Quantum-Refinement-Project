@@ -217,7 +217,7 @@ def _solve_pyvrp(
     fleet_mode: FleetMode,
     fleet_size: int | None,
 ) -> list[list[int]]:
-    from pyvrp import Client, Depot, Model
+    from pyvrp import Model
 
     demand_int, capacity_int = _integer_loads(instance)
     coords = instance.coords
@@ -230,17 +230,13 @@ def _solve_pyvrp(
     pyvrp_to_node = [depot_index, *customer_nodes]
 
     model = Model()
-    locations: list[Depot | Client] = [
-        model.add_depot(x=float(coords[depot_index, 0]), y=float(coords[depot_index, 1]))
+    locations = [
+        model.add_location(x=float(coords[node_id, 0]), y=float(coords[node_id, 1]))
+        for node_id in pyvrp_to_node
     ]
-    for node_id in customer_nodes:
-        locations.append(
-            model.add_client(
-                x=float(coords[node_id, 0]),
-                y=float(coords[node_id, 1]),
-                delivery=int(demand_int[node_id]),
-            )
-        )
+    model.add_depot(locations[0])
+    for position, node_id in enumerate(customer_nodes, start=1):
+        model.add_client(locations[position], delivery=int(demand_int[node_id]))
 
     num_vehicles = _resolve_num_vehicles(
         instance,
@@ -276,9 +272,11 @@ def _solve_pyvrp(
     if not result.is_feasible():
         raise RuntimeError("PyVRP returned no feasible solution")
 
+    # A route also schedules its depot activities; only client visits map back to our nodes,
+    # and a client's index is its position in the order the clients were added above.
     routes: list[list[int]] = []
     for route in result.best.routes():
-        visits = [pyvrp_to_node[int(v)] for v in route.visits()]
+        visits = [customer_nodes[activity.idx] for activity in route if activity.is_client()]
         routes.append(visits)
     return routes
 

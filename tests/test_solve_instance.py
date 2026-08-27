@@ -96,8 +96,10 @@ def test_greedy_solve_returns_a_validated_route_set() -> None:
     assert validate_routes(example.instance, solution.routes).feasible
     assert solution.cost == pytest.approx(route_cost(example.instance, solution.routes))
     assert solution.num_vehicles == len(solution.routes)
-    assert solution.num_candidates == 1
-    assert solution.method == "policy_greedy"
+    # No explicit num_starts, so the paper's NStart rule decodes from every customer.
+    assert solution.num_starts == example.instance.n_customers
+    assert solution.num_candidates == example.instance.n_customers
+    assert solution.method == f"policy_greedy_start{example.instance.n_customers}"
     assert solution.gap_to_reference is not None
 
 
@@ -105,7 +107,7 @@ def test_more_starts_and_augmentations_never_worsen_the_best_cost() -> None:
     policy = _policy()
     example = _example(10, seed=2)
 
-    single = solve_instance(policy, example.instance)
+    single = solve_instance(policy, example.instance, num_starts=1)
     multi_start = solve_instance(policy, example.instance, num_starts=6)
     augmented = solve_instance(
         policy, example.instance, num_starts=6, num_augmentations=AUGMENT_NUM
