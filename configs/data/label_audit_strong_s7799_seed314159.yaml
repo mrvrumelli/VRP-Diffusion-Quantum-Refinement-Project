@@ -1,0 +1,33 @@
+config_name: label_audit_strong_s7799_seed314159
+# Independent from-scratch rerun of the committed 1,500-instance pool.
+# Solver seeds are intentionally far from every existing family:
+# 9101-9104 (strong reference), 9201-9204 (val100), 9301-9304 (test20),
+# 4201 (subset draw), 42/4242/4322/4331-4333 (training), 8801-8803 (spatial).
+input_dir: data/processed/label_audit_s7799
+output_dir: outputs/label_audit/s7799_strong_seed314159
+seed: 314159
+
+expected_counts_by_size:
+  20: 500
+  50: 500
+  100: 500
+
+pyvrp:
+  # Consecutive family derived from seed 314159. Each base seed is combined with the instance id.
+  base_seeds: [314159, 314160, 314161, 314162]
+  time_budgets_by_size:
+    20: 10.0
+    50: 20.0
+    100: 40.0
+
+ortools:
+  stable_sample_per_size: 50
+
+acceptance:
+  near_best_relative_tolerance: 0.001
+  seed_spread_relative_tolerance: 0.005
+  matrix_disagreement_tolerance: 0.05
+  challenger_improvement_relative_tolerance: 0.000001
+  minimum_near_best_seeds: 2
+
+workers: null

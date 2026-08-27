@@ -1,0 +1,71 @@
+experiment_name: policy_reinforce
+seed: 42
+dataset:
+  name: cvrp_uniform_train
+  # Template: point at a materialized training split before running.
+  path: null
+  cache_size: 0
+validation:
+  path: null
+  cache_size: 0
+output:
+  root: outputs/policy
+model:
+  # Defaults follow CMD Table I: hidden dim 128, 8 heads, L=5 graph layers, logit clipping C=10.
+  embedding_dim: 128
+  global_num_layers: 5
+  global_num_heads: 8
+  local_num_layers: 5
+  local_num_heads: 8
+  feed_forward_dim: 512
+  dropout: 0.0
+  decoder_num_heads: 8
+  clip_constant: 10.0
+  # hard reproduces eq. 17, which aggregates strictly inside the predicted neighbourhood. soft
+  # keeps every pair with an additive log-M_hat bias, which is the more forgiving ablation when
+  # the denoiser is weak.
+  adjacency_mode: hard
+  local_threshold: 0.5
+  use_local_encoder: true
+  use_local_pointer: true
+  use_global_pointer: true
+  use_savings_bias: true
+  use_context_perception: true
+  # eq. 25 adds log(Saving) with implicit weight 1. The epsilon clamp and learned depot
+  # scalar only patch log(0) when the next node is the depot; they are not an extra heuristic.
+  savings_weight: 1.0
+  savings_epsilon: 0.01
+prior:
+  # denoiser | true_matrix | none. "denoiser" freezes a trained ConstraintDenoiser and samples
+  # M_hat once per batch; "none" is the no-diffusion-prior ablation.
+  source: denoiser
+  checkpoint: null
+  # Paper T' = 50 total denoising steps. Re-run the sensitivity sweep on your own checkpoint:
+  # the paper tuned this against a T = 1000 schedule.
+  num_inference_steps: 50
+  threshold: 0.5
+  use_probabilities: true
+training:
+  epochs: 100
+  learning_rate: 0.0001
+  weight_decay: 0.000001
+  batch_size: 32
+  # null applies the paper's NStart rule: every customer, capped at start_node_cap. Set an integer
+  # only to fit memory, and lower batch_size first: few near-depot starts collapse rollout
+  # diversity, which shrinks the shared-baseline advantages that drive the gradient.
+  num_starts: null
+  val_num_starts: null
+  start_node_cap: 100
+  baseline: multi_start  # multi_start | greedy_rollout | none
+  entropy_weight: 0.0
+  gradient_clip_norm: 1.0
+  early_stop_patience: 10
+  check_feasibility: true
+  device: auto
+  deterministic: false
+  max_runtime_seconds: null
+checkpoint:
+  best_metric: val_best_cost
+  minimize: true
+mlflow:
+  enabled: true
