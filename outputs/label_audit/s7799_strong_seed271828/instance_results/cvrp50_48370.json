@@ -1,0 +1,107 @@
+{
+  "acceptance_reasons": [
+    "pyvrp_cost_not_converged",
+    "route_membership_ambiguous"
+  ],
+  "challenger_selection_reason": "unstable_cost",
+  "cost_converged": false,
+  "improvement_over_original": 0.10331018329591934,
+  "instance_id": "cvrp_s7799_n20-50-100_x66667_cvrp50_48370",
+  "matrix_disagreement_from_original": 0.06857142857142857,
+  "matrix_stable": false,
+  "matrix_target_accepted": false,
+  "max_customer_membership_instability": 0.32,
+  "max_near_best_matrix_disagreement": 0.060408163265306125,
+  "mean_near_best_matrix_disagreement": 0.060408163265306125,
+  "n_customers": 50,
+  "near_best_seed_count": 2,
+  "needs_review": true,
+  "original_cost": 14.040624074605729,
+  "ortools_beats_pyvrp": false,
+  "ortools_checked": true,
+  "ortools_cost": 14.476552091556123,
+  "ortools_feasible": true,
+  "pyvrp_best_cost": 13.93731389130981,
+  "pyvrp_candidate_count": 4,
+  "pyvrp_feasible_count": 4,
+  "pyvrp_seed_spread_relative": 0.010604928766572532,
+  "pyvrp_worst_cost": 14.085118112324512,
+  "reference_accepted": false,
+  "reference_base_seed": 271829,
+  "reference_cost": 13.93731389130981,
+  "reference_derived_seed": 454936462,
+  "reference_num_vehicles": 7,
+  "reference_route_hash": "fad1a5228719d734b39362a19bfa8fa357237452e5dd4d2eb3253309c7fdf025",
+  "reference_routes": [
+    [
+      43,
+      36,
+      30,
+      18,
+      46,
+      27,
+      17,
+      5,
+      13
+    ],
+    [
+      1,
+      33,
+      44,
+      12,
+      23,
+      39,
+      34,
+      38,
+      47,
+      4,
+      7
+    ],
+    [
+      22,
+      41,
+      24,
+      28,
+      29,
+      8,
+      10,
+      26
+    ],
+    [
+      21,
+      48,
+      16,
+      45,
+      9,
+      40,
+      35
+    ],
+    [
+      25,
+      2,
+      3,
+      49,
+      15,
+      0
+    ],
+    [
+      32,
+      14,
+      20,
+      11,
+      19,
+      37,
+      6,
+      31
+    ],
+    [
+      42
+    ]
+  ],
+  "reference_runtime_seconds": 20.033469342997705,
+  "reference_solver": "pyvrp",
+  "reference_time_budget": 20.0,
+  "relative_improvement_over_original": 0.00735794810451261,
+  "source_file": "cvrp50_48370.json",
+  "vehicle_count_delta_from_original": 0
+}

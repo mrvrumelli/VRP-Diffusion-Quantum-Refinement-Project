@@ -1,0 +1,54 @@
+{
+  "by_size": {
+    "100": {
+      "count": 500,
+      "matrix_target_accepted": 212,
+      "mean_matrix_disagreement_from_original": 0.0723220202020202,
+      "mean_relative_improvement_over_original": 0.016585448923439557,
+      "needs_review": 288,
+      "ortools_beats_pyvrp": 0,
+      "ortools_checked": 338,
+      "reference_accepted": 292
+    },
+    "20": {
+      "count": 500,
+      "matrix_target_accepted": 493,
+      "mean_matrix_disagreement_from_original": 0.003073684210526316,
+      "mean_relative_improvement_over_original": 2.287580789024725e-06,
+      "needs_review": 7,
+      "ortools_beats_pyvrp": 0,
+      "ortools_checked": 57,
+      "reference_accepted": 500
+    },
+    "50": {
+      "count": 500,
+      "matrix_target_accepted": 415,
+      "mean_matrix_disagreement_from_original": 0.038484897959183674,
+      "mean_relative_improvement_over_original": 0.0019753721891053277,
+      "needs_review": 85,
+      "ortools_beats_pyvrp": 0,
+      "ortools_checked": 135,
+      "reference_accepted": 445
+    }
+  },
+  "counts_by_size": {
+    "100": 500,
+    "20": 500,
+    "50": 500
+  },
+  "errors": [],
+  "input_sha256": "e83d601fc13d925dd088e7b764cf535f2dfb41fec82df7687b97223d2c3e54e2",
+  "matrix_target_accepted": 1120,
+  "needs_review": 380,
+  "num_instances": 1500,
+  "ortools_beats_pyvrp": 0,
+  "ortools_checked": 530,
+  "ortools_runs_completed": 530,
+  "ortools_runs_selected": 530,
+  "ortools_solver_runtime_seconds": 16813.045130366983,
+  "pyvrp_runs_completed": 6000,
+  "pyvrp_runs_expected": 6000,
+  "pyvrp_solver_runtime_seconds": 140276.115401304,
+  "reference_accepted": 1237,
+  "solver_errors": 0
+}
