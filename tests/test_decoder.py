@@ -11,7 +11,7 @@ import torch
 from vrp_diffusion_quantum.data.dataset import CVRPBatch, collate_batch, make_example
 from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance, LabeledSolution
 from vrp_diffusion_quantum.models.decoder import (
-    POMO_START_NODE_CAP,
+    NSTART_CAP,
     CVRPPolicy,
     DecoderRollout,
     DualPointerDecoder,
@@ -19,7 +19,8 @@ from vrp_diffusion_quantum.models.decoder import (
     _pairwise_savings_bias,
     actions_to_routes,
     build_decoder_local_adjacency,
-    paper_num_starts,
+    nstart_count,
+    select_nstart_nodes,
     select_start_nodes,
 )
 from vrp_diffusion_quantum.utils.feasibility import route_cost, validate_routes
@@ -369,18 +370,40 @@ def test_select_start_nodes_prefers_customers_near_the_depot() -> None:
     assert distances == sorted(distances)
 
 
-def test_paper_num_starts_uses_every_customer_up_to_the_cap() -> None:
-    batch = _batch([6, 9], seed=111)
-    # Padding makes every instance decode the same number of starts, so the smallest one sets
-    # the count and no rollout wraps around onto a duplicate start.
-    assert paper_num_starts(batch.node_mask) == 6
-    assert paper_num_starts(batch.node_mask, cap=4) == 4
+def test_nstart_uses_every_customer_when_n_is_at_most_the_cap() -> None:
+    batch = _batch([8], seed=111)
+    starts = select_nstart_nodes(batch.coords, batch.depot_index, batch.node_mask)
+    depot = int(batch.depot_index[0])
+    customers = {
+        index for index, keep in enumerate(batch.node_mask[0].tolist()) if keep and index != depot
+    }
+    assert nstart_count(batch.node_mask) == 8
+    assert starts.shape == (1, 8)
+    assert set(starts[0].tolist()) == customers
+    assert depot not in starts[0].tolist()
 
-    beyond_cap = torch.ones(1, POMO_START_NODE_CAP + 20, dtype=torch.bool)
-    assert paper_num_starts(beyond_cap) == POMO_START_NODE_CAP
 
+def test_nstart_keeps_the_closest_customers_when_n_exceeds_the_cap() -> None:
+    n_customers = NSTART_CAP + 20
+    depot = torch.tensor([[0.0, 0.0]])
+    customers = torch.stack(
+        [torch.linspace(0.01, 1.0, n_customers), torch.zeros(n_customers)], dim=1
+    )
+    coords = torch.cat([depot, customers], dim=0).unsqueeze(0)
+    depot_index = torch.zeros(1, dtype=torch.long)
+    node_mask = torch.ones(1, n_customers + 1, dtype=torch.bool)
+
+    starts = select_nstart_nodes(coords, depot_index, node_mask)
+    assert nstart_count(node_mask) == NSTART_CAP
+    assert starts.shape == (1, NSTART_CAP)
+    # Distances increase with node index, so the paper's N>100 branch is nodes 1..100.
+    assert starts[0].tolist() == list(range(1, NSTART_CAP + 1))
+
+
+def test_nstart_count_rejects_a_non_positive_cap() -> None:
+    batch = _batch([6], seed=112)
     with pytest.raises(ValueError, match="cap must be >= 1"):
-        paper_num_starts(batch.node_mask, cap=0)
+        nstart_count(batch.node_mask, cap=0)
 
 
 def test_actions_to_routes_splits_on_the_depot() -> None:

@@ -3,7 +3,7 @@
 Four decoding controls compose into one best-of-k search:
 
 * ``decode_mode="greedy"`` takes the arg-max action, ``"sampling"`` draws from the policy;
-* ``num_starts`` decodes in parallel from several start customers (POMO multi-start);
+* ``num_starts`` decodes in parallel from several start customers (CMD ``NStart``);
 * ``num_samples`` repeats a stochastic rollout, which only helps in sampling mode;
 * ``num_augmentations`` replays the instance under distance-preserving geometric symmetries.
 
@@ -40,11 +40,11 @@ from vrp_diffusion_quantum.inference.policy_support import (
     collate_instances,
 )
 from vrp_diffusion_quantum.models.decoder import (
-    POMO_START_NODE_CAP,
+    NSTART_CAP,
     CVRPPolicy,
     DecodeMode,
     actions_to_routes,
-    paper_num_starts,
+    nstart_count,
 )
 from vrp_diffusion_quantum.utils.feasibility import route_cost, validate_routes
 
@@ -124,7 +124,7 @@ def solve_instance(
     prior: PriorProvider | None = None,
     decode_mode: DecodeMode = "greedy",
     num_starts: int | None = None,
-    start_node_cap: int = POMO_START_NODE_CAP,
+    start_node_cap: int = NSTART_CAP,
     num_samples: int = 1,
     num_augmentations: int = 1,
     seed: int = 0,
@@ -163,7 +163,7 @@ def solve_instance(
     )
 
     if num_starts is None:
-        num_starts = paper_num_starts(encoding.node_mask, cap=start_node_cap)
+        num_starts = nstart_count(encoding.node_mask, cap=start_node_cap)
 
     generator = torch.Generator(device="cpu").manual_seed(seed)
     candidates: list[tuple[float, int, int, list[list[int]]]] = []
@@ -256,7 +256,7 @@ def solve_instances(
     prior: PriorProvider | None = None,
     decode_mode: DecodeMode = "greedy",
     num_starts: int | None = None,
-    start_node_cap: int = POMO_START_NODE_CAP,
+    start_node_cap: int = NSTART_CAP,
     num_samples: int = 1,
     num_augmentations: int = 1,
     seed: int = 0,
@@ -334,7 +334,7 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help="start nodes per instance; omit to use the paper's NStart rule",
     )
-    parser.add_argument("--start-node-cap", type=int, default=POMO_START_NODE_CAP)
+    parser.add_argument("--start-node-cap", type=int, default=NSTART_CAP)
     parser.add_argument("--num-samples", type=int, default=1)
     parser.add_argument("--num-augmentations", type=int, default=AUGMENT_NUM)
     parser.add_argument("--denoiser-checkpoint", type=Path, default=None)

@@ -40,12 +40,12 @@ from vrp_diffusion_quantum.inference.policy_support import (
 )
 from vrp_diffusion_quantum.inference.predict_matrix import load_denoiser_checkpoint
 from vrp_diffusion_quantum.models.decoder import (
-    POMO_START_NODE_CAP,
+    NSTART_CAP,
     CVRPPolicy,
     DecoderRollout,
     PolicyEncoding,
     actions_to_routes,
-    paper_num_starts,
+    nstart_count,
 )
 from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
 from vrp_diffusion_quantum.utils.experiment import ExperimentTracker
@@ -182,15 +182,15 @@ def evaluate_policy(
     *,
     batch_size: int = 8,
     num_starts: int | None = None,
-    start_node_cap: int = POMO_START_NODE_CAP,
+    start_node_cap: int = NSTART_CAP,
     device: torch.device | str | None = None,
     prior: PriorProvider | None = None,
     check_feasibility: bool = True,
 ) -> dict[str, float]:
     """Greedy multi-start evaluation: mean cost, best-of-starts cost, and gap to the labels.
 
-    ``num_starts=None`` follows the paper's ``NStart`` rule, so the count is resolved per batch from
-    the instance size rather than fixed across heterogeneous sizes.
+    ``num_starts=None`` follows CMD Algorithm 1 ``NStart`` (every customer, or the closest
+    ``start_node_cap`` when ``N`` is larger), resolved per batch from the instance size.
     """
     if not examples:
         raise ValueError("cannot evaluate on an empty list of examples")
@@ -207,7 +207,7 @@ def evaluate_policy(
         batch = _collate(chunk, device)
         encoding = _encode_batch(policy, batch, prior)
         starts = (
-            paper_num_starts(encoding.node_mask, cap=start_node_cap)
+            nstart_count(encoding.node_mask, cap=start_node_cap)
             if num_starts is None
             else num_starts
         )
@@ -283,7 +283,7 @@ def train_policy(
     batch_size: int = 8,
     num_starts: int | None = None,
     val_num_starts: int | None = None,
-    start_node_cap: int = POMO_START_NODE_CAP,
+    start_node_cap: int = NSTART_CAP,
     baseline_mode: BaselineMode = "multi_start",
     prior: PriorProvider | None = None,
     entropy_weight: float = 0.0,
@@ -304,9 +304,10 @@ def train_policy(
     Trajectories are sampled (not greedy) during training so the action space keeps being
     explored, matching CMD Algorithm 1. Validation always decodes greedily.
 
-    ``num_starts=None`` uses the paper's ``NStart`` rule: every customer up to ``start_node_cap``.
-    That makes the shared baseline an average over genuinely distinct route structures, at a memory
-    cost linear in the count, so lower ``batch_size`` rather than ``num_starts`` when constrained.
+    ``num_starts=None`` uses CMD Algorithm 1 ``NStart``: every customer if ``N <= start_node_cap``,
+    otherwise the ``start_node_cap`` customers closest to the depot. That makes the shared baseline
+    an average over genuinely distinct route structures, at a memory cost linear in the count, so
+    lower ``batch_size`` rather than ``num_starts`` when constrained.
     """
     if num_epochs < 1:
         raise ValueError(f"num_epochs must be >= 1, got {num_epochs}")
@@ -363,7 +364,7 @@ def train_policy(
             batch = _collate(chunk, policy_device)
             encoding = _encode_batch(policy, batch, prior)
             starts = (
-                paper_num_starts(encoding.node_mask, cap=start_node_cap)
+                nstart_count(encoding.node_mask, cap=start_node_cap)
                 if num_starts is None
                 else num_starts
             )
@@ -683,7 +684,7 @@ def main() -> None:
                 val_num_starts=(
                     int(train_cfg["val_num_starts"]) if train_cfg.get("val_num_starts") else None
                 ),
-                start_node_cap=int(train_cfg.get("start_node_cap", POMO_START_NODE_CAP)),
+                start_node_cap=int(train_cfg.get("start_node_cap", NSTART_CAP)),
                 baseline_mode=str(train_cfg.get("baseline", "multi_start")),  # type: ignore[arg-type]
                 prior=prior,
                 entropy_weight=float(train_cfg.get("entropy_weight", 0.0)),

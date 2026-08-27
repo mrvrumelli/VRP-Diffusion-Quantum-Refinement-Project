@@ -50,9 +50,10 @@ training:
   learning_rate: 0.0001
   weight_decay: 0.000001
   batch_size: 32
-  # null applies the paper's NStart rule: every customer, capped at start_node_cap. Set an integer
-  # only to fit memory, and lower batch_size first: few near-depot starts collapse rollout
-  # diversity, which shrinks the shared-baseline advantages that drive the gradient.
+  # null applies CMD Algorithm 1 NStart: every customer if N <= start_node_cap, else the
+  # start_node_cap customers closest to the depot. Set an integer only to fit memory, and lower
+  # batch_size first: few near-depot starts collapse rollout diversity, which shrinks the
+  # shared-baseline advantages that drive the gradient.
   num_starts: null
   val_num_starts: null
   start_node_cap: 100

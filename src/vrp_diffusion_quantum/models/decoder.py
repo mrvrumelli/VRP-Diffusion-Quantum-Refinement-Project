@@ -32,7 +32,7 @@ from vrp_diffusion_quantum.models.local_masked_encoder import (
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "POMO_START_NODE_CAP",
+    "NSTART_CAP",
     "CVRPPolicy",
     "DecodeMode",
     "DecoderRollout",
@@ -40,15 +40,16 @@ __all__ = [
     "PolicyEncoding",
     "actions_to_routes",
     "build_decoder_local_adjacency",
-    "paper_num_starts",
+    "nstart_count",
     "repeat_encoding",
+    "select_nstart_nodes",
     "select_start_nodes",
 ]
 
 DecodeMode = Literal["greedy", "sampling"]
 
-# CMD Algorithm 1 caps parallel start-node decoding at 100 customers.
-POMO_START_NODE_CAP = 100
+# CMD Algorithm 1: NStart is every customer when N <= 100, else the 100 closest to the depot.
+NSTART_CAP = 100
 
 _CAPACITY_TOLERANCE = 1e-6
 _PROBABILITY_FLOOR = 1e-12
@@ -114,12 +115,11 @@ def build_decoder_local_adjacency(
     return prior.allowed_pairs & (prior.weights >= threshold)
 
 
-def paper_num_starts(node_mask: Tensor, *, cap: int = POMO_START_NODE_CAP) -> int:
-    """Start-node count prescribed by CMD Algorithm 1: every customer, capped at ``cap``.
+def nstart_count(node_mask: Tensor, *, cap: int = NSTART_CAP) -> int:
+    """``NStart`` count from CMD Algorithm 1: ``N`` when ``N <= cap``, otherwise ``cap``.
 
-    The paper uses all customers as starts when ``N <= 100`` and the 100 closest to the depot
-    otherwise, so the count is simply ``min(N, cap)``. The smallest instance in the batch sets the
-    count, which keeps every rollout a distinct start rather than a wrap-around duplicate.
+    Which customers those starts are is :func:`select_nstart_nodes`. A mixed-size padded batch uses
+    the smallest ``N`` so every rollout is a distinct start rather than a wrap-around duplicate.
     """
     if cap < 1:
         raise ValueError(f"cap must be >= 1, got {cap}")
@@ -130,20 +130,31 @@ def paper_num_starts(node_mask: Tensor, *, cap: int = POMO_START_NODE_CAP) -> in
     return min(smallest, cap)
 
 
+def select_nstart_nodes(
+    coords: Tensor,
+    depot_index: Tensor,
+    node_mask: Tensor,
+    *,
+    cap: int = NSTART_CAP,
+) -> Tensor:
+    """CMD Algorithm 1 ``NStart``.
+
+    Every customer if ``N <= cap``, otherwise the ``cap`` customers closest to the depot.
+    """
+    return select_start_nodes(coords, depot_index, node_mask, nstart_count(node_mask, cap=cap))
+
+
 def select_start_nodes(
     coords: Tensor,
     depot_index: Tensor,
     node_mask: Tensor,
     num_starts: int,
 ) -> Tensor:
-    """Pick ``num_starts`` multi-start customers per instance (CMD Algorithm 1, ``NStart``).
+    """Pick ``num_starts`` customers closest to the depot.
 
-    Customers closest to the depot come first. Combined with the count from
-    :func:`paper_num_starts` this reproduces both of the paper's branches: for ``N`` at or below the
-    cap the ordering is irrelevant because every customer is selected, and above the cap the
-    closest-to-depot customers are the ones kept. Passing a smaller ``num_starts`` yields a
-    depot-biased subset whose rollouts explore few distinct route structures, which weakens the
-    shared baseline; prefer :func:`paper_num_starts` unless memory forces otherwise.
+    :func:`select_nstart_nodes` is the paper rule. This helper is what that function (and a smaller
+    ``num_starts`` override) call: closest-first so the ``N > cap`` branch keeps the nearest
+    customers, and a reduced count stays a depot-biased subset rather than an arbitrary slice.
 
     When an instance has fewer customers than ``num_starts`` the selection wraps around; duplicate
     starts stay valid rollouts and only cost redundant compute.
@@ -392,7 +403,7 @@ class DualPointerDecoder(nn.Module):
             decode_mode: ``greedy`` takes the arg-max action, ``sampling`` draws from the policy.
             generator: RNG used by ``sampling``; pass one for reproducible rollouts.
             start_nodes: optional ``[batch]`` node indices forced as the first visit, which is how
-                POMO-style multi-start rollouts are diversified.
+                CMD ``NStart`` (and a smaller multi-start override) diversifies rollouts.
         """
         if decode_mode not in ("greedy", "sampling"):
             raise ValueError(f"decode_mode must be 'greedy' or 'sampling', got {decode_mode!r}")
@@ -834,28 +845,40 @@ class CVRPPolicy(nn.Module):
     ) -> DecoderRollout:
         """Decode ``num_starts`` solutions per instance, flattened along the batch dimension.
 
-        ``num_starts=None`` applies the paper's ``NStart`` rule via :func:`paper_num_starts`. With
-        more than one start the returned tensors have batch size ``batch * num_starts``, laid out so
-        that ``tensor.view(batch, num_starts, ...)`` groups the starts of one instance.
+        ``num_starts=None`` applies CMD Algorithm 1 ``NStart`` via :func:`select_nstart_nodes`.
+        With more than one start the returned tensors have batch size ``batch * num_starts``, laid
+        out so that ``tensor.view(batch, num_starts, ...)`` groups the starts of one instance.
         """
         if num_starts is None:
-            num_starts = paper_num_starts(encoding.node_mask)
-        if num_starts < 1:
+            start_table = select_nstart_nodes(
+                encoding.coords, encoding.depot_index, encoding.node_mask
+            )
+            num_starts = start_table.shape[1]
+        elif num_starts < 1:
             raise ValueError(f"num_starts must be >= 1, got {num_starts}")
-        if num_starts == 1:
+        else:
+            start_table = (
+                None
+                if num_starts == 1
+                else select_start_nodes(
+                    encoding.coords,
+                    encoding.depot_index,
+                    encoding.node_mask,
+                    num_starts,
+                )
+            )
+        if start_table is None:
             single: DecoderRollout = self.decoder(
                 encoding, decode_mode=decode_mode, generator=generator
             )
             return single
 
-        start_nodes = select_start_nodes(
-            encoding.coords, encoding.depot_index, encoding.node_mask, num_starts
-        )
+        encoded = encoding if num_starts == 1 else repeat_encoding(encoding, num_starts)
         multi: DecoderRollout = self.decoder(
-            repeat_encoding(encoding, num_starts),
+            encoded,
             decode_mode=decode_mode,
             generator=generator,
-            start_nodes=start_nodes.reshape(-1),
+            start_nodes=start_table.reshape(-1),
         )
         return multi
 
