@@ -165,6 +165,21 @@ The exact full-chain result, rather than noisy-time AUC, determines the next wor
     7,509 accepted matrix examples, 1,491 needs-review.** Output force-committed to git at
     `outputs/label_audit/rc_full/` the same way `s7799_strong_reference` was, so nobody needs to
     re-run this.
+  - **Merged into training 2026-08-24/25 — regresses on the s7799 panel, not adopted.** rc_full was
+    materialized (`rc_full_audit_policy_v1`, matching the champions' tolerance) and merged with the
+    s7799 pool per size (3,500/3,751/9,027 sources, up from 500/536/1,268). Three new per-size
+    checkpoints trained cleanly but regress on the frozen large validation panel versus the current
+    champions (mean gap 27.00% -> 34.67%, worst at N20: +16.52pp). Not adopted; champions remain the
+    active recipe. Full writeup, hypothesis, and the not-yet-resolved question of whether this is a
+    genuine s7799-vs-R/C/RC tradeoff (rather than simply worse) is in
+    [`stochastic_reference_probe.md`](stochastic_reference_probe.md#rc_full-merge-regresses-the-frozen-champions-on-the-s7799-panel-2026-08-25).
+  - **Next**: a second, fresh R/C/RC eval batch (seeds 9901/9902/9903, disjoint from the
+    8801/8802/8803 that went into training) is generating and auditing
+    (`outputs/logs/run_rc_full_eval_chain.sh`, ~20-22h, gated by an automatic overlap check) so an
+    out-of-distribution eval set exists again. Once it lands, score the rc_full-merged checkpoints
+    on it — if they win there despite losing on the s7799 panel, that confirms a genuine
+    distribution tradeoff rather than a strictly worse model, and reopens the adoption question with
+    real evidence either way.
 
 This is the operational checklist for the Windows 11 / RTX 3060 Ti machine. The first
 1k-per-size run is a pipeline and throughput pilot, not final model training.

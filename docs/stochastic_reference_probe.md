@@ -404,3 +404,53 @@ The epoch-0 checkpoint (SHA-256
 0.5468 and decoded gap 38.72%, with per-size gaps of 56.45%, 32.08%, and 27.62%. This is the best
 small-panel routing result, but it uses 19% fewer sources and updates. It therefore motivates a
 proper matched-budget replication; it does not prove exclusion is superior to stochastic targets.
+
+## rc_full merge regresses the frozen champions on the s7799 panel (2026-08-25)
+
+The rc_full 9,000-instance R/C/RC audit (committed 2026-08-21) was materialized at the matching
+tolerance (`rc_full_audit_policy_v1`, tolerance 0.005 — not the tolerance-0.0 `policy_v2` variant,
+which would collapse to a fixed single reference per rc_full source and defeat the point of
+`stochastic_references`) and hardlink-merged with `s7799_audit_policy_v1_n{size}` into
+`data/processed/train_merged_s7799_rcfull_n{20,50,100}`: 3,500 / 3,751 / 9,027 unique sources, up
+from 500 / 536 / 1,268 — s7799 is now only ~14% of each pool, rc_full ~86%. Three new per-size
+checkpoints were trained on the merged pools with an otherwise identical recipe/config to the frozen
+champions (same architecture, frozen GAT encoder, 15 epochs, `stochastic_references: true`, same
+checkpoint-selection metric). All three completed cleanly, 15/15 epochs, 100% capacity-feasible,
+well under the 1-hour runtime cap (so this is not a truncated-training artifact — the merged pools'
+larger unique-source count means ~6-7x more optimizer steps per epoch than the champions got, i.e.
+more training compute, not less).
+
+Scored on the identical frozen 120-example large panel (`s7799_val100_policy_v1`, per-size 40, seed
+24331, full 700-step exact chain, capacity-aware decoder) used for every comparison in this
+document:
+
+| Size | Champion gap | Champion F1 | rc_full-merged gap | rc_full-merged F1 | Change |
+|---|---:|---:|---:|---:|---:|
+| N20 | 22.00% | 0.6318 | 38.52% | 0.5049 | **+16.52 pp worse** |
+| N50 | 28.90% | 0.5755 | 34.54% | 0.5408 | **+5.64 pp worse** |
+| N100 | 30.10% | 0.5162 | 30.96% | 0.5494 | +0.86 pp worse (F1 improves) |
+| **Mean** | **27.00%** | — | **34.67%** | — | **+7.67 pp worse** |
+
+All checkpoints remain 100% capacity-feasible, so this is a routing-quality regression, not a
+feasibility collapse. N20 is hit hardest by far, N50 moderately, N100 essentially flat (and its F1
+actually improves) — the same size-dependent pattern as the original pooled-vs-per-size interference
+finding earlier in this document, just with regime pooling in place of size pooling. The natural
+reading: with rc_full sources outnumbering s7799 sources ~6:1 in every epoch's stochastic selection,
+gradient signal is dominated by the R/C/RC spatial distributions (measurably more clustered than
+s7799 — see [`spatial_stress_validation.md`](spatial_stress_validation.md)), and the shared per-size
+denoiser reallocates capacity away from s7799-style solutions, worst for N20 where s7799 is the
+smallest fraction of its pool (500/3,500 = 14%) and the label space is simplest (zero candidate
+ambiguity, per the earlier CVRP20 analysis above).
+
+**Decision: these three checkpoints are not adopted.** The frozen champions
+(`diffusion_denoiser_s7799_stochastic_persize_n{20,50,100}_cuda`, 2026-08-16 run dirs) remain the
+active recipe. This regression on the s7799 panel does not by itself mean the rc_full merge was a
+mistake — it may simply mean the merged model traded s7799-panel performance for R/C/RC performance,
+which could be a reasonable or even desirable trade depending on what generalization the project
+actually wants. That trade cannot be judged from this panel alone, since the panel is drawn entirely
+from the s7799 distribution the merged pool now under-weights. The correct arbiter, following this
+document's own standing rule of never concluding before the relevant held-out evaluation exists, is
+the independent fresh-seed R/C/RC eval batch (seeds 9901/9902/9903, disjoint from the 8801/8802/8803
+that went into training) generating and auditing separately — see
+[`3060ti_training_todo.md`](3060ti_training_todo.md). Until that lands, treat the rc_full-merged
+checkpoints as an open research branch, not a candidate freeze.
