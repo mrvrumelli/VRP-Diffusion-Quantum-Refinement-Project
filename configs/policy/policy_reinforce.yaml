@@ -1,5 +1,9 @@
 experiment_name: policy_reinforce
 seed: 42
+alignment:
+  track: ours_robust
+  paper_id: arxiv:2603.07568v1
+  claim: project extension; not a faithful paper baseline
 dataset:
   name: cvrp_uniform_train
   # Template: point at a materialized training split before running.
@@ -11,6 +15,7 @@ validation:
 output:
   root: outputs/policy
 model:
+  architecture: ours_robust
   # Defaults follow CMD Table I: hidden dim 128, 8 heads, L=5 graph layers, logit clipping C=10.
   embedding_dim: 128
   global_num_layers: 5

@@ -1,0 +1,61 @@
+# Phase 5 kickoff: the full no/random/ground-truth/supervised/diffusion M ablation.
+#
+#   python scripts/eval_phase5_ablation.py --config configs/eval/phase5_ablation.yaml
+#
+# See scripts/eval_phase5_ablation.py's module docstring for how AGENTS.md's six-item arm
+# list ("no M, ground-truth M, predicted M, random M, supervised M, diffusion M") resolves to
+# the 8 rows this script actually produces.
+#
+# Matrix-classification metrics (F1/AUC/...) are scored on `dataset.test_path` (the untouched
+# test split). Routing/cost-gap metrics are scored separately on
+# `dataset.accepted_matrix_examples_path` (the audited, cost/matrix-stability-accepted PyVRP
+# reference subset) since ordinary single-seed test-split labels are known-ambiguous for
+# CVRP50/100 (docs/label_audit_s7799_decision.md). That subset is drawn from the training pool
+# (see the run's `accepted_subset_train_overlap` provenance field), so its cost-gap numbers are
+# an audited-reference-quality diagnostic, not a held-out generalization measurement.
+#
+# This is a sibling to configs/eval/m_predictor_ablation.yaml (which stays a fast 3-row dev
+# tool) — this config is the full audited run.
+experiment_name: phase5_ablation
+seed: 42
+device: auto
+
+dataset:
+  train_path: null
+  selection_path: null
+  test_path: null
+  # outputs/label_audit/s7799_strong_reference/accepted_matrix_examples
+  accepted_matrix_examples_path: null
+
+max_train_examples: 0 # all
+
+matrix_predictor: # unchanged fair recipe from m_predictor_ablation.yaml
+  hidden_dim: 128
+  epochs: 8
+  learning_rate: 1.0e-3
+  augmentation: true # x9: original + 4 D4 views + 4 45-degree-offset rotations
+  weighted_bce: true
+  pos_weight_power: 0.5
+
+diffusion:
+  step_stride: 1
+  modes: [one_shot, full_chain]
+  # Both may be filled in independently; each unlocks its own pair of table rows. Full-chain
+  # sampling over thousands of test-split examples is expensive (T=700 by default) -- lower
+  # eval.per_size for a quick smoke run before committing to the full 3,000/size pass.
+  pooled:
+    checkpoint: null # null => skip both diffusion_M_pooled_* rows
+  persize:
+    checkpoints: { 20: null, 50: null, 100: null } # any subset may be filled in independently
+
+baselines:
+  random_seed: 43 # independent of eval.seed, so random_M doesn't share entropy with anything else
+
+eval:
+  selection_per_size: 16
+  per_size: 3000 # capped to whatever's actually on disk at runtime (3,333/size as of this writing)
+  sizes: [20, 50, 100]
+  seed: 0
+
+output:
+  root: outputs/eval

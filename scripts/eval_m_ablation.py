@@ -18,21 +18,19 @@ from pathlib import Path
 from typing import Any
 
 import torch
-import torch.nn.functional as ff
 import yaml
 
-from vrp_diffusion_quantum.data.augment import AUGMENT_NUM, expand_examples
 from vrp_diffusion_quantum.data.dataset import load_dataset, load_examples_by_size
 from vrp_diffusion_quantum.data.types import CVRPExample
 from vrp_diffusion_quantum.eval.matrix_ablation import (
+    predict_matrix_predictor_probs,
     score_matrix_probabilities,
+    train_matrix_predictor,
     validate_disjoint_examples,
 )
 from vrp_diffusion_quantum.inference.predict_matrix import (
-    example_to_model_inputs,
     load_denoiser_checkpoint,
-    predict_matrix_one_shot,
-    sample_constraint_matrix,
+    predict_matrix_batch,
     select_examples_by_size,
 )
 from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
@@ -42,7 +40,6 @@ from vrp_diffusion_quantum.utils.runtime import resolve_device
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "configs" / "eval" / "m_predictor_ablation.yaml"
-_LOSS_EPS = 1e-7
 
 _TABLE_COLS = (
     "method",
@@ -72,84 +69,6 @@ def _resolve_required_path(value: object, *, field: str) -> Path:
     return path if path.is_absolute() else ROOT / path
 
 
-def _soft_wbce(
-    m_prob: torch.Tensor,
-    m_true: torch.Tensor,
-    *,
-    weighted: bool,
-    pos_weight_power: float,
-) -> torch.Tensor:
-    """Off-diagonal BCE on probabilities; optional soft √ class weight (same as denoiser)."""
-    n = m_prob.shape[0]
-    mask = ~torch.eye(n, dtype=torch.bool, device=m_prob.device)
-    prob = torch.clamp(m_prob[mask], _LOSS_EPS, 1.0 - _LOSS_EPS)
-    target = m_true[mask].float()
-    if not weighted:
-        return ff.binary_cross_entropy(prob, target)
-    pos = target.sum().clamp_min(1.0)
-    neg = (1.0 - target).sum().clamp_min(1.0)
-    pos_weight = (neg / pos) ** float(pos_weight_power)
-    loss = ff.binary_cross_entropy(prob, target, reduction="none")
-    weights = torch.where(target > 0.5, pos_weight, torch.ones_like(target))
-    return (loss * weights).mean()
-
-
-def _train_matrix_predictor(
-    examples: list[CVRPExample],
-    *,
-    hidden_dim: int,
-    epochs: int,
-    learning_rate: float,
-    device: torch.device,
-    seed: int,
-    augmentation: bool = False,
-    weighted_bce: bool = True,
-    pos_weight_power: float = 0.5,
-) -> MatrixPredictor:
-    torch.manual_seed(seed)
-    model = MatrixPredictor(hidden_dim=hidden_dim).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    model.train()
-    train_pool = expand_examples(examples) if augmentation else examples
-    n_views = AUGMENT_NUM if augmentation else 1
-    print(
-        f"P2.1 fair train: n={len(examples)} epochs={epochs} "
-        f"augmentation={augmentation} (x{n_views} -> {len(train_pool)}) "
-        f"weighted_bce={weighted_bce} pos_weight_power={pos_weight_power} device={device}",
-        flush=True,
-    )
-    for epoch in range(epochs):
-        order = torch.randperm(
-            len(train_pool), generator=torch.Generator().manual_seed(seed + epoch)
-        )
-        total = 0.0
-        n_steps = 0
-        for idx in order.tolist():
-            view = train_pool[int(idx)]
-            coords = torch.from_numpy(view.instance.customer_coords()).float().to(device)
-            demands = torch.from_numpy(view.instance.customer_demands()).float().to(device)
-            m_true = torch.from_numpy(view.constraint_matrix).float().to(device)
-            optimizer.zero_grad()
-            m_prob = model(coords, demands, float(view.instance.capacity))
-            loss = _soft_wbce(
-                m_prob,
-                m_true,
-                weighted=weighted_bce,
-                pos_weight_power=pos_weight_power,
-            )
-            loss.backward()
-            optimizer.step()
-            total += float(loss.item())
-            n_steps += 1
-        print(
-            f"P2.1 epoch={epoch} train_loss={total / max(n_steps, 1):.4f} steps={n_steps}",
-            flush=True,
-        )
-    model.eval()
-    return model
-
-
-@torch.no_grad()
 def _eval_matrix_predictor(
     model: MatrixPredictor,
     examples: list[CVRPExample],
@@ -158,12 +77,7 @@ def _eval_matrix_predictor(
     threshold: float | None = None,
     adaptive_threshold: bool = True,
 ) -> dict[str, float]:
-    m_probs = []
-    for example in examples:
-        coords = torch.from_numpy(example.instance.customer_coords()).float().to(device)
-        demands = torch.from_numpy(example.instance.customer_demands()).float().to(device)
-        m_prob = model(coords, demands, float(example.instance.capacity)).detach().cpu().numpy()
-        m_probs.append(m_prob.astype("float64"))
+    m_probs = predict_matrix_predictor_probs(model, examples, device)
     return score_matrix_probabilities(
         examples,
         m_probs,
@@ -172,7 +86,6 @@ def _eval_matrix_predictor(
     )
 
 
-@torch.no_grad()
 def _eval_diffusion(
     model: torch.nn.Module,
     schedule: BernoulliDiffusionSchedule,
@@ -185,36 +98,17 @@ def _eval_diffusion(
     threshold: float | None,
     adaptive_threshold: bool,
 ) -> dict[str, float]:
-    m_probs = []
-    m_hats = []
-    for i, example in enumerate(examples):
-        coords, demands, capacity, _, mask = example_to_model_inputs(example, device=device)
-        gen = torch.Generator(device="cpu").manual_seed(seed + i)
-        if mode == "one_shot":
-            result = predict_matrix_one_shot(
-                model,
-                schedule,
-                coords=coords,
-                demands=demands,
-                capacity=capacity,
-                customer_mask=mask,
-                generator=gen,
-            )
-        elif mode == "full_chain":
-            result = sample_constraint_matrix(
-                model,
-                schedule,
-                coords=coords,
-                demands=demands,
-                capacity=capacity,
-                customer_mask=mask,
-                generator=gen,
-                step_stride=step_stride,
-            )
-        else:
-            raise ValueError(f"unknown diffusion mode: {mode}")
-        m_probs.append(result.m_prob)
-        m_hats.append(result.m_hat)
+    if mode not in ("one_shot", "full_chain"):
+        raise ValueError(f"unknown diffusion mode: {mode}")
+    m_probs, m_hats = predict_matrix_batch(
+        model,
+        schedule,
+        examples,
+        mode=mode,  # type: ignore[arg-type]
+        device=device,
+        seed=seed,
+        step_stride=step_stride,
+    )
     return score_matrix_probabilities(
         examples,
         m_probs,
@@ -334,7 +228,7 @@ def main() -> None:
     mp_cfg = config["matrix_predictor"]
     print("training P2.1 MatrixPredictor (x9 + soft sqrt-WBCE)...", flush=True)
     started = time.perf_counter()
-    predictor = _train_matrix_predictor(
+    predictor = train_matrix_predictor(
         train_examples,
         hidden_dim=int(mp_cfg["hidden_dim"]),
         epochs=int(mp_cfg["epochs"]),

@@ -49,6 +49,7 @@ from vrp_diffusion_quantum.metrics.matrix_metrics import (
 )
 from vrp_diffusion_quantum.models.constraint_denoiser import ConstraintDenoiser
 from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
+from vrp_diffusion_quantum.utils.alignment import validate_alignment_config
 from vrp_diffusion_quantum.utils.experiment import ExperimentTracker
 from vrp_diffusion_quantum.utils.runtime import (
     capture_rng_state,
@@ -301,10 +302,23 @@ def _shuffle_and_maybe_augment_online(
     seed: int,
     epoch: int,
     online_augmentation: bool,
+    augmentation_recipe: str = "ours_x9",
     shuffle: bool = True,
 ) -> list[CVRPExample]:
     """Optionally shuffle and select one label-preserving augmented view per example."""
-    from vrp_diffusion_quantum.data.augment import AUGMENT_NUM, augment_example
+    from vrp_diffusion_quantum.data.augment import (
+        AUGMENT_NUM,
+        D4_NUM_TRANSFORMS,
+        PAPER_DEMAND_STRATEGIES,
+        augment_example,
+        augment_example_paper_labeled,
+    )
+
+    if augmentation_recipe not in {"ours_x9", "paper_cmd_labeled"}:
+        raise ValueError(
+            "augmentation_recipe must be 'ours_x9' or 'paper_cmd_labeled', "
+            f"got {augmentation_recipe!r}"
+        )
 
     if shuffle:
         gen = torch.Generator().manual_seed(seed + epoch)
@@ -315,6 +329,22 @@ def _shuffle_and_maybe_augment_online(
     if not online_augmentation:
         return ordered
     aug_gen = torch.Generator().manual_seed(seed + 17_000 + epoch)
+    if augmentation_recipe == "paper_cmd_labeled":
+        geometric_variants = torch.randint(0, D4_NUM_TRANSFORMS, (len(ordered),), generator=aug_gen)
+        demand_variants = torch.randint(
+            0, len(PAPER_DEMAND_STRATEGIES), (len(ordered),), generator=aug_gen
+        )
+        return [
+            augment_example_paper_labeled(
+                example,
+                geometric_variant=int(geometric),
+                demand_strategy=PAPER_DEMAND_STRATEGIES[int(demand)],
+                rng=np.random.default_rng(seed + 19_000 + epoch * 1_000_003 + index),
+            )
+            for index, (example, geometric, demand) in enumerate(
+                zip(ordered, geometric_variants.tolist(), demand_variants.tolist(), strict=True)
+            )
+        ]
     vs = torch.randint(0, AUGMENT_NUM, (len(ordered),), generator=aug_gen)
     return [augment_example(ex, int(v)) for ex, v in zip(ordered, vs.tolist(), strict=True)]
 
@@ -463,6 +493,7 @@ def train_constraint_denoiser(
     val_examples: Sequence[CVRPExample] | None = None,
     num_epochs: int,
     learning_rate: float,
+    weight_decay: float = 0.0,
     batch_size: int = 8,
     seed: int = 0,
     device: torch.device | str | None = None,
@@ -476,6 +507,7 @@ def train_constraint_denoiser(
     sample_eval_every: int | None = None,
     resume_checkpoint: str | Path | None = None,
     online_augmentation: bool = False,
+    augmentation_recipe: str = "ours_x9",
     same_size_batches: bool = False,
     augmentation: bool = False,
     weighted_bce: bool = True,
@@ -498,6 +530,13 @@ def train_constraint_denoiser(
     """Train ``model`` to reconstruct clean ``M`` from noisy ``M_t``."""
     if augmentation:
         online_augmentation = False
+    if augmentation_recipe not in {"ours_x9", "paper_cmd_labeled"}:
+        raise ValueError(
+            "augmentation_recipe must be 'ours_x9' or 'paper_cmd_labeled', "
+            f"got {augmentation_recipe!r}"
+        )
+    if augmentation and augmentation_recipe == "paper_cmd_labeled":
+        raise ValueError("paper_cmd_labeled augmentation is supported online only")
     expand_any = augmentation
     if t_sample not in ("uniform", "high"):
         raise ValueError(f"t_sample must be 'uniform' or 'high', got {t_sample!r}")
@@ -515,6 +554,8 @@ def train_constraint_denoiser(
         raise ValueError("cannot train on an empty list of examples")
     if num_epochs < 1:
         raise ValueError(f"num_epochs must be >= 1, got {num_epochs}")
+    if weight_decay < 0:
+        raise ValueError(f"weight_decay must be non-negative, got {weight_decay}")
 
     resolved_val = val_examples if val_examples is not None else train_examples
     if not resolved_val:
@@ -528,7 +569,7 @@ def train_constraint_denoiser(
         raise ValueError("mixed_precision requires a CUDA device")
     amp_enabled = mixed_precision and model_device.type == "cuda"
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     scaler = GradScaler("cuda", enabled=amp_enabled)
     history: list[dict[str, Any]] = []
     ckpt_dir = Path(checkpoint_dir) if checkpoint_dir is not None else None
@@ -598,6 +639,7 @@ def train_constraint_denoiser(
                 seed=seed,
                 epoch=epoch,
                 online_augmentation=online_augmentation,
+                augmentation_recipe=augmentation_recipe,
                 shuffle=not (same_size_batches or expand_any),
             )
         batch_gen = torch.Generator().manual_seed(seed + 3_000 + epoch)
@@ -946,6 +988,8 @@ def main() -> None:
     args = _parse_args()
     cfg_path = args.config if args.config.is_absolute() else _ROOT / args.config
     config = yaml.safe_load(cfg_path.read_text())
+    alignment = validate_alignment_config(config, component="diffusion")
+    config["alignment"] = alignment.as_dict()
     seed = int(config["seed"])
     config["reproducibility"] = seed_everything(
         seed,
@@ -1108,6 +1152,7 @@ def main() -> None:
                 val_examples=val_examples,
                 num_epochs=int(train_cfg["epochs"]),
                 learning_rate=float(train_cfg["learning_rate"]),
+                weight_decay=float(train_cfg.get("weight_decay", 0.0)),
                 batch_size=int(train_cfg.get("batch_size", 8)),
                 seed=seed,
                 device=device,
@@ -1119,6 +1164,7 @@ def main() -> None:
                 checkpoint_extra={
                     "experiment_name": config["experiment_name"],
                     "seed": seed,
+                    "alignment": config["alignment"],
                     "model": model_cfg,
                     "schedule": schedule_cfg,
                     "decision_threshold": decision_threshold,
@@ -1154,6 +1200,7 @@ def main() -> None:
                     else (args.resume if args.resume.is_absolute() else _ROOT / args.resume)
                 ),
                 online_augmentation=bool(train_cfg.get("online_augmentation", False)),
+                augmentation_recipe=str(train_cfg.get("augmentation_recipe", "ours_x9")),
                 same_size_batches=bool(train_cfg.get("same_size_batches", False)),
                 augmentation=bool(train_cfg.get("augmentation", False)),
                 weighted_bce=bool(train_cfg.get("weighted_bce", True)),

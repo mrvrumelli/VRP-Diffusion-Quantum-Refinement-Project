@@ -62,6 +62,7 @@ class BernoulliDiffusionSchedule(nn.Module):
     betas: Tensor
     q_bar_flip: Tensor
     q_bar_flip_prev: Tensor
+    log_signal_bar_with_clean: Tensor
 
     def __init__(
         self,
@@ -79,10 +80,15 @@ class BernoulliDiffusionSchedule(nn.Module):
         q_bar_flip = 0.5 * (1.0 - signal_bar)
         signal_bar_prev = torch.cat([signal_bar.new_ones(1), signal_bar[:-1]])
         q_bar_flip_prev = 0.5 * (1.0 - signal_bar_prev)
+        log_signal_bar = torch.cumsum(torch.log(signal), dim=0)
+        log_signal_bar_with_clean = torch.cat([log_signal_bar.new_zeros(1), log_signal_bar])
 
         self.register_buffer("betas", betas.to(torch.float32))
         self.register_buffer("q_bar_flip", q_bar_flip.to(torch.float32))
         self.register_buffer("q_bar_flip_prev", q_bar_flip_prev.to(torch.float32))
+        self.register_buffer(
+            "log_signal_bar_with_clean", log_signal_bar_with_clean.to(torch.float64)
+        )
 
     def sample_timesteps(
         self,
@@ -145,19 +151,53 @@ class BernoulliDiffusionSchedule(nn.Module):
 
     def q_posterior_prob(self, m_t: Tensor, m_true: Tensor, t: Tensor | int) -> Tensor:
         """``P(x_{t-1} = 1 | x_t, x_0)`` (CMD eq. 8). At ``t=0`` this is ``m_true``."""
+        t_tensor = torch.as_tensor(t, device=m_t.device, dtype=torch.long)
+        return self.q_posterior_between_prob(m_t, m_true, t=t_tensor, target_t=t_tensor - 1)
+
+    def q_posterior_between_prob(
+        self,
+        m_t: Tensor,
+        m_true: Tensor,
+        *,
+        t: Tensor | int,
+        target_t: Tensor | int,
+    ) -> Tensor:
+        """Return ``P(x_target_t=1 | x_t, x_clean)`` for an arbitrary skipped interval.
+
+        Schedule indices use ``t=0`` for the first noised state. ``target_t=-1`` denotes the
+        clean matrix. For ``target_t=t-1`` this is exactly :meth:`q_posterior_prob`; unlike the
+        previous stride approximation, larger gaps compose every intervening bit-flip kernel.
+        ``m_true`` may be a soft clean prediction, matching the existing reverse-chain use.
+        """
+        current = torch.as_tensor(t, device=m_t.device, dtype=torch.long)
+        target = torch.as_tensor(target_t, device=m_t.device, dtype=torch.long)
+        if torch.any(current < 0) or torch.any(current >= self.num_timesteps):
+            raise ValueError(f"t must be in [0, {self.num_timesteps})")
+        if torch.any(target < -1) or torch.any(target >= current):
+            raise ValueError("target_t must satisfy -1 <= target_t < t entrywise")
+
         m_t_f = m_t.to(dtype=torch.get_default_dtype())
-        m0_f = m_true.to(dtype=torch.get_default_dtype())
-        beta = _extract(self.betas, t, m_t_f)
-        flip_prev = _extract(self.q_bar_flip_prev, t, m_t_f)
+        m0_f = m_true.to(device=m_t.device, dtype=m_t_f.dtype)
 
-        marg_one = m0_f * (1.0 - flip_prev) + (1.0 - m0_f) * flip_prev
+        # State -1 (clean) maps to prefix index 0, state t maps to prefix index t + 1.
+        log_signal_t = _extract(self.log_signal_bar_with_clean, current + 1, m_t_f)
+        log_signal_target = _extract(self.log_signal_bar_with_clean, target + 1, m_t_f)
+        interval_signal = torch.exp(log_signal_t - log_signal_target)
+        interval_flip = 0.5 * (1.0 - interval_signal)
+
+        target_flip = 0.5 * (1.0 - torch.exp(log_signal_target))
+        marg_one = m0_f * (1.0 - target_flip) + (1.0 - m0_f) * target_flip
         marg_zero = 1.0 - marg_one
-        fwd_one = m_t_f * (1.0 - beta) + (1.0 - m_t_f) * beta
-        fwd_zero = (1.0 - m_t_f) * (1.0 - beta) + m_t_f * beta
 
-        unnorm_one = fwd_one * marg_one
-        unnorm_zero = fwd_zero * marg_zero
-        return unnorm_one / (unnorm_one + unnorm_zero)
+        likelihood_from_one = (
+            m_t_f * (1.0 - interval_flip) + (1.0 - m_t_f) * interval_flip
+        )
+        likelihood_from_zero = (
+            (1.0 - m_t_f) * (1.0 - interval_flip) + m_t_f * interval_flip
+        )
+        unnorm_one = likelihood_from_one * marg_one
+        unnorm_zero = likelihood_from_zero * marg_zero
+        return unnorm_one / (unnorm_one + unnorm_zero).clamp_min(torch.finfo(m_t_f.dtype).tiny)
 
     @staticmethod
     def _symmetrize(matrix: Tensor, customer_mask: Tensor | None) -> Tensor:

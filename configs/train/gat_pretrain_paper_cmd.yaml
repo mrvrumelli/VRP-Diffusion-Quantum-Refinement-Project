@@ -1,0 +1,37 @@
+experiment_name: gat_pretrain_paper_cmd
+seed: 42
+alignment:
+  track: paper_cmd
+  paper_id: arxiv:2603.07568v1
+  claim: paper-guided reconstruction; exact author seeds and GAT objective remain unconfirmed
+dataset:
+  name: paper_cmd_hgs_50k_train
+  path: null
+validation:
+  path: null
+output:
+  root: outputs/paper_cmd
+model:
+  hidden_dim: 128
+  gat_num_layers: 5
+  gat_num_heads: 8
+  dropout: 0.0
+training:
+  # The paper gives the diffusion epoch count but not a separate GAT epoch count. Keep this
+  # explicit as a reconstruction assumption until clarified by the authors.
+  epochs: 50
+  learning_rate: 0.0001
+  weight_decay: 0.000001
+  optimizer: adam
+  batch_size: 64
+  device: auto
+  augmentation: false
+  online_augmentation: true
+  augmentation_recipe: paper_cmd_labeled
+  weighted_bce: true
+  pos_weight_power: 1.0
+  same_size_batches: true
+  adaptive_threshold: true
+  early_stop_patience: 10
+mlflow:
+  enabled: true
