@@ -1,0 +1,57 @@
+experiment_name: policy_reinforce_s7799_n20_smoke_cuda
+seed: 42
+dataset:
+  name: s7799_audit_policy_v1_n20
+  path: data/processed/s7799_audit_policy_v1_n20
+  cache_size: 0
+validation:
+  path: data/processed/s7799_audit_policy_v1_n20
+  cache_size: 0
+output:
+  root: outputs/policy
+model:
+  embedding_dim: 128
+  global_num_layers: 5
+  global_num_heads: 8
+  local_num_layers: 5
+  local_num_heads: 8
+  feed_forward_dim: 512
+  dropout: 0.0
+  decoder_num_heads: 8
+  clip_constant: 10.0
+  adjacency_mode: hard
+  local_threshold: 0.5
+  use_local_encoder: true
+  use_local_pointer: true
+  use_global_pointer: true
+  use_savings_bias: true
+  use_context_perception: true
+  savings_weight: 1.0
+  savings_epsilon: 0.01
+prior:
+  source: denoiser
+  checkpoint: outputs/train/diffusion_denoiser_s7799_stochastic_persize_n20_cuda_20260816T145222731562Z/checkpoints/best.pt
+  num_inference_steps: 50
+  threshold: 0.5
+  use_probabilities: true
+training:
+  epochs: 2
+  learning_rate: 0.0001
+  weight_decay: 0.000001
+  batch_size: 16
+  num_starts: 4
+  val_num_starts: 4
+  start_node_cap: 20
+  baseline: multi_start
+  entropy_weight: 0.0
+  gradient_clip_norm: 1.0
+  early_stop_patience: 0
+  check_feasibility: true
+  device: cuda
+  deterministic: false
+  max_runtime_seconds: 900
+checkpoint:
+  best_metric: val_best_cost
+  minimize: true
+mlflow:
+  enabled: false

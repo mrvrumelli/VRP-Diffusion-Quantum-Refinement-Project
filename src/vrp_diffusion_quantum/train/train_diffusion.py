@@ -590,7 +590,10 @@ def train_constraint_denoiser(
             if stochastic_references
             else train_examples
         )
-        if isinstance(epoch_source_examples, IndexedJSONDataset) and not online_augmentation:
+        lazy_unshuffled = (
+            isinstance(epoch_source_examples, IndexedJSONDataset) and not online_augmentation
+        )
+        if lazy_unshuffled:
             epoch_examples: Sequence[CVRPExample] = epoch_source_examples
         else:
             epoch_examples = _shuffle_and_maybe_augment_online(
@@ -629,7 +632,11 @@ def train_constraint_denoiser(
                 batch_size,
                 same_size=same_size_batches or expand_any,
                 generator=batch_gen,
-                shuffle=same_size_batches or expand_any,
+                # The lazy IndexedJSONDataset fast path above skips
+                # _shuffle_and_maybe_augment_online entirely (no pre-shuffle happened), so it
+                # always needs _batches to shuffle; the other path already shuffled unless
+                # same_size_batches/expand_any deferred that to _batches itself.
+                shuffle=True if lazy_unshuffled else (same_size_batches or expand_any),
                 augmentation=augmentation,
             ):
                 if device is not None:

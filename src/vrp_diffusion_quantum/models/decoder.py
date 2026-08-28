@@ -849,6 +849,7 @@ class CVRPPolicy(nn.Module):
         With more than one start the returned tensors have batch size ``batch * num_starts``, laid
         out so that ``tensor.view(batch, num_starts, ...)`` groups the starts of one instance.
         """
+        start_table: Tensor | None
         if num_starts is None:
             start_table = select_nstart_nodes(
                 encoding.coords, encoding.depot_index, encoding.node_mask

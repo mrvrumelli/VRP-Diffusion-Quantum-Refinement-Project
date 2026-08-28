@@ -332,6 +332,45 @@ def test_training_streams_indexed_json_dataset(tmp_path: Path) -> None:
     assert dataset._cache == {}  # cache_size=0 never retains parsed matrices
 
 
+def test_indexed_json_dataset_default_path_still_shuffles_each_epoch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression: same_size_batches=False must not silently skip the lazy-dataset shuffle.
+
+    The lazy IndexedJSONDataset fast path bypasses _shuffle_and_maybe_augment_online entirely, so
+    unlike the plain-list path it has no earlier shuffle to fall back on and must always tell
+    _batches to shuffle, independent of same_size_batches/expand_any.
+    """
+    for index in range(3):
+        save_example(_example(4, seed=index), tmp_path / f"cvrp4_{index}.json")
+    dataset = IndexedJSONDataset(tmp_path, cache_size=0)
+    model = ConstraintDenoiser(hidden_dim=8, num_layers=1, time_embed_dim=8)
+    observed_shuffle: list[bool] = []
+
+    import vrp_diffusion_quantum.train.train_diffusion as train_diffusion_module
+
+    real_batches = train_diffusion_module._batches
+
+    def spying_batches(*args: object, **kwargs: object) -> object:
+        observed_shuffle.append(bool(kwargs["shuffle"]))
+        return real_batches(*args, **kwargs)
+
+    monkeypatch.setattr(train_diffusion_module, "_batches", spying_batches)
+
+    train_constraint_denoiser(
+        model,
+        BernoulliDiffusionSchedule(num_timesteps=3),
+        dataset,
+        val_examples=dataset,
+        num_epochs=2,
+        learning_rate=0.01,
+        batch_size=2,
+        same_size_batches=False,
+    )
+
+    assert observed_shuffle == [True, True]
+
+
 def test_train_diffusion_script_logs_metrics(tmp_path: Path) -> None:
     """End-to-end: ExperimentTracker writes summary.csv and metrics.json with val fields."""
     from vrp_diffusion_quantum.data.dataset import load_dataset, save_example
