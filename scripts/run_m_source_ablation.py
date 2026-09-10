@@ -495,6 +495,15 @@ def _write_csv(path: Path, rows: Sequence[dict[str, Any]]) -> None:
         writer.writerows(rows)
 
 
+def _gap_change_sentence(label: str, row: dict[str, Any]) -> str:
+    delta = float(row["delta_gap_vs_no_m"])
+    verb = "reduces" if delta >= 0.0 else "increases"
+    return (
+        f"- {label} {verb} route gap by {abs(delta):.2f} percentage points "
+        "versus no `M` mask."
+    )
+
+
 def _write_markdown_report(
     path: Path,
     *,
@@ -535,18 +544,9 @@ def _write_markdown_report(
             "",
             "## Interpretation",
             "",
-            (
-                f"- Oracle `M` improves route gap by "
-                f"{oracle['delta_gap_vs_no_m']:.2f} percentage points versus no `M` mask."
-            ),
-            (
-                f"- Supervised `M` improves route gap by "
-                f"{supervised['delta_gap_vs_no_m']:.2f} percentage points versus no `M` mask."
-            ),
-            (
-                f"- Diffusion `M` improves route gap by "
-                f"{diffusion['delta_gap_vs_no_m']:.2f} percentage points versus no `M` mask."
-            ),
+            _gap_change_sentence("Oracle `M`", oracle),
+            _gap_change_sentence("Supervised `M`", supervised),
+            _gap_change_sentence("Diffusion `M`", diffusion),
             (
                 f"- Diffusion vs supervised: matrix F1 delta "
                 f"{diffusion['matrix_f1'] - supervised['matrix_f1']:+.4f}, route-gap delta "
@@ -557,8 +557,8 @@ def _write_markdown_report(
             "The oracle row is the upper bound for this matrix decoder. The no-mask and "
             "random rows "
             "show what is lost when the route-membership structure is absent or uninformative. "
-            "The supervised and diffusion rows show how much of that oracle value the learned "
-            "matrix sources recover in this small self-contained run.",
+            "The supervised and diffusion rows show whether the learned matrix sources recover "
+            "that oracle value in this small self-contained run.",
             "",
             "## Caveat",
             "",
