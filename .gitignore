@@ -229,6 +229,11 @@ data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 
+# Committed exception: tiny CVRPLIB smoke subset used by eval/evaluate_cvrplib.py.
+!data/raw/cvrplib/
+!data/raw/cvrplib/augerat-b-smoke/
+!data/raw/cvrplib/augerat-b-smoke/*
+
 # Committed exception: the deterministic 1,500-instance strong-label-audit input pool.
 # Regenerating it needs the 18 GB cvrp_s7799_n20-50-100_x66667 corpus, so it is checked in
 # to let contributors run scripts/run_strong_label_audit.py without copying that corpus first.
