@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 import torch
 
+import vrp_diffusion_quantum.models.decoder as decoder_module
 from vrp_diffusion_quantum.data.dataset import CVRPBatch, collate_batch, make_example
 from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance, LabeledSolution
 from vrp_diffusion_quantum.models.decoder import (
@@ -23,6 +24,7 @@ from vrp_diffusion_quantum.models.decoder import (
     select_nstart_nodes,
     select_start_nodes,
 )
+from vrp_diffusion_quantum.models.local_masked_encoder import LocalAttentionPrior
 from vrp_diffusion_quantum.utils.feasibility import route_cost, validate_routes
 
 EMBEDDING_DIM = 32
@@ -341,6 +343,24 @@ def test_local_encoder_requires_a_prior() -> None:
             batch.depot_index,
             batch.node_mask,
         )
+
+
+def test_policy_builds_local_attention_prior_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    batch = _batch([5], seed=72)
+    policy = _policy()
+    original = decoder_module.build_local_attention_prior
+    calls = 0
+
+    def counting_builder(*args: object, **kwargs: object) -> LocalAttentionPrior:
+        nonlocal calls
+        calls += 1
+        return original(*args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(decoder_module, "build_local_attention_prior", counting_builder)
+    encoding = _encode(policy, batch)
+
+    assert calls == 1
+    assert encoding.local_adjacency is not None
 
 
 def test_decoder_local_adjacency_keeps_the_depot_reachable() -> None:

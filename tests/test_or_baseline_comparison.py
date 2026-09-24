@@ -6,14 +6,15 @@ import csv
 import importlib.util
 import sys
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 
 from vrp_diffusion_quantum.data.dataset import make_example, save_example
-from vrp_diffusion_quantum.data.solve_cvrp import CVRPSolution
-from vrp_diffusion_quantum.data.types import CVRPInstance, LabeledSolution
+from vrp_diffusion_quantum.data.generate_cvrp import CVRPInstance as SolverCVRPInstance
+from vrp_diffusion_quantum.data.solve_cvrp import CVRPSolution, SolverName
+from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance, LabeledSolution
 
 root = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
@@ -35,7 +36,7 @@ from compare_or_baselines import (  # noqa: E402
 )
 
 
-def _example(instance_id: str = "cvrp3_0"):
+def _example(instance_id: str = "cvrp3_0") -> CVRPExample:
     coords = np.array(
         [
             [0.0, 0.0],
@@ -95,8 +96,15 @@ def test_solver_label_rejects_unknown_solver() -> None:
 
 
 @patch("compare_or_baselines.solve_instance")
-def test_evaluate_baselines_computes_quality_and_best_gap(mock_solve) -> None:
-    def fake_solve(instance, *, solver, time_limit, seed, instance_id):
+def test_evaluate_baselines_computes_quality_and_best_gap(mock_solve: MagicMock) -> None:
+    def fake_solve(
+        instance: SolverCVRPInstance,
+        *,
+        solver: SolverName,
+        time_limit: float,
+        seed: int,
+        instance_id: int,
+    ) -> CVRPSolution:
         cost = 11.0 if solver == "pyvrp" else 12.0
         runtime = 0.1 if solver == "pyvrp" else 0.2
         return CVRPSolution(

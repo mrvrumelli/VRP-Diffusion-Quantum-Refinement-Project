@@ -201,3 +201,31 @@ def test_evaluate_full_chain_sampling_keys() -> None:
     assert metrics["route_num_examples"] == 2
     assert "route_feasible_rate" in metrics
     assert "route_mean_cost_gap_percent_n4" in metrics
+
+
+def test_evaluate_full_chain_sampling_supports_same_size_batches() -> None:
+    torch.manual_seed(8)
+    examples = [_example(4, seed=8), _example(4, seed=9), _example(5, seed=10)]
+    model = ConstraintDenoiser(hidden_dim=16, num_layers=1, time_embed_dim=16)
+    schedule = BernoulliDiffusionSchedule(num_timesteps=3)
+
+    metrics = evaluate_full_chain_sampling(
+        model,
+        schedule,
+        examples,
+        seed=8,
+        batch_size=2,
+    )
+
+    assert metrics["sample_num_examples"] == 3
+    assert metrics["sample_batch_size"] == 2
+    assert metrics["sample_num_examples_n4"] == 2
+    assert metrics["sample_num_examples_n5"] == 1
+
+
+def test_evaluate_full_chain_sampling_rejects_invalid_batch_size() -> None:
+    example = _example(4, seed=11)
+    model = ConstraintDenoiser(hidden_dim=16, num_layers=1, time_embed_dim=16)
+    schedule = BernoulliDiffusionSchedule(num_timesteps=3)
+    with pytest.raises(ValueError, match="batch_size"):
+        evaluate_full_chain_sampling(model, schedule, [example], batch_size=0)

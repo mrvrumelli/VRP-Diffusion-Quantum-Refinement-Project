@@ -10,6 +10,7 @@ import numpy as np
 import numpy.typing as npt
 
 from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance
+from vrp_diffusion_quantum.eval.confidence import bootstrap_mean_interval
 from vrp_diffusion_quantum.utils.constraint_matrix import build_constraint_matrix
 from vrp_diffusion_quantum.utils.feasibility import route_cost, validate_routes
 
@@ -25,6 +26,8 @@ class RoutingEvaluation:
     capacity_violation_count: int
     num_vehicles: int
     reference_num_vehicles: int
+    vehicle_delta: int
+    vehicle_inflation_ratio: float
     decoded_cost: float
     reference_cost: float
     cost_gap: float
@@ -32,9 +35,17 @@ class RoutingEvaluation:
     min_route_size: int
     max_route_size: int
     mean_route_size: float
+    singleton_route_count: int
+    singleton_route_fraction: float
+    route_size_histogram: dict[int, int]
     decode_runtime_seconds: float
     repair_count: int
     matrix_pair_accuracy: float
+    matrix_true_positive_pairs: int
+    matrix_false_positive_pairs: int
+    matrix_false_negative_pairs: int
+    matrix_positive_edge_precision: float
+    matrix_positive_edge_recall: float
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -162,9 +173,19 @@ def evaluate_decoded_matrix(
     decoded_matrix = build_constraint_matrix(routes, example.instance.n_customers)
     true_matrix = example.constraint_matrix
     upper = np.triu_indices(example.instance.n_customers, k=1)
-    pair_accuracy = (
-        float(np.mean(decoded_matrix[upper] == true_matrix[upper])) if upper[0].size else 1.0
-    )
+    decoded_pairs = decoded_matrix[upper].astype(bool)
+    true_pairs = true_matrix[upper].astype(bool)
+    pair_accuracy = float(np.mean(decoded_pairs == true_pairs)) if upper[0].size else 1.0
+    true_positives = int(np.sum(decoded_pairs & true_pairs))
+    false_positives = int(np.sum(decoded_pairs & ~true_pairs))
+    false_negatives = int(np.sum(~decoded_pairs & true_pairs))
+    precision_denominator = true_positives + false_positives
+    recall_denominator = true_positives + false_negatives
+    positive_precision = true_positives / precision_denominator if precision_denominator else 0.0
+    positive_recall = true_positives / recall_denominator if recall_denominator else 0.0
+    size_histogram = {size: sizes.count(size) for size in sorted(set(sizes))}
+    singleton_count = size_histogram.get(1, 0)
+    reference_num_vehicles = len(example.solution.routes)
     return RoutingEvaluation(
         instance_id=example.instance.instance_id,
         n_customers=example.instance.n_customers,
@@ -172,7 +193,11 @@ def evaluate_decoded_matrix(
         violation_count=len(report.violations),
         capacity_violation_count=sum("exceeds capacity" in item for item in report.violations),
         num_vehicles=len(routes),
-        reference_num_vehicles=len(example.solution.routes),
+        reference_num_vehicles=reference_num_vehicles,
+        vehicle_delta=len(routes) - reference_num_vehicles,
+        vehicle_inflation_ratio=(
+            len(routes) / reference_num_vehicles if reference_num_vehicles else math.nan
+        ),
         decoded_cost=decoded_cost,
         reference_cost=reference_cost,
         cost_gap=gap,
@@ -180,18 +205,37 @@ def evaluate_decoded_matrix(
         min_route_size=min(sizes, default=0),
         max_route_size=max(sizes, default=0),
         mean_route_size=float(np.mean(sizes)) if sizes else 0.0,
+        singleton_route_count=singleton_count,
+        singleton_route_fraction=singleton_count / len(routes) if routes else 0.0,
+        route_size_histogram=size_histogram,
         decode_runtime_seconds=elapsed,
         repair_count=repair_count,
         matrix_pair_accuracy=pair_accuracy,
+        matrix_true_positive_pairs=true_positives,
+        matrix_false_positive_pairs=false_positives,
+        matrix_false_negative_pairs=false_negatives,
+        matrix_positive_edge_precision=positive_precision,
+        matrix_positive_edge_recall=positive_recall,
     )
 
 
-def summarize_routing_evaluations(results: list[RoutingEvaluation]) -> dict[str, float | int]:
+def summarize_routing_evaluations(
+    results: list[RoutingEvaluation],
+    *,
+    confidence_level: float | None = None,
+    bootstrap_resamples: int = 10_000,
+    bootstrap_seed: int = 0,
+) -> dict[str, float | int]:
     """Aggregate decoded routing results without hiding infeasible cases."""
     if not results:
         raise ValueError("cannot summarize an empty routing evaluation")
     feasible = [result for result in results if result.feasible]
-    return {
+    true_positives = sum(result.matrix_true_positive_pairs for result in results)
+    false_positives = sum(result.matrix_false_positive_pairs for result in results)
+    false_negatives = sum(result.matrix_false_negative_pairs for result in results)
+    precision_denominator = true_positives + false_positives
+    recall_denominator = true_positives + false_negatives
+    summary: dict[str, float | int] = {
         "route_num_examples": len(results),
         "route_feasible_count": len(feasible),
         "route_feasible_rate": len(feasible) / len(results),
@@ -205,6 +249,14 @@ def summarize_routing_evaluations(results: list[RoutingEvaluation]) -> dict[str,
             else math.nan
         ),
         "route_mean_num_vehicles": float(np.mean([result.num_vehicles for result in results])),
+        "route_mean_vehicle_delta": float(np.mean([result.vehicle_delta for result in results])),
+        "route_mean_vehicle_inflation_ratio": float(
+            np.mean([result.vehicle_inflation_ratio for result in results])
+        ),
+        "route_singleton_route_count": sum(result.singleton_route_count for result in results),
+        "route_mean_singleton_route_fraction": float(
+            np.mean([result.singleton_route_fraction for result in results])
+        ),
         "route_mean_decode_runtime_seconds": float(
             np.mean([result.decode_runtime_seconds for result in results])
         ),
@@ -212,4 +264,31 @@ def summarize_routing_evaluations(results: list[RoutingEvaluation]) -> dict[str,
         "route_mean_matrix_pair_accuracy": float(
             np.mean([result.matrix_pair_accuracy for result in results])
         ),
+        "route_matrix_true_positive_pairs": true_positives,
+        "route_matrix_false_positive_pairs": false_positives,
+        "route_matrix_false_negative_pairs": false_negatives,
+        "route_matrix_positive_edge_precision": (
+            true_positives / precision_denominator if precision_denominator else 0.0
+        ),
+        "route_matrix_positive_edge_recall": (
+            true_positives / recall_denominator if recall_denominator else 0.0
+        ),
     }
+    if confidence_level is not None and feasible:
+        interval = bootstrap_mean_interval(
+            [result.cost_gap_percent for result in feasible],
+            confidence_level=confidence_level,
+            num_resamples=bootstrap_resamples,
+            seed=bootstrap_seed,
+        )
+        summary.update(
+            {
+                "route_mean_cost_gap_percent_ci_lower": interval.lower,
+                "route_mean_cost_gap_percent_ci_upper": interval.upper,
+                "route_mean_cost_gap_percent_ci_confidence_level": interval.confidence_level,
+                "route_mean_cost_gap_percent_ci_num_resamples": interval.num_resamples,
+                "route_mean_cost_gap_percent_ci_num_observations": interval.num_observations,
+                "route_mean_cost_gap_percent_ci_seed": interval.seed,
+            }
+        )
+    return summary

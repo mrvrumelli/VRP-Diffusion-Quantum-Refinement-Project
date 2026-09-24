@@ -1,0 +1,36 @@
+config_name: label_audit_rc_full_eval
+input_dir: outputs/label_audit_full_eval/pooled
+output_dir: outputs/label_audit/rc_full_eval
+# Full independent R/C/RC spatial-stress strong-label audit for the NEXT eval pool: 3 regimes x 3
+# sizes x 1,000 instances = 9,000 total, pooled from outputs/label_audit_full_eval/{r,c,rc}/examples
+# with a regime-prefixed filename to avoid collisions. Generated from fresh seeds
+# (cvrp_spatial_eval_{r,c,rc}.yaml, seeds 9901/9902/9903) so this pool is disjoint from both the
+# s7799 training corpus and the original rc_full pool (seeds 8801/8802/8803) that was folded into
+# training as rc_full_audit_policy_v1. Do not use this pool for training -- it exists specifically
+# so an out-of-distribution eval set survives after rc_full went into training. Policy matches the
+# proven label_audit_strong_s7799.yaml / label_audit_rc_full.yaml settings, with a distinct PyVRP
+# seed block so run logs are never ambiguous between the two audits.
+
+expected_counts_by_size:
+  20: 3000
+  50: 3000
+  100: 3000
+
+pyvrp:
+  base_seeds: [9911, 9912, 9913, 9914]
+  time_budgets_by_size:
+    20: 10.0
+    50: 20.0
+    100: 40.0
+
+ortools:
+  stable_sample_per_size: 50
+
+acceptance:
+  near_best_relative_tolerance: 0.001
+  seed_spread_relative_tolerance: 0.005
+  matrix_disagreement_tolerance: 0.05
+  challenger_improvement_relative_tolerance: 0.000001
+  minimum_near_best_seeds: 2
+
+workers: 11

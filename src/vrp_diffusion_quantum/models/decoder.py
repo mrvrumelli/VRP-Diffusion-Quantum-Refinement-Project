@@ -24,6 +24,7 @@ from vrp_diffusion_quantum.models.fusion_encoder import FusionEncoder, FusionEnc
 from vrp_diffusion_quantum.models.global_encoder import GlobalEncoder, GlobalEncoderOutput
 from vrp_diffusion_quantum.models.local_masked_encoder import (
     AdjacencyMode,
+    LocalAttentionPrior,
     LocalMaskedEncoder,
     LocalMaskedEncoderOutput,
     build_local_attention_prior,
@@ -797,13 +798,16 @@ class CVRPPolicy(nn.Module):
             assert m_hat is not None
             assert customer_node_indices is not None
             assert customer_mask is not None
-            local_adjacency = build_decoder_local_adjacency(
+            local_prior: LocalAttentionPrior = build_local_attention_prior(
                 m_hat,
                 customer_node_indices,
                 customer_mask,
                 depot_index,
                 node_mask,
-                threshold=self.local_threshold,
+                dtype=node_embeddings.dtype,
+            )
+            local_adjacency = local_prior.allowed_pairs & (
+                local_prior.weights >= self.local_threshold
             )
             if self.local_encoder is not None and self.fusion_encoder is not None:
                 local_output: LocalMaskedEncoderOutput = self.local_encoder(
@@ -813,6 +817,7 @@ class CVRPPolicy(nn.Module):
                     customer_mask,
                     depot_index,
                     node_mask,
+                    prior=local_prior,
                 )
                 fused: FusionEncoderOutput = self.fusion_encoder(
                     node_embeddings,

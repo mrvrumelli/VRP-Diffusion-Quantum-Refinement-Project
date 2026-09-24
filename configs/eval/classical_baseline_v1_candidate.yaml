@@ -1,0 +1,89 @@
+schema_version: 1
+name: classical-baseline-v1-candidate
+status: candidate
+frozen_on: 2026-09-24
+decision: >-
+  Use the held-out policy checkpoint for N20 and N50, where fair K=1 evaluation improved over
+  diffusion-only decoding. Keep N100 on diffusion-only decoding until the policy beats it on a
+  larger frozen panel.
+
+shared_gat:
+  path: outputs/train/gat_policy_compare_selected_e5_s4330_20260815T022447868980Z/checkpoints/gat_encoder_best.pt
+  sha256: c835864801a1bdcfe3d49e158d42a25116cd2baa3df2a31cd3b10ed43cf16c4a
+  training_commit: 05027aa6e654dc752102abcead52f394cad0a224
+
+sizes:
+  20:
+    selected_solver: policy
+    diffusion:
+      path: outputs/train/diffusion_denoiser_s7799_stochastic_persize_n20_cuda_20260816T145222731562Z/checkpoints/best.pt
+      sha256: 6ff75ed0ae7c4d2981ab41440b9dd5787d83ab18ae9ad712987bbd9941f02b0c
+      training_commit: d4872f9b2ef22551d30b10d392c9f1c69ada44a8
+    policy:
+      path: outputs/policy/policy_reinforce_s7799_n20_heldout_cuda_20260828T081136097007Z/checkpoints/best.pt
+      sha256: 6b2a840c897f4c8d55b368005c918bd4616ad030a5b9357f946efd034a308877
+      training_commit: 657219490bfe8850d450a7f6c007181455451df5
+    inference:
+      diffusion_steps: 50
+      diffusion_transition_mode: stochastic
+      diffusion_threshold: 0.5
+      policy_decode_mode: greedy
+      policy_num_starts: 1
+    evidence:
+      diffusion_k1_gap_percent: 22.00
+      policy_k1_gap_percent: 18.05
+  50:
+    selected_solver: policy
+    diffusion:
+      path: outputs/train/diffusion_denoiser_s7799_stochastic_persize_n50_cuda_20260816T150806474465Z/checkpoints/best.pt
+      sha256: b0a37f8e513248280586efa0f64f0a5c4108f94f592e8e5d3cedc6b20e425626
+      training_commit: d4872f9b2ef22551d30b10d392c9f1c69ada44a8
+    policy:
+      path: outputs/policy/policy_reinforce_s7799_n50_heldout_cuda_20260828T082044076031Z/checkpoints/best.pt
+      sha256: fd254a1300b444b4f9eeee40dca02967a4feb5eefbfcc902fff75a0cedade233
+      training_commit: 657219490bfe8850d450a7f6c007181455451df5
+    inference:
+      diffusion_steps: 50
+      diffusion_transition_mode: stochastic
+      diffusion_threshold: 0.5
+      policy_decode_mode: greedy
+      policy_num_starts: 1
+    evidence:
+      diffusion_k1_gap_percent: 28.90
+      policy_k1_gap_percent: 28.01
+  100:
+    selected_solver: diffusion
+    diffusion:
+      path: outputs/train/diffusion_denoiser_s7799_stochastic_persize_n100_cuda_20260816T152405895038Z/checkpoints/best.pt
+      sha256: 83356d0b4bc09ed56002c8da591ab529334e9f533088460fca2b7728b1d8e688
+      training_commit: d4872f9b2ef22551d30b10d392c9f1c69ada44a8
+    policy:
+      path: outputs/policy/policy_reinforce_s7799_n100_heldout_cuda_20260828T090345301408Z/checkpoints/best.pt
+      sha256: 0438bf28ac449966bf44d56a819b2c6b51591b2fcd222870e080a248ec0cf9f4
+      training_commit: 657219490bfe8850d450a7f6c007181455451df5
+      selected: false
+    inference:
+      diffusion_steps: 700
+      diffusion_transition_mode: stochastic
+      diffusion_threshold: 0.5
+    evidence:
+      diffusion_k1_gap_percent: 30.10
+      policy_k1_gap_percent: 31.54
+
+datasets:
+  validation_panel:
+    path: data/processed/s7799_val100_policy_v1
+    hash: 26d3e71377c0b3554fb6fe4f5f109114438156775836887dadfa74594e3d9fd6
+    role: model development and checkpoint comparison; not an untouched final test
+  untouched_test:
+    path: data/processed/s7799_test20_policy_v2_canonical
+    hash: 48e22d817a89d70032f20c9a282846f8a0db2faef5b611ed67c71eb547a223ef
+    role: historical 20-per-size test; too small for final claims
+
+release_gates:
+  - verify this manifest with scripts/validate_baseline_manifest.py
+  - confirm N20 and N50 policy gains on a larger frozen panel
+  - evaluate at least 1000 untouched IID examples per size
+  - complete matched classical-baseline and spatial-stress evaluation
+  - save a resolved environment lock and machine metadata
+

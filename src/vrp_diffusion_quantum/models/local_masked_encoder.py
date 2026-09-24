@@ -357,6 +357,8 @@ class LocalMaskedEncoder(nn.Module):
         customer_mask: Tensor,
         depot_index: Tensor,
         node_mask: Tensor,
+        *,
+        prior: LocalAttentionPrior | None = None,
     ) -> LocalMaskedEncoderOutput:
         """Return local embeddings in the same full-node order as the global encoder output."""
         if global_node_embeddings.ndim != 3:
@@ -376,14 +378,25 @@ class LocalMaskedEncoder(nn.Module):
         if not torch.isfinite(global_node_embeddings).all():
             raise ValueError("global_node_embeddings must contain only finite values")
 
-        prior = build_local_attention_prior(
-            m_hat,
-            customer_node_indices,
-            customer_mask,
-            depot_index,
-            node_mask,
-            dtype=global_node_embeddings.dtype,
-        )
+        if prior is None:
+            prior = build_local_attention_prior(
+                m_hat,
+                customer_node_indices,
+                customer_mask,
+                depot_index,
+                node_mask,
+                dtype=global_node_embeddings.dtype,
+            )
+        else:
+            expected_shape = (batch_size, n_nodes, n_nodes)
+            if prior.weights.shape != expected_shape or prior.allowed_pairs.shape != expected_shape:
+                raise ValueError(f"prior tensors must have shape {expected_shape}")
+            if prior.weights.device != global_node_embeddings.device:
+                raise ValueError("prior and global_node_embeddings must be on the same device")
+            if prior.weights.dtype != global_node_embeddings.dtype:
+                raise ValueError("prior weights and global_node_embeddings must use the same dtype")
+            if prior.allowed_pairs.dtype != torch.bool:
+                raise ValueError("prior allowed_pairs must use a boolean dtype")
         mask = node_mask.to(dtype=torch.bool)
         node_embeddings = global_node_embeddings * mask.unsqueeze(-1)
         for layer in self.layers:

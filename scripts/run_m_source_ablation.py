@@ -31,13 +31,13 @@ import time
 from collections.abc import Sequence
 from dataclasses import asdict
 from pathlib import Path
-from statistics import fmean
 from typing import Any
 
 import numpy as np
 import torch
 
 from vrp_diffusion_quantum.data.dataset import (
+    CVRPBatch,
     IndexedJSONDataset,
     collate_batch,
     size_homogeneous_chunks,
@@ -80,6 +80,10 @@ _TABLE_COLS = (
     "delta_gap_vs_no_m",
     "route_feasible_rate",
     "route_num_vehicles",
+    "route_vehicle_delta",
+    "route_vehicle_inflation_ratio",
+    "route_singleton_fraction",
+    "route_positive_edge_recall",
     "threshold",
     "runtime_seconds",
     "f1_n20",
@@ -230,7 +234,7 @@ def split_examples_by_size(
 
 
 def _batch_customer_tensors(
-    batch: Any,
+    batch: CVRPBatch,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     idx = batch.customer_node_indices.clamp(min=0)
     coords = torch.gather(batch.coords, 1, idx.unsqueeze(-1).expand(-1, -1, 2))
@@ -454,6 +458,12 @@ def _score_arm(
         "route_gap_percent": route_summary["route_mean_cost_gap_percent"],
         "route_feasible_rate": route_summary["route_feasible_rate"],
         "route_num_vehicles": route_summary["route_mean_num_vehicles"],
+        "route_vehicle_delta": route_summary["route_mean_vehicle_delta"],
+        "route_vehicle_inflation_ratio": route_summary[
+            "route_mean_vehicle_inflation_ratio"
+        ],
+        "route_singleton_fraction": route_summary["route_mean_singleton_route_fraction"],
+        "route_positive_edge_recall": route_summary["route_matrix_positive_edge_recall"],
         "route_decode_runtime_seconds": route_summary["route_mean_decode_runtime_seconds"],
         "route_repair_count": route_summary["route_repair_count"],
         "route_matrix_pair_accuracy": route_summary["route_mean_matrix_pair_accuracy"],
@@ -472,7 +482,7 @@ def _score_arm(
     return row
 
 
-def _format_cell(value: Any) -> str:
+def _format_cell(value: object) -> str:
     if value is None:
         return ""
     if isinstance(value, float):
@@ -498,10 +508,7 @@ def _write_csv(path: Path, rows: Sequence[dict[str, Any]]) -> None:
 def _gap_change_sentence(label: str, row: dict[str, Any]) -> str:
     delta = float(row["delta_gap_vs_no_m"])
     verb = "reduces" if delta >= 0.0 else "increases"
-    return (
-        f"- {label} {verb} route gap by {abs(delta):.2f} percentage points "
-        "versus no `M` mask."
-    )
+    return f"- {label} {verb} route gap by {abs(delta):.2f} percentage points versus no `M` mask."
 
 
 def _write_markdown_report(
@@ -512,7 +519,6 @@ def _write_markdown_report(
     csv_path: Path,
     metrics_path: Path,
 ) -> None:
-    no_m = next(row for row in rows if row["method"] == "no_m_mask")
     oracle = next(row for row in rows if row["method"] == "ground_truth_m")
     supervised = next(row for row in rows if row["method"] == "supervised_m")
     diffusion = next(row for row in rows if row["method"] == "diffusion_m")
@@ -806,9 +812,7 @@ def run_ablation(args: argparse.Namespace) -> tuple[list[dict[str, Any]], dict[s
                 "rows": rows,
                 "args": vars(args),
                 "routing_columns": [
-                    key
-                    for key in rows[0]
-                    if key.startswith("route_") or key == "delta_gap_vs_no_m"
+                    key for key in rows[0] if key.startswith("route_") or key == "delta_gap_vs_no_m"
                 ],
                 "row_dicts": [dict(row) for row in rows],
             },

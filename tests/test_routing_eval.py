@@ -67,6 +67,42 @@ def test_evaluate_and_summarize_exact_matrix() -> None:
     assert result.feasible
     assert result.cost_gap_percent == pytest.approx(0.0)
     assert result.matrix_pair_accuracy == 1.0
+    assert result.vehicle_delta == 0
+    assert result.vehicle_inflation_ratio == 1.0
+    assert result.singleton_route_count == 0
+    assert result.route_size_histogram == {2: 2}
+    assert result.matrix_true_positive_pairs == 2
+    assert result.matrix_false_positive_pairs == 0
+    assert result.matrix_false_negative_pairs == 0
+    assert result.matrix_positive_edge_precision == 1.0
+    assert result.matrix_positive_edge_recall == 1.0
     summary = summarize_routing_evaluations([result])
     assert summary["route_feasible_rate"] == 1.0
     assert summary["route_mean_cost_gap_percent"] == pytest.approx(0.0)
+    assert summary["route_mean_vehicle_delta"] == 0.0
+    assert summary["route_mean_vehicle_inflation_ratio"] == 1.0
+    assert summary["route_matrix_positive_edge_recall"] == 1.0
+
+    summary_with_ci = summarize_routing_evaluations(
+        [result], confidence_level=0.95, bootstrap_resamples=100, bootstrap_seed=9
+    )
+    assert summary_with_ci["route_mean_cost_gap_percent_ci_lower"] == 0.0
+    assert summary_with_ci["route_mean_cost_gap_percent_ci_upper"] == 0.0
+    assert summary_with_ci["route_mean_cost_gap_percent_ci_num_observations"] == 1
+
+
+def test_evaluate_reports_singleton_collapse_and_false_negatives() -> None:
+    example = _example()
+    result = evaluate_decoded_matrix(example, np.zeros((4, 4)))
+
+    assert result.num_vehicles == 4
+    assert result.vehicle_delta == 2
+    assert result.vehicle_inflation_ratio == 2.0
+    assert result.singleton_route_count == 4
+    assert result.singleton_route_fraction == 1.0
+    assert result.route_size_histogram == {1: 4}
+    assert result.matrix_true_positive_pairs == 0
+    assert result.matrix_false_positive_pairs == 0
+    assert result.matrix_false_negative_pairs == 2
+    assert result.matrix_positive_edge_precision == 0.0
+    assert result.matrix_positive_edge_recall == 0.0

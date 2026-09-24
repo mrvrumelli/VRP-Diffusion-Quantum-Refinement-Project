@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from vrp_diffusion_quantum.data.dataset import make_example, save_example
-from vrp_diffusion_quantum.data.types import CVRPInstance, LabeledSolution
+from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance, LabeledSolution
 
 root = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
@@ -34,7 +34,7 @@ from run_m_source_ablation import (  # noqa: E402
 )
 
 
-def _example(instance_id: str = "cvrp3_0", n_customers: int = 3):
+def _example(instance_id: str = "cvrp3_0", n_customers: int = 3) -> CVRPExample:
     coords = np.array(
         [
             [0.0, 0.0],

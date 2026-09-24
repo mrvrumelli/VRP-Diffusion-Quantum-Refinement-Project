@@ -99,10 +99,10 @@ def _selected_hash(examples: Sequence[CVRPExample]) -> str:
     for example in examples:
         instance = example.instance
         digest.update(instance.instance_id.encode("utf-8"))
-        digest.update(f"|n={instance.n_customers}|cap={instance.capacity:.12g}".encode("utf-8"))
+        digest.update(f"|n={instance.n_customers}|cap={instance.capacity:.12g}".encode())
         digest.update(np.ascontiguousarray(instance.coords, dtype=np.float64).tobytes())
         digest.update(np.ascontiguousarray(instance.demands, dtype=np.float64).tobytes())
-        digest.update(f"|ref={example.solution.cost:.12g}".encode("utf-8"))
+        digest.update(f"|ref={example.solution.cost:.12g}".encode())
     return digest.hexdigest()
 
 
@@ -307,9 +307,7 @@ def _summarize_group(rows: list[dict[str, Any]], *, size: int | str) -> dict[str
         ),
         "mean_cost": _mean_optional([row["cost"] for row in rows]),
         "mean_runtime_seconds": _mean_optional([row["runtime_seconds"] for row in rows]),
-        "mean_runtime_budget_ratio": _mean_optional(
-            [row["runtime_budget_ratio"] for row in rows]
-        ),
+        "mean_runtime_budget_ratio": _mean_optional([row["runtime_budget_ratio"] for row in rows]),
         "mean_number_of_vehicles": _mean_optional([row["number_of_vehicles"] for row in rows]),
     }
 
@@ -351,7 +349,7 @@ def _write_csv(path: Path, rows: Sequence[dict[str, Any]]) -> None:
         writer.writerows(rows)
 
 
-def _format_cell(value: Any) -> str:
+def _format_cell(value: object) -> str:
     if value is None:
         return ""
     if isinstance(value, float):

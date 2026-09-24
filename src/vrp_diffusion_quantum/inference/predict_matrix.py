@@ -245,67 +245,35 @@ def sample_constraint_matrix(
         prior_positive_probability: Bernoulli density of the initial state. Values other than
             ``0.5`` are diagnostic priors, not samples from the diffusion stationary distribution.
     """
-    if step_stride < 1:
-        raise ValueError(f"step_stride must be >= 1, got {step_stride}")
-    if transition_mode not in {"stochastic", "deterministic"}:
-        raise ValueError(f"unsupported transition_mode: {transition_mode}")
-    model.eval()
-    batch_size, n_customers, _ = coords.shape
-    device = coords.device
-    m_t = _sample_prior(
-        batch_size,
-        n_customers,
-        device=device,
-        dtype=coords.dtype,
+    # Keep one reverse-chain implementation for both standalone inference and policy priors. The
+    # import is local because policy_support reuses ``symmetrize_zero_diagonal`` from this module.
+    from vrp_diffusion_quantum.inference.policy_support import sample_constraint_matrix_batch
+
+    sampled = sample_constraint_matrix_batch(
+        model,
+        schedule,
+        coords=coords,
+        demands=demands,
+        capacity=capacity,
         customer_mask=customer_mask,
         generator=generator,
-        positive_probability=prior_positive_probability,
+        threshold=threshold,
+        snapshot_every=snapshot_every,
+        step_stride=step_stride,
+        x0_clamp=x0_clamp,
+        transition_mode=transition_mode,
+        prior_positive_probability=prior_positive_probability,
     )
-
-    trajectory: list[np.ndarray] = []
-    trajectory_t: list[int] = []
-    if snapshot_every is not None:
-        trajectory.append(m_t[0].detach().cpu().numpy().astype(np.float64))
-        trajectory_t.append(schedule.num_timesteps - 1)
-
-    timesteps = list(range(schedule.num_timesteps - 1, -1, -step_stride))
-    if timesteps[-1] != 0:
-        timesteps.append(0)
-
-    m0_prob = m_t
-    for t_int in timesteps:
-        t_tensor = torch.full((batch_size,), t_int, device=device, dtype=torch.long)
-        m0_prob = model.predict_proba(
-            coords, demands, capacity, m_t, t_tensor, customer_mask=customer_mask
-        )
-        m0_prob = symmetrize_zero_diagonal(m0_prob, customer_mask)
-        if x0_clamp > 0:
-            m0_prob = m0_prob.clamp(x0_clamp, 1.0 - x0_clamp)
-
-        if t_int == 0:
-            # Final hard matrix from soft x0 at a fixed 0.5 cut (metrics may retune separately).
-            m_t = symmetrize_zero_diagonal(
-                (m0_prob >= threshold).to(dtype=m0_prob.dtype), customer_mask
-            )
-        else:
-            post = schedule.q_posterior_prob(m_t, m0_prob, t_tensor)
-            if transition_mode == "stochastic":
-                noise = _rand_tensor(
-                    *post.shape, generator=generator, device=post.device, dtype=post.dtype
-                )
-                next_state = noise < post
-            else:
-                next_state = post >= threshold
-            m_t = symmetrize_zero_diagonal(next_state.to(dtype=post.dtype), customer_mask)
-
-        if snapshot_every is not None and (t_int % snapshot_every == 0 or t_int == 0):
-            trajectory.append(m_t[0].detach().cpu().numpy().astype(np.float64))
-            trajectory_t.append(t_int)
-
-    m_hat = m_t[0].detach().cpu().numpy().astype(np.float64)
-    m_prob = m0_prob[0].detach().cpu().numpy().astype(np.float64)
+    n_customers = coords.shape[1]
+    m_hat = sampled.m_hat[0].detach().cpu().numpy().astype(np.float64)
+    m_prob = sampled.m_prob[0].detach().cpu().numpy().astype(np.float64)
     m_hat = _numpy_symmetrize_zero_diag(m_hat)
     m_prob = _numpy_symmetrize_zero_diag(m_prob)
+    trajectory = (
+        [state[0].detach().cpu().numpy().astype(np.float64) for state in sampled.trajectory]
+        if sampled.trajectory is not None
+        else None
+    )
 
     logger.info(
         "sampled constraint matrix n=%d T=%d stride=%d mode=%s prior=%.4f density=%.4f",
@@ -319,8 +287,8 @@ def sample_constraint_matrix(
     return MatrixPredictionResult(
         m_hat=m_hat,
         m_prob=m_prob,
-        trajectory=trajectory if snapshot_every is not None else None,
-        trajectory_timesteps=trajectory_t if snapshot_every is not None else None,
+        trajectory=trajectory,
+        trajectory_timesteps=sampled.trajectory_timesteps,
     )
 
 
@@ -371,10 +339,23 @@ def evaluate_full_chain_sampling(
     step_stride: int = 1,
     transition_mode: Literal["stochastic", "deterministic"] = "stochastic",
     prior_positive_probability: float = 0.5,
+    batch_size: int = 1,
+    confidence_level: float | None = None,
+    bootstrap_resamples: int = 10_000,
 ) -> dict[str, Any]:
-    """Run full ``T→0`` sampling; hard F1 from ``m_hat``, AUC/BCE from soft ``m_prob``."""
+    """Run full ``T→0`` sampling; hard F1 from ``m_hat``, AUC/BCE from soft ``m_prob``.
+
+    Batches contain one customer-count only, avoiding padding-dependent changes in the denoiser.
+    ``batch_size=1`` preserves the historical per-example seed stream. Larger batches use one
+    deterministic generator per chunk and are intended for faster evaluation, not bitwise
+    comparison with earlier single-example runs.
+    """
     if not examples:
         raise ValueError("cannot evaluate full-chain sampling on an empty list")
+    if batch_size < 1:
+        raise ValueError(f"batch_size must be >= 1, got {batch_size}")
+
+    from vrp_diffusion_quantum.inference.policy_support import sample_constraint_matrix_batch
 
     model.eval()
     soft_preds: list[MatrixPrediction] = []
@@ -384,30 +365,42 @@ def evaluate_full_chain_sampling(
     routing_by_size: dict[int, list[RoutingEvaluation]] = {}
     hard_thr = 0.5 if threshold is None else float(threshold)
 
-    for i, example in enumerate(examples):
-        coords, demands, capacity, _, mask = example_to_model_inputs(example, device=device)
-        gen = torch.Generator(device="cpu").manual_seed(seed + i)
-        sampled = sample_constraint_matrix(
-            model,
-            schedule,
-            coords=coords,
-            demands=demands,
-            capacity=capacity,
-            customer_mask=mask,
-            generator=gen,
-            threshold=hard_thr,
-            snapshot_every=None,
-            step_stride=step_stride,
-            transition_mode=transition_mode,
-            prior_positive_probability=prior_positive_probability,
-        )
-        soft_preds.append(MatrixPrediction.from_example(example, sampled.m_prob))
-        hard_preds.append(MatrixPrediction.from_example(example, sampled.m_hat))
-        n = example.instance.n_customers
-        by_size_hard.setdefault(n, []).append(hard_preds[-1])
-        routing = evaluate_decoded_matrix(example, sampled.m_prob, threshold=hard_thr)
-        routing_results.append(routing)
-        routing_by_size.setdefault(n, []).append(routing)
+    indexed_by_size: dict[int, list[tuple[int, CVRPExample]]] = {}
+    for index, example in enumerate(examples):
+        indexed_by_size.setdefault(example.instance.n_customers, []).append((index, example))
+
+    for n, indexed_examples in indexed_by_size.items():
+        for start in range(0, len(indexed_examples), batch_size):
+            chunk = indexed_examples[start : start + batch_size]
+            inputs = [example_to_model_inputs(example, device=device) for _, example in chunk]
+            coords = torch.cat([item[0] for item in inputs])
+            demands = torch.cat([item[1] for item in inputs])
+            capacity = torch.cat([item[2] for item in inputs])
+            mask = torch.cat([item[4] for item in inputs])
+            generator = torch.Generator(device="cpu").manual_seed(seed + chunk[0][0])
+            sampled = sample_constraint_matrix_batch(
+                model,
+                schedule,
+                coords=coords,
+                demands=demands,
+                capacity=capacity,
+                customer_mask=mask,
+                generator=generator,
+                threshold=hard_thr,
+                snapshot_every=None,
+                step_stride=step_stride,
+                transition_mode=transition_mode,
+                prior_positive_probability=prior_positive_probability,
+            )
+            for row, (_, example) in enumerate(chunk):
+                m_prob = sampled.m_prob[row].detach().cpu().numpy().astype(np.float64)
+                m_hat = sampled.m_hat[row].detach().cpu().numpy().astype(np.float64)
+                soft_preds.append(MatrixPrediction.from_example(example, m_prob))
+                hard_preds.append(MatrixPrediction.from_example(example, m_hat))
+                by_size_hard.setdefault(n, []).append(hard_preds[-1])
+                routing = evaluate_decoded_matrix(example, m_prob, threshold=hard_thr)
+                routing_results.append(routing)
+                routing_by_size.setdefault(n, []).append(routing)
 
     soft_metrics = compute_matrix_metrics(
         soft_preds, threshold=threshold, adaptive_threshold=adaptive_threshold
@@ -428,13 +421,24 @@ def evaluate_full_chain_sampling(
         "sample_step_stride": int(step_stride),
         "sample_transition_mode": transition_mode,
         "sample_prior_positive_probability": float(prior_positive_probability),
-        **summarize_routing_evaluations(routing_results),
+        "sample_batch_size": int(batch_size),
+        **summarize_routing_evaluations(
+            routing_results,
+            confidence_level=confidence_level,
+            bootstrap_resamples=bootstrap_resamples,
+            bootstrap_seed=seed,
+        ),
     }
     for n in sorted(by_size_hard):
         metrics_n = compute_matrix_metrics(by_size_hard[n], threshold=0.5, adaptive_threshold=False)
         out[f"sample_f1_n{n}"] = float(metrics_n.f1)
         out[f"sample_num_examples_n{n}"] = len(by_size_hard[n])
-        route_metrics_n = summarize_routing_evaluations(routing_by_size[n])
+        route_metrics_n = summarize_routing_evaluations(
+            routing_by_size[n],
+            confidence_level=confidence_level,
+            bootstrap_resamples=bootstrap_resamples,
+            bootstrap_seed=seed + n,
+        )
         for key, value in route_metrics_n.items():
             if key != "route_num_examples":
                 out[f"{key}_n{n}"] = value
@@ -450,6 +454,9 @@ def _parse_sample_eval_args() -> argparse.Namespace:
     parser.add_argument("--per-size", type=int, default=16)
     parser.add_argument("--sizes", type=int, nargs="+", default=[20, 50, 100])
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--batch-size", type=int, default=1)
+    parser.add_argument("--confidence-level", type=float, default=0.95)
+    parser.add_argument("--bootstrap-resamples", type=int, default=10_000)
     parser.add_argument("--device", type=str, default="auto")
     parser.add_argument("--save-heatmaps", type=int, default=0)
     parser.add_argument("--output-dir", type=Path, default=None)
@@ -495,7 +502,16 @@ def main() -> None:
     )
     print(f"scoring {len(examples)} examples (per_size={args.per_size}, sizes={args.sizes})")
 
-    metrics = evaluate_full_chain_sampling(model, schedule, examples, device=device, seed=args.seed)
+    metrics = evaluate_full_chain_sampling(
+        model,
+        schedule,
+        examples,
+        device=device,
+        seed=args.seed,
+        batch_size=args.batch_size,
+        confidence_level=args.confidence_level,
+        bootstrap_resamples=args.bootstrap_resamples,
+    )
     print("=== full T->0 vs m_true ===")
     for key in sorted(metrics):
         print(f"  {key}: {metrics[key]}")
@@ -515,6 +531,9 @@ def main() -> None:
         "per_size": args.per_size,
         "sizes": args.sizes,
         "seed": args.seed,
+        "batch_size": args.batch_size,
+        "confidence_level": args.confidence_level,
+        "bootstrap_resamples": args.bootstrap_resamples,
         "device": str(device),
         "ckpt_epoch": payload.get("epoch"),
         "ckpt_best": payload.get("best_metric_value"),

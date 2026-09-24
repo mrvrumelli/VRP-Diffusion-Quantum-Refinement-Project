@@ -183,6 +183,12 @@ def test_a_set_of_instances_produces_best_of_k_feasible_routes() -> None:
 
     summary = summarize_solutions(solutions)
     assert summary["feasibility_rate"] == 1.0
+
+    summary_with_ci = summarize_solutions(
+        solutions, confidence_level=0.95, bootstrap_resamples=100, bootstrap_seed=12
+    )
+    assert summary_with_ci["mean_gap_to_reference_ci_lower"] <= summary["mean_gap_to_reference"]
+    assert summary_with_ci["mean_gap_to_reference_ci_upper"] >= summary["mean_gap_to_reference"]
     assert summary["num_instances"] == 4.0
     assert math.isfinite(summary["mean_cost"])
     assert math.isfinite(summary["mean_gap_to_reference"])
@@ -193,6 +199,34 @@ def test_unlabelled_instances_are_solved_without_a_reference() -> None:
     assert solutions[0].feasible
     assert solutions[0].reference_cost is None
     assert solutions[0].gap_to_reference is None
+
+
+def test_greedy_dataset_solving_batches_same_size_instances() -> None:
+    policy = _policy()
+    examples = [_example(7, seed=70 + index) for index in range(5)]
+    solutions = solve_instances(
+        policy,
+        examples,
+        num_starts=2,
+        num_augmentations=2,
+        batch_size=3,
+    )
+
+    assert [solution.instance_id for solution in solutions] == [
+        example.instance.instance_id for example in examples
+    ]
+    assert [solution.inference_batch_size for solution in solutions] == [3, 3, 3, 2, 2]
+    assert all(solution.feasible for solution in solutions)
+    assert all(solution.num_candidates == 4 for solution in solutions)
+    summary = summarize_solutions(solutions)
+    assert summary["mean_inference_batch_size"] == pytest.approx(2.6)
+    assert summary["instances_per_second"] > 0.0
+
+
+def test_batched_dataset_solving_rejects_sampling() -> None:
+    examples = [_example(7, seed=80), _example(7, seed=81)]
+    with pytest.raises(ValueError, match="requires greedy decoding"):
+        solve_instances(_policy(), examples, decode_mode="sampling", batch_size=2)
 
 
 def test_policy_with_a_local_encoder_uses_the_diffusion_prior() -> None:

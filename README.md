@@ -142,6 +142,24 @@ python -m vrp_diffusion_quantum.inference.predict_matrix \
   --per-size 16 --device cuda
 ```
 
+The 2026-09-24 candidate classical baseline freezes exact artifact and dataset hashes in
+`configs/eval/classical_baseline_v1_candidate.yaml`. Verify that every local checkpoint and dataset
+still matches before evaluation:
+
+```bash
+python scripts/validate_baseline_manifest.py
+```
+
+Full-chain diffusion evaluation accepts `--batch-size N` for faster same-size inference. The
+default remains `1` to preserve the historical per-example random-seed stream. Its CLI also
+reports deterministic 95% percentile-bootstrap intervals for decoded cost gap by default; control
+this with `--confidence-level` and `--bootstrap-resamples`.
+
+Greedy policy dataset solving also accepts `--batch-size N`. Same-size instances are encoded and
+rolled out together, results are restored to input order, and output metrics include effective
+batch size and instances/second. Sampling mode remains batch-size 1 because independent stochastic
+stream equivalence has not been established.
+
 P3.6 generalization stress test (configure a CVRP20-only checkpoint, disjoint validation/test
 paths, and a shifted-demand dataset first):
 
