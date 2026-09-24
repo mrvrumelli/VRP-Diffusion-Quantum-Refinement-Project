@@ -1,0 +1,17 @@
+experiment_name: unit_diffusion
+seed: 0
+dataset:
+  name: unit
+  path: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\.test-tmp\pytest_merge_check3\test_train_diffusion_script_lo0\data
+output:
+  root: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\.test-tmp\pytest_merge_check3\test_train_diffusion_script_lo0\out
+model:
+  hidden_dim: 16
+  num_layers: 1
+  time_embed_dim: 16
+schedule:
+  num_timesteps: 50
+training:
+  epochs: 5
+  learning_rate: 0.02
+  batch_size: 2

@@ -1,0 +1,143 @@
+{
+  "seed": 42,
+  "source_dir": "C:\\Users\\Administrator\\Documents\\GitHub\\VRP-Diffusion-Quantum-Refinement-Project\\.test-tmp\\pytest_merge_check3\\test_audit_dataset_splits_acce0\\examples",
+  "source_sha256": "a183d4a0a428dc337be6864f5059c6d449a6b7e573d5cc5e0e515a75090321a5",
+  "fractions": {
+    "train": 0.6,
+    "val": 0.2,
+    "test": 0.2
+  },
+  "materialization": "hardlink",
+  "splits": {
+    "train": {
+      "count": 12,
+      "counts_by_size": {
+        "2": 6,
+        "3": 6
+      },
+      "sha256": "0795735e057e810598598196f9cf69c92af8d451288e701b04f728f7f103a84d",
+      "examples": [
+        {
+          "file": "cvrp2_0000.json",
+          "instance_id": "n2_0",
+          "n_customers": 2
+        },
+        {
+          "file": "cvrp2_0008.json",
+          "instance_id": "n2_8",
+          "n_customers": 2
+        },
+        {
+          "file": "cvrp2_0005.json",
+          "instance_id": "n2_5",
+          "n_customers": 2
+        },
+        {
+          "file": "cvrp2_0009.json",
+          "instance_id": "n2_9",
+          "n_customers": 2
+        },
+        {
+          "file": "cvrp2_0007.json",
+          "instance_id": "n2_7",
+          "n_customers": 2
+        },
+        {
+          "file": "cvrp2_0004.json",
+          "instance_id": "n2_4",
+          "n_customers": 2
+        },
+        {
+          "file": "cvrp3_0004.json",
+          "instance_id": "n3_4",
+          "n_customers": 3
+        },
+        {
+          "file": "cvrp3_0003.json",
+          "instance_id": "n3_3",
+          "n_customers": 3
+        },
+        {
+          "file": "cvrp3_0007.json",
+          "instance_id": "n3_7",
+          "n_customers": 3
+        },
+        {
+          "file": "cvrp3_0002.json",
+          "instance_id": "n3_2",
+          "n_customers": 3
+        },
+        {
+          "file": "cvrp3_0005.json",
+          "instance_id": "n3_5",
+          "n_customers": 3
+        },
+        {
+          "file": "cvrp3_0001.json",
+          "instance_id": "n3_1",
+          "n_customers": 3
+        }
+      ]
+    },
+    "val": {
+      "count": 4,
+      "counts_by_size": {
+        "2": 2,
+        "3": 2
+      },
+      "sha256": "54efa6f60b8f94adcc2eaa581727e84662f3b4cfe787f800ebc6ba4f38c39246",
+      "examples": [
+        {
+          "file": "cvrp2_0002.json",
+          "instance_id": "n2_2",
+          "n_customers": 2
+        },
+        {
+          "file": "cvrp2_0006.json",
+          "instance_id": "n2_6",
+          "n_customers": 2
+        },
+        {
+          "file": "cvrp3_0009.json",
+          "instance_id": "n3_9",
+          "n_customers": 3
+        },
+        {
+          "file": "cvrp3_0008.json",
+          "instance_id": "n3_8",
+          "n_customers": 3
+        }
+      ]
+    },
+    "test": {
+      "count": 4,
+      "counts_by_size": {
+        "2": 2,
+        "3": 2
+      },
+      "sha256": "54772da9641cff66b351b5c9955aa7426209a5cb67acb4d67aa3436c4f7d14b7",
+      "examples": [
+        {
+          "file": "cvrp2_0003.json",
+          "instance_id": "n2_3",
+          "n_customers": 2
+        },
+        {
+          "file": "cvrp2_0001.json",
+          "instance_id": "n2_1",
+          "n_customers": 2
+        },
+        {
+          "file": "cvrp3_0000.json",
+          "instance_id": "n3_0",
+          "n_customers": 3
+        },
+        {
+          "file": "cvrp3_0006.json",
+          "instance_id": "n3_6",
+          "n_customers": 3
+        }
+      ]
+    }
+  }
+}

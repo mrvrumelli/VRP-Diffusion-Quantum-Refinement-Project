@@ -1,0 +1,49 @@
+{
+  "seed": 0,
+  "source_dir": "C:\\Users\\Administrator\\Documents\\GitHub\\VRP-Diffusion-Quantum-Refinement-Project\\.test-tmp\\pytest_merge_check3\\test_make_dataset_splits_can_c0\\examples",
+  "source_sha256": "b4569e56015f9c9c1451423bfe9c1fd90cceba9562483b2b6da4aa32a5ab6b05",
+  "fractions": {
+    "train": 0.9,
+    "val": 0.05,
+    "test": 0.05
+  },
+  "materialization": "copy",
+  "splits": {
+    "train": {
+      "count": 3,
+      "counts_by_size": {
+        "2": 3
+      },
+      "sha256": "b4569e56015f9c9c1451423bfe9c1fd90cceba9562483b2b6da4aa32a5ab6b05",
+      "examples": [
+        {
+          "file": "cvrp2_0002.json",
+          "instance_id": "n2_2",
+          "n_customers": 2
+        },
+        {
+          "file": "cvrp2_0001.json",
+          "instance_id": "n2_1",
+          "n_customers": 2
+        },
+        {
+          "file": "cvrp2_0000.json",
+          "instance_id": "n2_0",
+          "n_customers": 2
+        }
+      ]
+    },
+    "val": {
+      "count": 0,
+      "counts_by_size": {},
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "examples": []
+    },
+    "test": {
+      "count": 0,
+      "counts_by_size": {},
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "examples": []
+    }
+  }
+}

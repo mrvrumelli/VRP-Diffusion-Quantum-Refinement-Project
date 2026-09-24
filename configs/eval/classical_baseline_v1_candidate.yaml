@@ -29,6 +29,7 @@ sizes:
       diffusion_threshold: 0.5
       policy_decode_mode: greedy
       policy_num_starts: 1
+      policy_batch_size: 1
     evidence:
       diffusion_k1_gap_percent: 22.00
       policy_k1_gap_percent: 18.05
@@ -48,6 +49,7 @@ sizes:
       diffusion_threshold: 0.5
       policy_decode_mode: greedy
       policy_num_starts: 1
+      policy_batch_size: 1
     evidence:
       diffusion_k1_gap_percent: 28.90
       policy_k1_gap_percent: 28.01
@@ -86,4 +88,3 @@ release_gates:
   - evaluate at least 1000 untouched IID examples per size
   - complete matched classical-baseline and spatial-stress evaluation
   - save a resolved environment lock and machine metadata
-

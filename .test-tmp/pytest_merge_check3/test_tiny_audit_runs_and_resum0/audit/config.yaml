@@ -1,0 +1,20 @@
+schema_version: 1
+input_dir: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\.test-tmp\pytest_merge_check3\test_tiny_audit_runs_and_resum0\source
+input_sha256: e865a1be18ca82af38c2a80cf0957d4079bdb6247664849fb5a695ab2a0a2419
+counts_by_size:
+  '6': 1
+policy:
+  pyvrp_base_seeds:
+  - 11
+  - 12
+  time_budgets_by_size:
+    '6': 0.05
+  ortools_stable_sample_per_size: 1
+  workers: 1
+  acceptance:
+    near_best_relative_tolerance: 0.05
+    seed_spread_relative_tolerance: 0.1
+    matrix_disagreement_tolerance: 1.0
+    challenger_improvement_relative_tolerance: 1.0e-06
+    minimum_near_best_seeds: 2
+workers_resolved: 1

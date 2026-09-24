@@ -1,0 +1,69 @@
+{
+  "instance": {
+    "coords": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.1,
+        0.1
+      ],
+      [
+        0.2,
+        0.2
+      ],
+      [
+        0.3,
+        0.3
+      ]
+    ],
+    "demands": [
+      0.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "capacity": 2.0,
+    "depot_index": 0,
+    "instance_id": "tiny_3",
+    "n_customers": 3,
+    "seed": 1,
+    "generator_settings": {
+      "kind": "test",
+      "training_label_policy": {
+        "mode": "canonical_else_multi",
+        "source_file": "cvrp3_0.json",
+        "candidate_route_hash": "a",
+        "reference_index": 0,
+        "reference_count": 1
+      }
+    }
+  },
+  "solution": {
+    "routes": [
+      [
+        0,
+        1
+      ],
+      [
+        2
+      ]
+    ],
+    "cost": 10.0,
+    "num_vehicles": 2,
+    "feasible": true,
+    "solver_name": "training_reference_pyvrp",
+    "time_budget": 2.0,
+    "seed": 11,
+    "runtime_seconds": 2.0
+  },
+  "constraint_matrix_packed": {
+    "encoding": "numpy-packbits-little-base64-v1",
+    "shape": [
+      3,
+      3
+    ],
+    "data": "CgA="
+  }
+}

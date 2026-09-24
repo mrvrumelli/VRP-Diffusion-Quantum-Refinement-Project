@@ -91,7 +91,10 @@ quantum-inspired local refinement have not yet been implemented.
 6. **Completed implementation 2026-09-24:** full-chain diffusion evaluation and greedy policy
    dataset solving support optional same-size batching while retaining batch size 1 as the
    historical compatibility default. Policy summaries now record effective batch size and
-   throughput. A representative CUDA batch-size sweep remains evaluation work, not training work.
+   throughput. A 24-instance N20 CUDA smoke profile measured 1.28, 4.64, and 7.69 instances/s at
+   batch sizes 1, 4, and 8. Batch 4 changed two greedy routes, so the candidate baseline explicitly
+   freezes batch size 1; see
+   [`policy_batch_profile_2026-09-24.md`](policy_batch_profile_2026-09-24.md).
 7. **Completed 2026-09-24:** canonical routing evaluation now records positive-edge TP/FP/FN,
    precision/recall, vehicle delta/inflation, singleton collapse, route-size histograms, and repair
    events. Full-chain evaluation inherits these metrics automatically.

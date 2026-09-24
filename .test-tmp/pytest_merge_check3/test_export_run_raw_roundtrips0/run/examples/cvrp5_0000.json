@@ -1,0 +1,77 @@
+{
+  "instance": {
+    "coords": [
+      [
+        0.5,
+        0.5
+      ],
+      [
+        0.44842707274256177,
+        0.7474758276398907
+      ],
+      [
+        0.11003536140698222,
+        0.4012867698619397
+      ],
+      [
+        0.08612527611361098,
+        0.8598669096882076
+      ],
+      [
+        0.24799634968436313,
+        0.3669318810365869
+      ],
+      [
+        0.29282084154543153,
+        0.7862068185284454
+      ]
+    ],
+    "demands": [
+      0.0,
+      6.0,
+      4.0,
+      3.0,
+      6.0,
+      6.0
+    ],
+    "capacity": 30.0,
+    "depot_index": 0,
+    "instance_id": "unit_run_cvrp5_0000",
+    "n_customers": 5,
+    "seed": 7,
+    "generator_settings": {
+      "run_name": "unit_run",
+      "n_customers": 5,
+      "depot_mode": "center",
+      "customer_mode": "random",
+      "demand_mode": "uniform",
+      "source": "export_examples"
+    }
+  },
+  "solution": {
+    "routes": [
+      [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    ],
+    "cost": 1.0,
+    "num_vehicles": 1,
+    "feasible": true,
+    "solver_name": "unit",
+    "time_budget": null,
+    "seed": 7,
+    "runtime_seconds": 0.0
+  },
+  "constraint_matrix_packed": {
+    "encoding": "numpy-packbits-little-base64-v1",
+    "shape": [
+      5,
+      5
+    ],
+    "data": "vu/7AA=="
+  }
+}

@@ -1,0 +1,25 @@
+experiment_name: gat_cli_unit
+seed: 0
+dataset:
+  path: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\.test-tmp\pytest_merge_check3\test_gat_pretrain_cli_writes_c0\train
+validation:
+  path: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\.test-tmp\pytest_merge_check3\test_gat_pretrain_cli_writes_c0\val
+output:
+  root: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\.test-tmp\pytest_merge_check3\test_gat_pretrain_cli_writes_c0\outputs
+model:
+  hidden_dim: 8
+  gat_num_layers: 1
+  gat_num_heads: 2
+  dropout: 0.0
+training:
+  epochs: 1
+  learning_rate: 0.01
+  batch_size: 1
+  device: cpu
+  mixed_precision: false
+  gradient_accumulation_steps: 2
+  gradient_clip_norm: 1.0
+  same_size_batches: true
+  weighted_bce: true
+mlflow:
+  enabled: false

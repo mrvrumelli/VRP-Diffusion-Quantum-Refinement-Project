@@ -1,0 +1,80 @@
+{
+  "instance": {
+    "coords": [
+      [
+        0.5,
+        0.5
+      ],
+      [
+        0.6369616873214543,
+        0.2697867137638703
+      ],
+      [
+        0.04097352393619469,
+        0.016527635528529094
+      ],
+      [
+        0.8132702392002724,
+        0.9127555772777217
+      ],
+      [
+        0.6066357757671799,
+        0.7294965609839984
+      ],
+      [
+        0.5436249914654229,
+        0.9350724237877682
+      ],
+      [
+        0.8158535541215322,
+        0.002738500170148095
+      ]
+    ],
+    "demands": [
+      0.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "capacity": 3.0,
+    "depot_index": 0,
+    "instance_id": "audit_0",
+    "n_customers": 6,
+    "seed": 0,
+    "generator_settings": {
+      "kind": "unit"
+    }
+  },
+  "solution": {
+    "routes": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ]
+    ],
+    "cost": 4.645126790596942,
+    "num_vehicles": 2,
+    "feasible": true,
+    "solver_name": "original",
+    "time_budget": 1.0,
+    "seed": 0,
+    "runtime_seconds": 0.0
+  },
+  "constraint_matrix_packed": {
+    "encoding": "numpy-packbits-little-base64-v1",
+    "shape": [
+      6,
+      6
+    ],
+    "data": "RjHAKAY="
+  }
+}

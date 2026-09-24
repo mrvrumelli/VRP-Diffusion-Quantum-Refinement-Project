@@ -1,0 +1,20 @@
+datasets:
+  test:
+    hash: 43a7134e48ff54a17d838ac21df2aa756e1a125e92086b9934a5b2e1c0c8544a
+    path: dataset
+schema_version: 1
+shared_gat:
+  path: model.pt
+  sha256: '0000000000000000000000000000000000000000000000000000000000000000'
+sizes:
+  20:
+    diffusion: &id001
+      path: model.pt
+      sha256: 47320987f9a49d5b00119b960f247a956773f57543982b8bfcb6da5bb3afd9ef
+    selected_solver: diffusion
+  50:
+    diffusion: *id001
+    selected_solver: diffusion
+  100:
+    diffusion: *id001
+    selected_solver: diffusion

@@ -1,0 +1,62 @@
+{
+  "instance": {
+    "coords": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.1,
+        0.1
+      ],
+      [
+        0.2,
+        0.2
+      ],
+      [
+        0.3,
+        0.3
+      ]
+    ],
+    "demands": [
+      0.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "capacity": 2.0,
+    "depot_index": 0,
+    "instance_id": "tiny_3",
+    "n_customers": 3,
+    "seed": 1,
+    "generator_settings": {
+      "kind": "test"
+    }
+  },
+  "solution": {
+    "routes": [
+      [
+        0,
+        1
+      ],
+      [
+        2
+      ]
+    ],
+    "cost": 10.0,
+    "num_vehicles": 2,
+    "feasible": true,
+    "solver_name": "original",
+    "time_budget": 1.0,
+    "seed": 1,
+    "runtime_seconds": 1.0
+  },
+  "constraint_matrix_packed": {
+    "encoding": "numpy-packbits-little-base64-v1",
+    "shape": [
+      3,
+      3
+    ],
+    "data": "CgA="
+  }
+}

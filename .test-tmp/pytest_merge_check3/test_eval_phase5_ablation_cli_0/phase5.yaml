@@ -1,0 +1,39 @@
+experiment_name: phase5_ablation_cli_test
+seed: 0
+device: cpu
+dataset:
+  train_path: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\.test-tmp\pytest_merge_check3\test_eval_phase5_ablation_cli_0\train
+  selection_path: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\.test-tmp\pytest_merge_check3\test_eval_phase5_ablation_cli_0\selection
+  test_path: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\.test-tmp\pytest_merge_check3\test_eval_phase5_ablation_cli_0\test
+  accepted_matrix_examples_path: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\.test-tmp\pytest_merge_check3\test_eval_phase5_ablation_cli_0\accepted
+max_train_examples: 0
+matrix_predictor:
+  hidden_dim: 8
+  epochs: 1
+  learning_rate: 0.01
+  augmentation: false
+  weighted_bce: true
+  pos_weight_power: 0.5
+diffusion:
+  step_stride: 1
+  modes:
+  - one_shot
+  - full_chain
+  pooled:
+    checkpoint: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\.test-tmp\pytest_merge_check3\test_eval_phase5_ablation_cli_0\pooled.pt
+  persize:
+    checkpoints:
+      20: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\.test-tmp\pytest_merge_check3\test_eval_phase5_ablation_cli_0\persize20.pt
+      50: null
+      100: null
+baselines:
+  random_seed: 7
+eval:
+  selection_per_size: 3
+  per_size: 3
+  sizes:
+  - 20
+  - 50
+  seed: 0
+output:
+  root: C:\Users\Administrator\Documents\GitHub\VRP-Diffusion-Quantum-Refinement-Project\.test-tmp\pytest_merge_check3\test_eval_phase5_ablation_cli_0\outputs

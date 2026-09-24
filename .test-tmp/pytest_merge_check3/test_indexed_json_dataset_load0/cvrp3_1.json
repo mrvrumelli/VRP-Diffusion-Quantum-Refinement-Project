@@ -1,0 +1,62 @@
+{
+  "instance": {
+    "coords": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        1.0,
+        0.0
+      ],
+      [
+        2.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0
+      ]
+    ],
+    "demands": [
+      0.0,
+      3.0,
+      4.0,
+      2.0
+    ],
+    "capacity": 10.0,
+    "depot_index": 0,
+    "instance_id": "cvrp3_1",
+    "n_customers": 3,
+    "seed": 0,
+    "generator_settings": {
+      "kind": "hand_crafted"
+    }
+  },
+  "solution": {
+    "routes": [
+      [
+        0,
+        1
+      ],
+      [
+        2
+      ]
+    ],
+    "cost": 12.5,
+    "num_vehicles": 2,
+    "feasible": true,
+    "solver_name": "hand_checked",
+    "time_budget": null,
+    "seed": 0,
+    "runtime_seconds": 0.001
+  },
+  "constraint_matrix_packed": {
+    "encoding": "numpy-packbits-little-base64-v1",
+    "shape": [
+      3,
+      3
+    ],
+    "data": "CgA="
+  }
+}

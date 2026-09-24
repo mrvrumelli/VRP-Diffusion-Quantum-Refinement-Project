@@ -4,8 +4,10 @@
 > paused, but later on-disk manifests prove that all 9,000 spatial sources were subsequently
 > materialized into audited policy-v1 and policy-v2 training-label sets, and size-specific
 > `rcfull` denoisers were trained on merged datasets. The original
-> `outputs/label_audit/rc_full` audit bundle is no longer present, so its aggregate acceptance
-> summary still needs to be restored or re-archived. See
+> `outputs/label_audit/rc_full` audit bundle is no longer present. Recoverable label, dataset, and
+> checkpoint provenance has been re-archived in
+> [`rc_full_artifact_reconstruction_2026-09-24.md`](rc_full_artifact_reconstruction_2026-09-24.md);
+> raw acceptance/runtime statistics still require an external backup or a rerun. See
 > [`project_findings_2026-09-24.md`](project_findings_2026-09-24.md) for the current status.
 
 > **Completed 2026-08-15.** The original 1k/5k/10k/30k roadmap below was written before the

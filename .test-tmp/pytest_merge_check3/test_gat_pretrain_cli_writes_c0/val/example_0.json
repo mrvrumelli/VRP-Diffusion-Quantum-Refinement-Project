@@ -1,0 +1,78 @@
+{
+  "instance": {
+    "coords": [
+      [
+        0.5,
+        0.5
+      ],
+      [
+        0.9560017096289753,
+        0.20768181007914688
+      ],
+      [
+        0.8284448852745308,
+        0.14928212308202027
+      ],
+      [
+        0.5128046164365648,
+        0.13591960402050662
+      ],
+      [
+        0.6890364797811311,
+        0.841747724312279
+      ],
+      [
+        0.4255089974049766,
+        0.9569260034533662
+      ],
+      [
+        0.8253329063847983,
+        0.338215312471576
+      ]
+    ],
+    "demands": [
+      0.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "capacity": 6.0,
+    "depot_index": 0,
+    "instance_id": "gat_cli_10",
+    "n_customers": 6,
+    "seed": 10,
+    "generator_settings": {}
+  },
+  "solution": {
+    "routes": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ]
+    ],
+    "cost": 1.0,
+    "num_vehicles": 2,
+    "feasible": true,
+    "solver_name": "unit",
+    "time_budget": null,
+    "seed": 10,
+    "runtime_seconds": 0.0
+  },
+  "constraint_matrix_packed": {
+    "encoding": "numpy-packbits-little-base64-v1",
+    "shape": [
+      6,
+      6
+    ],
+    "data": "RjHAKAY="
+  }
+}
