@@ -8,6 +8,7 @@ training signal instead of adding useful diversity.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Literal
 
 import numpy as np
@@ -234,7 +235,7 @@ def augment_example(example: CVRPExample, variant: int) -> CVRPExample:
     return augment_example_rotation(example, _ROTATION_ANGLES_DEGREES[variant - 5])
 
 
-def expand_examples(examples: list[CVRPExample]) -> list[CVRPExample]:
+def expand_examples(examples: Sequence[CVRPExample]) -> list[CVRPExample]:
     return [augment_example(ex, v) for ex in examples for v in range(AUGMENT_NUM)]
 
 

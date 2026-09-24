@@ -102,7 +102,7 @@ def train_matrix_predictor(
                 weighted=weighted_bce,
                 pos_weight_power=pos_weight_power,
             )
-            loss.backward()
+            loss.backward()  # type: ignore[no-untyped-call]
             optimizer.step()
             total += float(loss.item())
             n_steps += 1
