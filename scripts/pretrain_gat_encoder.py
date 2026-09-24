@@ -13,7 +13,13 @@ import numpy as np
 import torch
 import yaml
 
-from vrp_diffusion_quantum.data.augment import AUGMENT_NUM, augment_example
+from vrp_diffusion_quantum.data.augment import (
+    AUGMENT_NUM,
+    D4_NUM_TRANSFORMS,
+    PAPER_DEMAND_STRATEGIES,
+    augment_example,
+    augment_example_paper_labeled,
+)
 from vrp_diffusion_quantum.data.dataset import collate_batch, load_dataset, size_homogeneous_chunks
 from vrp_diffusion_quantum.metrics.matrix_metrics import MatrixPrediction, compute_matrix_metrics
 from vrp_diffusion_quantum.models.gat_encoder import (
@@ -24,6 +30,7 @@ from vrp_diffusion_quantum.train.train_diffusion import (
     customer_tensors_from_batch,
     diffusion_matrix_bce_loss,
 )
+from vrp_diffusion_quantum.utils.alignment import validate_alignment_config
 from vrp_diffusion_quantum.utils.experiment import ExperimentTracker
 from vrp_diffusion_quantum.utils.runtime import (
     default_mlflow_tracking_uri,
@@ -44,6 +51,8 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     config = yaml.safe_load(args.config.read_text())
+    alignment = validate_alignment_config(config, component="gat_pretrain")
+    config["alignment"] = alignment.as_dict()
     seed = int(config["seed"])
     config["reproducibility"] = seed_everything(
         seed,
@@ -79,6 +88,11 @@ def main() -> None:
 
     augmentation = bool(train_cfg.get("augmentation", False))
     online_augmentation = bool(train_cfg.get("online_augmentation", False)) and not augmentation
+    augmentation_recipe = str(train_cfg.get("augmentation_recipe", "ours_x9"))
+    if augmentation_recipe not in {"ours_x9", "paper_cmd_labeled"}:
+        raise ValueError("training.augmentation_recipe must be 'ours_x9' or 'paper_cmd_labeled'")
+    if augmentation and augmentation_recipe == "paper_cmd_labeled":
+        raise ValueError("paper_cmd_labeled augmentation is supported online only")
     same_size_batches = bool(train_cfg.get("same_size_batches", False))
     weighted_bce = bool(train_cfg.get("weighted_bce", False))
     pos_weight_power = float(train_cfg.get("pos_weight_power", 0.5))
@@ -171,11 +185,37 @@ def main() -> None:
                     ordered = [train_examples[int(i)] for i in order]
                 if online_augmentation:
                     aug_gen = torch.Generator().manual_seed(seed + 17_000 + epoch)
-                    vs = torch.randint(0, AUGMENT_NUM, (len(ordered),), generator=aug_gen)
-                    ordered = [
-                        augment_example(ex, int(v))
-                        for ex, v in zip(ordered, vs.tolist(), strict=True)
-                    ]
+                    if augmentation_recipe == "paper_cmd_labeled":
+                        geometric_variants = torch.randint(
+                            0, D4_NUM_TRANSFORMS, (len(ordered),), generator=aug_gen
+                        )
+                        demand_variants = torch.randint(
+                            0, len(PAPER_DEMAND_STRATEGIES), (len(ordered),), generator=aug_gen
+                        )
+                        ordered = [
+                            augment_example_paper_labeled(
+                                example,
+                                geometric_variant=int(geometric),
+                                demand_strategy=PAPER_DEMAND_STRATEGIES[int(demand)],
+                                rng=np.random.default_rng(
+                                    seed + 19_000 + epoch * 1_000_003 + index
+                                ),
+                            )
+                            for index, (example, geometric, demand) in enumerate(
+                                zip(
+                                    ordered,
+                                    geometric_variants.tolist(),
+                                    demand_variants.tolist(),
+                                    strict=True,
+                                )
+                            )
+                        ]
+                    else:
+                        vs = torch.randint(0, AUGMENT_NUM, (len(ordered),), generator=aug_gen)
+                        ordered = [
+                            augment_example(ex, int(v))
+                            for ex, v in zip(ordered, vs.tolist(), strict=True)
+                        ]
                 batch_gen = torch.Generator().manual_seed(seed + 3_000 + epoch)
                 if same_size_batches or augmentation:
                     chunks = size_homogeneous_chunks(
@@ -381,6 +421,7 @@ def main() -> None:
                 extra = {
                     "experiment_name": config["experiment_name"],
                     "seed": seed,
+                    "alignment": config["alignment"],
                     "model": model_cfg,
                     "epoch": epoch,
                     "val_loss": val_loss,

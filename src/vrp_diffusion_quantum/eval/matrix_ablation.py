@@ -6,9 +6,129 @@ from collections.abc import Sequence
 
 import numpy as np
 import numpy.typing as npt
+import torch
+import torch.nn.functional as ff
 
+from vrp_diffusion_quantum.data.augment import AUGMENT_NUM, expand_examples
 from vrp_diffusion_quantum.data.types import CVRPExample
 from vrp_diffusion_quantum.metrics.matrix_metrics import MatrixPrediction, compute_matrix_metrics
+from vrp_diffusion_quantum.models.matrix_predictor import MatrixPredictor
+
+_LOSS_EPS = 1e-7
+
+
+def report_instance_id_overlap(
+    pool_a: Sequence[CVRPExample], pool_b: Sequence[CVRPExample]
+) -> dict[str, int | float]:
+    """Non-raising overlap diagnostic between two example pools, by stable instance id.
+
+    Unlike :func:`validate_disjoint_examples`, this never raises — it's meant to surface a known
+    overlap (e.g. an audited-reference subset drawn from the training pool) in provenance/reports
+    rather than block a run.
+    """
+    ids_a = {example.instance.instance_id for example in pool_a}
+    ids_b = {example.instance.instance_id for example in pool_b}
+    overlap = ids_a & ids_b
+    return {
+        "overlap_count": len(overlap),
+        "pool_b_size": len(ids_b),
+        "overlap_fraction": (len(overlap) / len(ids_b)) if ids_b else 0.0,
+    }
+
+
+def _soft_wbce(
+    m_prob: torch.Tensor,
+    m_true: torch.Tensor,
+    *,
+    weighted: bool,
+    pos_weight_power: float,
+) -> torch.Tensor:
+    """Off-diagonal BCE on probabilities; optional soft √ class weight (same as denoiser)."""
+    n = m_prob.shape[0]
+    mask = ~torch.eye(n, dtype=torch.bool, device=m_prob.device)
+    prob = torch.clamp(m_prob[mask], _LOSS_EPS, 1.0 - _LOSS_EPS)
+    target = m_true[mask].float()
+    if not weighted:
+        return ff.binary_cross_entropy(prob, target)
+    pos = target.sum().clamp_min(1.0)
+    neg = (1.0 - target).sum().clamp_min(1.0)
+    pos_weight = (neg / pos) ** float(pos_weight_power)
+    loss = ff.binary_cross_entropy(prob, target, reduction="none")
+    weights = torch.where(target > 0.5, pos_weight, torch.ones_like(target))
+    return (loss * weights).mean()
+
+
+def train_matrix_predictor(
+    examples: Sequence[CVRPExample],
+    *,
+    hidden_dim: int,
+    epochs: int,
+    learning_rate: float,
+    device: torch.device,
+    seed: int,
+    augmentation: bool = False,
+    weighted_bce: bool = True,
+    pos_weight_power: float = 0.5,
+) -> MatrixPredictor:
+    """Train the P2.1 non-diffusion ``MatrixPredictor`` (fair recipe: x9 aug + soft sqrt-WBCE)."""
+    torch.manual_seed(seed)
+    model = MatrixPredictor(hidden_dim=hidden_dim).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    model.train()
+    train_pool = expand_examples(examples) if augmentation else examples
+    n_views = AUGMENT_NUM if augmentation else 1
+    print(
+        f"P2.1 fair train: n={len(examples)} epochs={epochs} "
+        f"augmentation={augmentation} (x{n_views} -> {len(train_pool)}) "
+        f"weighted_bce={weighted_bce} pos_weight_power={pos_weight_power} device={device}",
+        flush=True,
+    )
+    for epoch in range(epochs):
+        order = torch.randperm(
+            len(train_pool), generator=torch.Generator().manual_seed(seed + epoch)
+        )
+        total = 0.0
+        n_steps = 0
+        for idx in order.tolist():
+            view = train_pool[int(idx)]
+            coords = torch.from_numpy(view.instance.customer_coords()).float().to(device)
+            demands = torch.from_numpy(view.instance.customer_demands()).float().to(device)
+            m_true = torch.from_numpy(view.constraint_matrix).float().to(device)
+            optimizer.zero_grad()
+            m_prob = model(coords, demands, float(view.instance.capacity))
+            loss = _soft_wbce(
+                m_prob,
+                m_true,
+                weighted=weighted_bce,
+                pos_weight_power=pos_weight_power,
+            )
+            loss.backward()
+            optimizer.step()
+            total += float(loss.item())
+            n_steps += 1
+        print(
+            f"P2.1 epoch={epoch} train_loss={total / max(n_steps, 1):.4f} steps={n_steps}",
+            flush=True,
+        )
+    model.eval()
+    return model
+
+
+@torch.no_grad()
+def predict_matrix_predictor_probs(
+    model: MatrixPredictor,
+    examples: Sequence[CVRPExample],
+    device: torch.device,
+) -> list[npt.NDArray[np.float64]]:
+    """Predict ``m_prob`` for each example with a trained P2.1 ``MatrixPredictor``."""
+    model.eval()
+    probabilities: list[npt.NDArray[np.float64]] = []
+    for example in examples:
+        coords = torch.from_numpy(example.instance.customer_coords()).float().to(device)
+        demands = torch.from_numpy(example.instance.customer_demands()).float().to(device)
+        m_prob = model(coords, demands, float(example.instance.capacity)).detach().cpu().numpy()
+        probabilities.append(m_prob.astype("float64"))
+    return probabilities
 
 
 def validate_disjoint_examples(
@@ -96,4 +216,10 @@ def score_matrix_probabilities(
     return output
 
 
-__all__ = ["score_matrix_probabilities", "validate_disjoint_examples"]
+__all__ = [
+    "predict_matrix_predictor_probs",
+    "report_instance_id_overlap",
+    "score_matrix_probabilities",
+    "train_matrix_predictor",
+    "validate_disjoint_examples",
+]

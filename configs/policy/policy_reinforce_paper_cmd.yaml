@@ -1,0 +1,72 @@
+experiment_name: policy_reinforce_paper_cmd
+seed: 42
+alignment:
+  track: paper_cmd
+  paper_id: arxiv:2603.07568v1
+  claim: paper-guided reconstruction; exact author seeds and test instances remain unconfirmed
+protocol:
+  diffusion_labeled_instances: 50000
+  policy_unlabeled_instances: 200000
+  synthetic_test_instances_per_size: 1000
+dataset:
+  name: paper_cmd_uniform_rl_200k
+  path: null
+  cache_size: 0
+validation:
+  path: null
+  cache_size: 0
+output:
+  root: outputs/paper_cmd
+model:
+  architecture: paper_cmd
+  embedding_dim: 128
+  global_num_layers: 5
+  global_num_heads: 8
+  local_num_layers: 5
+  local_num_heads: 8
+  feed_forward_dim: 512
+  dropout: 0.0
+  decoder_num_heads: 8
+  decoder_qkv_dim: 16
+  clip_constant: 10.0
+  adjacency_mode: hard
+  local_threshold: 0.5
+  fusion_mode: sum_mlp
+  use_local_encoder: true
+  use_local_pointer: true
+  use_global_pointer: true
+  use_savings_bias: true
+  use_context_perception: true
+  savings_weight: 1.0
+  savings_epsilon: 0.01
+prior:
+  source: denoiser
+  checkpoint: null
+  num_inference_steps: 50
+  sampler: skipped_posterior
+  threshold: 0.5
+  use_probabilities: true
+training:
+  epochs: 100
+  learning_rate: 0.0001
+  weight_decay: 0.000001
+  batch_size: 32
+  num_starts: null
+  val_num_starts: null
+  start_node_cap: 100
+  baseline: multi_start
+  entropy_weight: 0.0
+  gradient_clip_norm: 1.0
+  early_stop_patience: 10
+  check_feasibility: true
+  device: auto
+  deterministic: false
+  max_runtime_seconds: null
+checkpoint:
+  best_metric: val_best_cost
+  minimize: true
+inference:
+  num_augmentations: 8
+  augmentation_recipe: paper_cmd_geometric
+mlflow:
+  enabled: true

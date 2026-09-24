@@ -214,12 +214,7 @@ def _inference_timesteps(
     num_inference_steps: int | None,
     step_stride: int,
 ) -> list[int]:
-    """Descending timesteps to visit during reverse denoising, always ending at ``t=0``.
-
-    Each visited step still applies the one-step posterior ``q(x_{t-1}|x_t, x_0)`` even when the
-    gap to the next visited step is larger than one, so a short chain under-denoises relative to
-    the distance travelled. Treat the step count as a quality knob to be tuned per checkpoint.
-    """
+    """Descending model-evaluation timesteps, including both endpoints when possible."""
     if num_inference_steps is None:
         timesteps = list(range(num_timesteps - 1, -1, -step_stride))
         if timesteps[-1] != 0:
@@ -227,9 +222,11 @@ def _inference_timesteps(
         return timesteps
     if num_inference_steps >= num_timesteps:
         return list(range(num_timesteps - 1, -1, -1))
+    if num_inference_steps == 1:
+        return [num_timesteps - 1]
     span = num_timesteps - 1
     spaced = [
-        round(span * (1.0 - index / (num_inference_steps - 1))) if num_inference_steps > 1 else 0
+        round(span * (1.0 - index / (num_inference_steps - 1)))
         for index in range(num_inference_steps)
     ]
     # Rounding can collide on adjacent entries; keep the chain strictly descending.
@@ -258,6 +255,7 @@ def sample_constraint_matrix_batch(
     step_stride: int = 1,
     x0_clamp: float = 1e-3,
     transition_mode: Literal["stochastic", "deterministic"] = "stochastic",
+    sampler: Literal["skipped_posterior", "one_step_approx"] = "skipped_posterior",
     prior_positive_probability: float = 0.5,
 ) -> BatchMatrixPrediction:
     """Run the reverse chain for a padded batch and return tensors for the policy.
@@ -274,6 +272,8 @@ def sample_constraint_matrix_batch(
         raise ValueError(f"num_inference_steps must be >= 1, got {num_inference_steps}")
     if transition_mode not in {"stochastic", "deterministic"}:
         raise ValueError(f"unsupported transition_mode: {transition_mode}")
+    if sampler not in {"skipped_posterior", "one_step_approx"}:
+        raise ValueError(f"unsupported sampler: {sampler}")
     model.eval()
     batch_size, n_customers, _ = coords.shape
     device = coords.device
@@ -300,7 +300,7 @@ def sample_constraint_matrix_batch(
     )
 
     m0_prob = m_t
-    for t_int in timesteps:
+    for step_index, t_int in enumerate(timesteps):
         t_tensor = torch.full((batch_size,), t_int, device=device, dtype=torch.long)
         m0_prob = model.predict_proba(
             coords,
@@ -314,12 +314,22 @@ def sample_constraint_matrix_batch(
         if x0_clamp > 0:
             m0_prob = m0_prob.clamp(x0_clamp, 1.0 - x0_clamp)
 
-        if t_int == 0:
+        final_step = step_index == len(timesteps) - 1
+        if final_step:
             m_t = symmetrize_zero_diagonal(
                 (m0_prob >= threshold).to(dtype=m0_prob.dtype), customer_mask
             )
         else:
-            post = schedule.q_posterior_prob(m_t, m0_prob, t_tensor)
+            target_t = timesteps[step_index + 1]
+            if sampler == "skipped_posterior":
+                post = schedule.q_posterior_between_prob(
+                    m_t,
+                    m0_prob,
+                    t=t_tensor,
+                    target_t=target_t,
+                )
+            else:
+                post = schedule.q_posterior_prob(m_t, m0_prob, t_tensor)
             if transition_mode == "stochastic":
                 noise = _rand_tensor(
                     *post.shape, generator=generator, device=post.device, dtype=post.dtype
@@ -329,7 +339,9 @@ def sample_constraint_matrix_batch(
                 next_state = post >= threshold
             m_t = symmetrize_zero_diagonal(next_state.to(dtype=post.dtype), customer_mask)
 
-        if snapshot_every is not None and (t_int % snapshot_every == 0 or t_int == 0):
+        if snapshot_every is not None and (
+            t_int % snapshot_every == 0 or t_int == 0 or final_step
+        ):
             trajectory.append(m_t.detach().clone())
             trajectory_t.append(t_int)
 
@@ -350,6 +362,7 @@ def denoiser_prior(
     threshold: float = 0.5,
     seed: int = 0,
     use_probabilities: bool = True,
+    sampler: Literal["skipped_posterior", "one_step_approx"] = "skipped_posterior",
 ) -> PriorProvider:
     """Frozen diffusion model that supplies batched ``M_hat`` to the policy."""
     denoiser.eval()
@@ -375,6 +388,7 @@ def denoiser_prior(
             threshold=threshold,
             num_inference_steps=num_inference_steps,
             step_stride=step_stride,
+            sampler=sampler,
         )
         return predicted.m_prob if use_probabilities else predicted.m_hat
 

@@ -48,6 +48,7 @@ from vrp_diffusion_quantum.models.decoder import (
     nstart_count,
 )
 from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
+from vrp_diffusion_quantum.utils.alignment import validate_alignment_config
 from vrp_diffusion_quantum.utils.experiment import ExperimentTracker
 from vrp_diffusion_quantum.utils.feasibility import validate_routes
 from vrp_diffusion_quantum.utils.runtime import (
@@ -328,9 +329,7 @@ def train_policy(
     if device is not None:
         policy.to(device)
     policy_device = next(policy.parameters()).device
-    optimizer = torch.optim.Adam(
-        policy.parameters(), lr=learning_rate, weight_decay=weight_decay
-    )
+    optimizer = torch.optim.Adam(policy.parameters(), lr=learning_rate, weight_decay=weight_decay)
     eval_starts = val_num_starts if val_num_starts is not None else num_starts
 
     ckpt_dir = Path(checkpoint_dir) if checkpoint_dir is not None else None
@@ -523,6 +522,16 @@ def train_policy(
 
 def build_policy_from_config(model_cfg: dict[str, Any]) -> CVRPPolicy:
     """Instantiate :class:`CVRPPolicy` from the ``model`` block of a policy config."""
+    architecture = str(model_cfg.get("architecture", "ours_robust"))
+    if architecture == "paper_cmd":
+        raise NotImplementedError(
+            "paper_cmd policy construction is not implemented yet; use the explicit template "
+            "as a fidelity contract, not with the ours_robust encoder"
+        )
+    if architecture != "ours_robust":
+        raise ValueError(
+            f"model.architecture must be 'ours_robust' or 'paper_cmd', got {architecture!r}"
+        )
     return CVRPPolicy(
         embedding_dim=int(model_cfg.get("embedding_dim", 128)),
         global_num_layers=int(model_cfg.get("global_num_layers", 5)),
@@ -573,14 +582,13 @@ def _build_prior(config: dict[str, Any], device: torch.device) -> PriorProvider 
         denoiser,
         schedule,
         num_inference_steps=(
-            int(prior_cfg["num_inference_steps"])
-            if prior_cfg.get("num_inference_steps")
-            else None
+            int(prior_cfg["num_inference_steps"]) if prior_cfg.get("num_inference_steps") else None
         ),
         step_stride=int(prior_cfg.get("step_stride", 1)),
         threshold=float(prior_cfg.get("threshold", 0.5)),
         seed=int(config["seed"]),
         use_probabilities=bool(prior_cfg.get("use_probabilities", True)),
+        sampler=str(prior_cfg.get("sampler", "one_step_approx")),  # type: ignore[arg-type]
     )
 
 
@@ -597,6 +605,8 @@ def main() -> None:
     args = _parse_args()
     cfg_path = args.config if args.config.is_absolute() else _ROOT / args.config
     config = yaml.safe_load(cfg_path.read_text())
+    alignment = validate_alignment_config(config, component="policy")
+    config["alignment"] = alignment.as_dict()
     seed = int(config["seed"])
     train_cfg = config["training"]
     config["reproducibility"] = seed_everything(
@@ -678,9 +688,7 @@ def main() -> None:
                 learning_rate=float(train_cfg["learning_rate"]),
                 weight_decay=float(train_cfg.get("weight_decay", 1e-6)),
                 batch_size=int(train_cfg.get("batch_size", 8)),
-                num_starts=(
-                    int(train_cfg["num_starts"]) if train_cfg.get("num_starts") else None
-                ),
+                num_starts=(int(train_cfg["num_starts"]) if train_cfg.get("num_starts") else None),
                 val_num_starts=(
                     int(train_cfg["val_num_starts"]) if train_cfg.get("val_num_starts") else None
                 ),
@@ -699,6 +707,7 @@ def main() -> None:
                 checkpoint_extra={
                     "experiment_name": config["experiment_name"],
                     "seed": seed,
+                    "alignment": config["alignment"],
                     "model": config["model"],
                     "prior": config.get("prior"),
                 },

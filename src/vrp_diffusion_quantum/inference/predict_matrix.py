@@ -45,12 +45,17 @@ from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
 
 logger = logging.getLogger(__name__)
 
+PredictionMode = Literal["one_shot", "full_chain"]
+
 __all__ = [
     "MatrixPredictionResult",
+    "PredictionMode",
     "evaluate_full_chain_sampling",
     "example_to_model_inputs",
     "load_denoiser_checkpoint",
+    "predict_matrix_batch",
     "predict_matrix_one_shot",
+    "predict_matrix_persize",
     "sample_constraint_matrix",
     "select_examples_by_size",
     "symmetrize_zero_diagonal",
@@ -228,6 +233,7 @@ def sample_constraint_matrix(
     step_stride: int = 1,
     x0_clamp: float = 1e-3,
     transition_mode: Literal["stochastic", "deterministic"] = "stochastic",
+    sampler: Literal["skipped_posterior", "one_step_approx"] = "one_step_approx",
     prior_positive_probability: float = 0.5,
 ) -> MatrixPredictionResult:
     """Full reverse chain ``t = T-1 → 0`` → final ``m_hat`` / ``m_prob`` (+ optional snapshots).
@@ -235,13 +241,12 @@ def sample_constraint_matrix(
     Args:
         snapshot_every: if set (e.g. ``100``), store hard matrices every this many steps plus
             the endpoints, for heatmaps. ``None`` skips the trajectory (less memory).
-        step_stride: visit every ``step_stride``-th timestep (plus ``t=0``). Larger values
-            shorten the chain; the step still uses the one-step posterior
-            ``q(x_{t-1}|x_t, x_0)``, so stride > 1 is an approximate skip (not an exact
-            multi-step posterior).
+        step_stride: visit every ``step_stride``-th timestep (plus ``t=0``).
         x0_clamp: clamp soft ``x̂_0`` into ``[x0_clamp, 1 - x0_clamp]`` before the posterior
             so extreme probs do not destabilize multi-step sampling.
         transition_mode: sample each posterior or deterministically threshold its probability.
+        sampler: ``skipped_posterior`` composes the complete interval between visited timesteps.
+            ``one_step_approx`` preserves the historical under-denoising behavior for old runs.
         prior_positive_probability: Bernoulli density of the initial state. Values other than
             ``0.5`` are diagnostic priors, not samples from the diffusion stationary distribution.
     """
@@ -262,6 +267,7 @@ def sample_constraint_matrix(
         step_stride=step_stride,
         x0_clamp=x0_clamp,
         transition_mode=transition_mode,
+        sampler=sampler,
         prior_positive_probability=prior_positive_probability,
     )
     n_customers = coords.shape[1]
@@ -297,6 +303,105 @@ def _numpy_symmetrize_zero_diag(matrix: np.ndarray) -> np.ndarray:
     out = upper + upper.T
     np.fill_diagonal(out, 0.0)
     return out
+
+
+@torch.no_grad()
+def predict_matrix_batch(
+    model: ConstraintDenoiser,
+    schedule: BernoulliDiffusionSchedule,
+    examples: Sequence[CVRPExample],
+    *,
+    mode: PredictionMode,
+    device: torch.device | str | None = None,
+    seed: int,
+    step_stride: int = 1,
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    """Predict ``(m_prob, m_hat)`` for each example with one denoiser; batch size 1 per call.
+
+    Each example gets its own generator seeded ``seed + index`` (index within ``examples``),
+    matching the seeding convention already used by ``evaluate_full_chain_sampling`` and the
+    P3.6 generalization harness.
+    """
+    if mode not in ("one_shot", "full_chain"):
+        raise ValueError(f"unknown mode: {mode}")
+    probabilities: list[np.ndarray] = []
+    hard_matrices: list[np.ndarray] = []
+    for index, example in enumerate(examples):
+        coords, demands, capacity, _, mask = example_to_model_inputs(example, device=device)
+        generator = torch.Generator(device="cpu").manual_seed(seed + index)
+        if mode == "one_shot":
+            prediction = predict_matrix_one_shot(
+                model,
+                schedule,
+                coords=coords,
+                demands=demands,
+                capacity=capacity,
+                customer_mask=mask,
+                generator=generator,
+            )
+        else:
+            prediction = sample_constraint_matrix(
+                model,
+                schedule,
+                coords=coords,
+                demands=demands,
+                capacity=capacity,
+                customer_mask=mask,
+                generator=generator,
+                step_stride=step_stride,
+            )
+        probabilities.append(prediction.m_prob)
+        hard_matrices.append(prediction.m_hat)
+    return probabilities, hard_matrices
+
+
+def predict_matrix_persize(
+    checkpoints_by_size: dict[int, tuple[ConstraintDenoiser, BernoulliDiffusionSchedule]],
+    examples: Sequence[CVRPExample],
+    *,
+    mode: PredictionMode,
+    device: torch.device | str | None = None,
+    seed: int,
+    step_stride: int = 1,
+) -> tuple[list[np.ndarray], list[np.ndarray]]:
+    """Dispatch each example to its size's ``(model, schedule)``; reassemble in input order.
+
+    Every ``n_customers`` present in ``examples`` must have a checkpoint in
+    ``checkpoints_by_size``; callers should pre-filter ``examples`` to sizes they actually have
+    a checkpoint for, so a missing size is a caller bug rather than expected control flow.
+    """
+    missing = sorted(
+        {
+            example.instance.n_customers
+            for example in examples
+            if example.instance.n_customers not in checkpoints_by_size
+        }
+    )
+    if missing:
+        raise ValueError(f"no checkpoint configured for sizes: {missing}")
+
+    indices_by_size: dict[int, list[int]] = {}
+    for i, example in enumerate(examples):
+        indices_by_size.setdefault(example.instance.n_customers, []).append(i)
+
+    probabilities: list[np.ndarray | None] = [None] * len(examples)
+    hard_matrices: list[np.ndarray | None] = [None] * len(examples)
+    for size, indices in indices_by_size.items():
+        model, schedule = checkpoints_by_size[size]
+        size_examples = [examples[i] for i in indices]
+        probs, hards = predict_matrix_batch(
+            model,
+            schedule,
+            size_examples,
+            mode=mode,
+            device=device,
+            seed=seed,
+            step_stride=step_stride,
+        )
+        for local_i, global_i in enumerate(indices):
+            probabilities[global_i] = probs[local_i]
+            hard_matrices[global_i] = hards[local_i]
+    return probabilities, hard_matrices  # type: ignore[return-value]
 
 
 def select_examples_by_size(

@@ -14,7 +14,9 @@ from vrp_diffusion_quantum.inference.predict_matrix import (
     evaluate_full_chain_sampling,
     example_to_model_inputs,
     load_denoiser_checkpoint,
+    predict_matrix_batch,
     predict_matrix_one_shot,
+    predict_matrix_persize,
     sample_constraint_matrix,
     select_examples_by_size,
     symmetrize_zero_diagonal,
@@ -185,6 +187,70 @@ def test_select_examples_by_size() -> None:
     assert len(selected) == 4
     assert sum(e.instance.n_customers == 4 for e in selected) == 2
     assert sum(e.instance.n_customers == 6 for e in selected) == 2
+
+
+def test_predict_matrix_batch_both_modes() -> None:
+    torch.manual_seed(0)
+    examples = [_example(4, seed=0), _example(5, seed=1)]
+    model = ConstraintDenoiser(hidden_dim=8, num_layers=1, time_embed_dim=8)
+    schedule = BernoulliDiffusionSchedule(num_timesteps=4)
+    for mode in ("one_shot", "full_chain"):
+        probs, hards = predict_matrix_batch(
+            model, schedule, examples, mode=mode, device="cpu", seed=0
+        )
+        assert len(probs) == len(examples) == len(hards)
+        for example, prob, hard in zip(examples, probs, hards, strict=True):
+            n = example.instance.n_customers
+            _assert_valid_prob(prob, n)
+            _assert_valid_hard(hard, n)
+
+
+def test_predict_matrix_batch_rejects_unknown_mode() -> None:
+    examples = [_example(4, seed=0)]
+    model = ConstraintDenoiser(hidden_dim=8, num_layers=1, time_embed_dim=8)
+    schedule = BernoulliDiffusionSchedule(num_timesteps=4)
+    with pytest.raises(ValueError, match="unknown mode"):
+        predict_matrix_batch(model, schedule, examples, mode="bogus", device="cpu", seed=0)  # type: ignore[arg-type]
+
+
+def test_predict_matrix_persize_preserves_order_across_mixed_sizes() -> None:
+    torch.manual_seed(0)
+    model_a = ConstraintDenoiser(hidden_dim=8, num_layers=1, time_embed_dim=8)
+    model_b = ConstraintDenoiser(hidden_dim=8, num_layers=1, time_embed_dim=8)
+    schedule = BernoulliDiffusionSchedule(num_timesteps=4)
+    checkpoints_by_size = {4: (model_a, schedule), 5: (model_b, schedule)}
+
+    examples = [
+        _example(4, seed=0),
+        _example(5, seed=1),
+        _example(4, seed=2),
+        _example(5, seed=3),
+    ]
+    probs, hards = predict_matrix_persize(
+        checkpoints_by_size, examples, mode="one_shot", device="cpu", seed=0
+    )
+    assert len(probs) == len(examples) == len(hards)
+    for example, prob, hard in zip(examples, probs, hards, strict=True):
+        n = example.instance.n_customers
+        _assert_valid_prob(prob, n)
+        _assert_valid_hard(hard, n)
+
+    # Cross-check against calling each size's model directly, in isolation.
+    direct_probs_4, _ = predict_matrix_batch(
+        model_a, schedule, [examples[0], examples[2]], mode="one_shot", device="cpu", seed=0
+    )
+    assert np.allclose(probs[0], direct_probs_4[0])
+    assert np.allclose(probs[2], direct_probs_4[1])
+
+
+def test_predict_matrix_persize_raises_on_missing_size() -> None:
+    model = ConstraintDenoiser(hidden_dim=8, num_layers=1, time_embed_dim=8)
+    schedule = BernoulliDiffusionSchedule(num_timesteps=4)
+    examples = [_example(4, seed=0), _example(6, seed=1)]
+    with pytest.raises(ValueError, match=r"no checkpoint configured for sizes: \[6\]"):
+        predict_matrix_persize(
+            {4: (model, schedule)}, examples, mode="one_shot", device="cpu", seed=0
+        )
 
 
 def test_evaluate_full_chain_sampling_keys() -> None:

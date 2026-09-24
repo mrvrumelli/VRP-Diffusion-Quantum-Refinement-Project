@@ -14,6 +14,14 @@ from vrp_diffusion_quantum.eval.confidence import bootstrap_mean_interval
 from vrp_diffusion_quantum.utils.constraint_matrix import build_constraint_matrix
 from vrp_diffusion_quantum.utils.feasibility import route_cost, validate_routes
 
+__all__ = [
+    "RoutingEvaluation",
+    "decode_matrix_to_routes",
+    "evaluate_decoded_matrix",
+    "order_route_nearest_neighbor_two_opt",
+    "summarize_routing_evaluations",
+]
+
 
 @dataclass(frozen=True)
 class RoutingEvaluation:
@@ -64,7 +72,7 @@ def _validate_scores(matrix: npt.ArrayLike, n_customers: int) -> npt.NDArray[np.
     return scores
 
 
-def _ordered_route(instance: CVRPInstance, customers: list[int]) -> list[int]:
+def order_route_nearest_neighbor_two_opt(instance: CVRPInstance, customers: list[int]) -> list[int]:
     """Order one route by deterministic nearest neighbour followed by 2-opt."""
     if len(customers) < 2:
         return customers.copy()
@@ -149,7 +157,7 @@ def decode_matrix_to_routes(
         del clusters[right]
         del loads[right]
 
-    routes = [_ordered_route(instance, cluster) for cluster in clusters]
+    routes = [order_route_nearest_neighbor_two_opt(instance, cluster) for cluster in clusters]
     routes.sort(key=lambda route: route[0] if route else instance.n_customers)
     return routes, repairs
 
