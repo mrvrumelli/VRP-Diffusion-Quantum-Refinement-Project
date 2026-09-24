@@ -39,7 +39,7 @@ errors; matrix acceptance was 20/20, 18/20, and 9/20 by increasing size.
 ## Controlled selection
 
 Policy v2 was chosen after the compute-matched label comparison documented in
-`label_audit_s7799_decision.md`. With that data and encoder fixed, five-epoch diffusion results were:
+`docs/archive/evidence/label_audit_s7799_decision.md`. With that data and encoder fixed, five-epoch diffusion results were:
 
 | Variant | Validation AUC | BCE | F1 |
 |---|---:|---:|---:|

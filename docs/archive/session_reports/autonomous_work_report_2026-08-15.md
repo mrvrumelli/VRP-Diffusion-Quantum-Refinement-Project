@@ -9,7 +9,7 @@ reproducible code, tests, configs, and durable evidence. All changes remain unco
   repair, cost gap, vehicle count, route size, runtime, and post-decoding matrix metrics.
 - Diagnosed exact reverse sampling on a fixed CVRP20 panel. Exact stochastic transitions beat the
   deterministic and stride-7 alternatives; the settings and evidence are recorded in
-  [`reverse_sampling_diagnosis.md`](reverse_sampling_diagnosis.md).
+  [`reverse_sampling_diagnosis.md`](../evidence/reverse_sampling_diagnosis.md).
 - Added fixed-panel full-chain checkpoint selection and frozen oracle best-of-K ambiguity metrics.
 - Added deterministic stochastic-reference sampling, fractional consensus targets, confidence
   masks, and an audited-source exclusion arm without weakening binary stored matrices.
@@ -19,7 +19,7 @@ reproducible code, tests, configs, and durable evidence. All changes remain unco
 - Regenerated and validated all 9,000 R/C/RC plain-CVRP spatial-stress instances. The validation
   covers local distance, global dispersion, grid entropy, silhouette, and representative plots.
 - Verified zero exact input overlap between the 3,000 independent R instances and the 200,001-item
-  `s7799` corpus. See [`spatial_stress_validation.md`](spatial_stress_validation.md).
+  `s7799` corpus. See [`spatial_stress_validation.md`](../evidence/spatial_stress_validation.md).
 
 ## Probe outcome
 
@@ -37,7 +37,7 @@ fewer optimizer steps and is therefore not a final compute-matched ablation.
 The current evidence supports stochastic-reference training as the cleanest model-side gain.
 Exclusion has the best observed route gap, but needs an optimizer-step-matched rerun before it can
 be compared fairly. Full per-size results, hashes, and limitations are in
-[`stochastic_reference_probe.md`](stochastic_reference_probe.md).
+[`stochastic_reference_probe.md`](../../stochastic_reference_probe.md).
 
 ## Verification
 

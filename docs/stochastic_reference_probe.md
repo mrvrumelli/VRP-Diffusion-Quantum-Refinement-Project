@@ -276,7 +276,7 @@ evidence of the arm's typical behavior, not as candidates for deployment.
 
 The frozen checkpoint was evaluated once against `s7799_test20_policy_v2_canonical` (60 examples,
 20/size, seed 4361 matching the prior test protocol). This is the first time route-decoding metrics
-have touched this test set — the earlier policy-v2 test run (`3060ti_training_report.md`) predates
+have touched this test set — the earlier policy-v2 test run (`docs/archive/session_reports/3060ti_training_report.md`) predates
 the capacity-aware decoder and only recorded matrix F1/AUC.
 
 | Metric | Test set (frozen stochastic model) | Same checkpoint, large validation panel |

@@ -17,8 +17,8 @@ checking the plan's CVRP20/CVRP50 non-regression gate. All changes remain uncomm
 - Built and ran a large held-out evaluation panel (120 examples, 40/size, vs. the original 5/size)
   against all 9 resulting checkpoints (baseline, 3 stochastic seeds, 3 exclusion seeds, consensus,
   masked-consensus) to remove small-panel noise from the comparison.
-- Updated [`stochastic_reference_probe.md`](stochastic_reference_probe.md) and
-  [`3060ti_training_todo.md`](3060ti_training_todo.md) with the full evidence trail and a candidate
+- Updated [`stochastic_reference_probe.md`](../../stochastic_reference_probe.md) and
+  [`3060ti_training_todo.md`](../plans/3060ti_training_todo.md) with the full evidence trail and a candidate
   frozen-recipe recommendation.
 
 ## Result: 5-arm comparison and freeze recommendation
@@ -61,7 +61,7 @@ was not resolved unilaterally.
 Given explicit authorization to decide and continue autonomously, the open CVRP20 judgment call was
 resolved rather than left for a separate sign-off: **stochastic-reference is frozen** as the recipe
 (seed-4331 checkpoint, chosen because it predates the multi-seed comparison and so is not
-cherry-picked). Reasoning is recorded in `stochastic_reference_probe.md`'s "Freeze decision" section.
+cherry-picked). Reasoning is recorded in `docs/stochastic_reference_probe.md`'s "Freeze decision" section.
 
 The frozen checkpoint was then run once against the untouched 60-example test set — the first time
 route-decoding metrics have touched it. Result: F1 0.5447 (vs. validation panel's 0.5535), decoded
@@ -86,7 +86,7 @@ Also scoped and, with explicit user sign-off on the ~21-22 hour CPU cost, **laun
 9,000-instance R/C/RC strong-label audit** as a detached background process
 (`outputs/logs/run_rc_full_audit_chain.sh`). A 60-instance pilot validated the pipeline end-to-end
 first (zero errors, 59/60 accepted) and gave the real timing used to estimate the full-scale cost.
-See the R/C/RC checklist item in `3060ti_training_todo.md` for the exact resume/restart commands.
+See the R/C/RC checklist item in `docs/archive/plans/3060ti_training_todo.md` for the exact resume/restart commands.
 
 **Paused, not running.** Partway into the prep stage the user flagged their CPU (Ryzen 5 5600)
 running at its 95°C thermal ceiling and asked whether that was safe. Assessment: not immediately
@@ -121,7 +121,7 @@ higher-ambiguity problem; N100 is indifferent to isolation either way. This **su
 seed-4331 pooled-model freeze decision** from earlier in this session. New recommended default:
 three per-size models instead of one shared model. Full evidence and the operational cost/benefit
 discussion (three checkpoints to route between by size, vs. one) are in
-`stochastic_reference_probe.md`'s "Per-size specialized models" section.
+`docs/stochastic_reference_probe.md`'s "Per-size specialized models" section.
 
 ## Recommended next actions
 
@@ -132,7 +132,7 @@ discussion (three checkpoints to route between by size, vs. one) are in
 2. **R/C/RC audit is paused and needs a decision**: resume at full ~11-worker parallelism (~21-22hr,
    confirmed hot but within the CPU's safe operating envelope), resume at reduced parallelism
    (slower, cooler), or check cooling/airflow before running anything this sustained again. See the
-   pause note above and the checklist item in `3060ti_training_todo.md` for resume commands.
+   pause note above and the checklist item in `docs/archive/plans/3060ti_training_todo.md` for resume commands.
 3. Exclusion's best single run (40.57%, seed 4332) is still the best single result observed overall;
    its data-scale sensitivity (why does the smaller 1,211-source pool destabilize training on some
    seeds?) remains a separable follow-up, not a blocker.

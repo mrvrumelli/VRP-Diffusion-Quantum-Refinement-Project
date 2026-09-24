@@ -169,9 +169,7 @@ def main() -> None:
     for size in args.sizes:
         dataset = load_dataset(_dataset_path(args.data_dir, size))
         references = (
-            None
-            if args.reference_dir is None
-            else load_reference_costs(args.reference_dir, size)
+            None if args.reference_dir is None else load_reference_costs(args.reference_dir, size)
         )
         rows.extend(
             evaluate_dataset(

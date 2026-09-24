@@ -95,7 +95,7 @@ Checked `cvrp_s7799_n20-50-100_x66667/README.md` against Phase 2's stated needs:
   (`git diff --stat` shows `predict_matrix.py`, `decoder.py`, `local_masked_encoder.py` and their
   tests changed). Do not redo this work — just account for it when reconciling A.
 - The fresh OOD eval-batch audit (`rc_full_eval`, seeds 9901-9903, the one
-  [`project_status_2026-08.md`](project_status_2026-08.md) left "in progress") is **paused at
+  [[project_status_2026-08]] memory note left "in progress") is **paused at
   18,219 / 36,000 candidates (~51%)**, not currently running (no worker processes present), and its
   last log (`outputs/logs/rc_full_eval_audit_resume_20260826T065405Z.log`) ends mid-progress-bar
   with no error/traceback — a clean external stop, not a crash. Safe to resume.
@@ -107,7 +107,7 @@ Checked `cvrp_s7799_n20-50-100_x66667/README.md` against Phase 2's stated needs:
 - GPU confirmed available (RTX 3060 Ti, CUDA 12.8, torch 2.11.0+cu128), 68 GB disk free.
 - The original `outputs/label_audit/rc_full` bundle (the training-side R/C/RC audit) is genuinely
   gone from disk, matching the uncommitted note already added to
-  [`3060ti_training_todo.md`](3060ti_training_todo.md).
+  [`3060ti_training_todo.md`](archive/plans/3060ti_training_todo.md).
 
 ## Before starting: config brought over (done 2026-09-24)
 
@@ -198,7 +198,7 @@ model.
 checkpoints on both panels.
 
 **On completion**: update the freeze decision in `stochastic_reference_probe.md` / the
-`3060ti_training_todo.md` correction note with a real verdict instead of "unresolved."
+`docs/archive/plans/3060ti_training_todo.md` correction note with a real verdict instead of "unresolved."
 
 ### Task 4 — Matched-budget comparison + CVRPLIB expansion (long, mixed CPU/GPU)
 

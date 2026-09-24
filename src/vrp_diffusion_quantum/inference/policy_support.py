@@ -339,9 +339,7 @@ def sample_constraint_matrix_batch(
                 next_state = post >= threshold
             m_t = symmetrize_zero_diagonal(next_state.to(dtype=post.dtype), customer_mask)
 
-        if snapshot_every is not None and (
-            t_int % snapshot_every == 0 or t_int == 0 or final_step
-        ):
+        if snapshot_every is not None and (t_int % snapshot_every == 0 or t_int == 0 or final_step):
             trajectory.append(m_t.detach().clone())
             trajectory_t.append(t_int)
 

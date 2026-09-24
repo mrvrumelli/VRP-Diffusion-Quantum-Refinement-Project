@@ -58,8 +58,8 @@ project, change it in `pyproject.toml` and explain why in the PR description.
   should still type fixtures and helpers where practical.
 
 ```python
-def route_cost(routes: list[list[int]], coords: np.ndarray) -> float:
-    ...
+def route_cost(routes: list[list[int]], coords: np.ndarray) -> float: ...
+
 
 @dataclass
 class CVRPInstance:

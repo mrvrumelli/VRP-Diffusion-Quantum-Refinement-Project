@@ -34,7 +34,7 @@ CUDA-marked tests now pass; `torch==2.11.0+cu128` was unaffected.
 ## Result: first real comparison against the frozen diffusion champions
 
 The diffusion champions' published large-panel gaps (22.00% / 28.90% / 30.10% for N20/N50/N100,
-see [`stochastic_reference_probe.md`](stochastic_reference_probe.md)) score **one decoded sample
+see [`stochastic_reference_probe.md`](../../stochastic_reference_probe.md)) score **one decoded sample
 per instance** (`eval/routing.py evaluate_decoded_matrix`), not a best-of-K oracle. An early smoke
 comparison using the policy's own best-of-num_starts metric looked like a large win, but that was
 comparing best-of-8 against single-decode — not apples to apples. Recomputing at true `num_starts=1`
@@ -70,7 +70,7 @@ session — pushing past this point is a real compute/tuning investment, not a q
 
 ## Quality gates
 
-Ran the checklist from [`3060ti_training_todo.md`](3060ti_training_todo.md) §2, not yet done on
+Ran the checklist from [`3060ti_training_todo.md`](../plans/3060ti_training_todo.md) §2, not yet done on
 this branch: `ruff check .` was clean except one import-order nit in this session's own new script
 (auto-fixed); `ruff format --check .` flags 84 files repo-wide as unformatted, but that predates
 this session and is unrelated to the dual-pointer work, so left alone. `mypy src` found 2 real

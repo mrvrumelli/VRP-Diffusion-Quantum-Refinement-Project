@@ -164,8 +164,7 @@ def resolve_alignment_contract(config: Mapping[str, Any]) -> AlignmentContract:
     contract_version = alignment.get("contract_version")
     if contract_version != PAPER_CONTRACT_VERSION:
         raise ValueError(
-            f"alignment.contract_version must be {PAPER_CONTRACT_VERSION}, "
-            f"got {contract_version!r}"
+            f"alignment.contract_version must be {PAPER_CONTRACT_VERSION}, got {contract_version!r}"
         )
 
     paper_id_value = alignment.get("paper_id")

@@ -1,7 +1,7 @@
 # Running the s7799 strong-label audit
 
 Step-by-step instructions for a new contributor to run
-`scripts/run_strong_label_audit.py`. Read `docs/label_audit_s7799_decision.md` first for what
+`scripts/run_strong_label_audit.py`. Read `docs/archive/evidence/label_audit_s7799_decision.md` first for what
 the audit already found and decided; this document only covers executing it.
 
 ## What is already done
@@ -51,7 +51,7 @@ print(hash_dataset('data/processed/label_audit_s7799'))
 ```
 
 The `input_sha256` your run records in `outputs/.../config.json` should match this. It will not
-match the `Input SHA-256` line in `docs/label_audit_s7799_decision.md` — that hash was computed
+match the `Input SHA-256` line in `docs/archive/evidence/label_audit_s7799_decision.md` — that hash was computed
 on the machine that ran the original audit, and `subset_manifest.json` embeds that machine's
 absolute source path, so the directory-level hash differs even though the 1,500 example files
 are byte-identical.
@@ -105,14 +105,14 @@ Under `outputs/label_audit/s7799_strong_reference/`:
 
 ## 6. After the audit finishes
 
-Compare your `metrics.json` against the numbers in `docs/label_audit_s7799_decision.md` (audit
+Compare your `metrics.json` against the numbers in `docs/archive/evidence/label_audit_s7799_decision.md` (audit
 integrity and per-size table). They should match closely — small differences are expected only if
 the source corpus or PyVRP/OR-Tools versions differ from the original run.
 
 The decision doc also describes the bounded CVRP100 80-/120-second follow-ups and the policy-v2
 label materialization that build on this audit. Do not start those, and do not start full model
 training, until you've read that document's acceptance gates and Next-stage research plan in
-`docs/3060ti_training_todo.md`.
+`docs/archive/plans/3060ti_training_todo.md`.
 
 ## 7. Commit your results so nobody re-solves them
 

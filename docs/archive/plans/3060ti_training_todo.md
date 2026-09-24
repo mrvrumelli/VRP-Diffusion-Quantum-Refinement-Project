@@ -6,19 +6,20 @@
 > `rcfull` denoisers were trained on merged datasets. The original
 > `outputs/label_audit/rc_full` audit bundle is no longer present. Recoverable label, dataset, and
 > checkpoint provenance has been re-archived in
-> [`rc_full_artifact_reconstruction_2026-09-24.md`](rc_full_artifact_reconstruction_2026-09-24.md);
+> [`rc_full_artifact_reconstruction_2026-09-24.md`](../../rc_full_artifact_reconstruction_2026-09-24.md);
 > raw acceptance/runtime statistics still require an external backup or a rerun. See
-> [`project_findings_2026-09-24.md`](project_findings_2026-09-24.md) for the current status.
+> [`project_findings_2026-09-24.md`](../../project_findings_2026-09-24.md) for the current status.
 
 > **Completed 2026-08-15.** The original 1k/5k/10k/30k roadmap below was written before the
 > strong-label audit established that only 500 audited training sources per size are available.
 > The executed evidence-based curve was 100/250/500 per size. See
-> `docs/3060ti_training_report.md` for the authoritative configs, hashes, metrics, final checkpoint,
-> untouched-test result, and limitations. Remaining unchecked historical items are not prerequisites
-> for the completed bounded policy-v2 run unless a future larger corpus is generated.
+> `docs/archive/session_reports/3060ti_training_report.md` for the authoritative configs, hashes,
+> metrics, final checkpoint, untouched-test result, and limitations. Remaining unchecked historical
+> items are not prerequisites for the completed bounded policy-v2 run unless a future larger corpus
+> is generated.
 >
 > The 2026-08-15 follow-up implementation and probe summary is in
-> [`autonomous_work_report_2026-08-15.md`](autonomous_work_report_2026-08-15.md).
+> [`autonomous_work_report_2026-08-15.md`](../session_reports/autonomous_work_report_2026-08-15.md).
 
 ## Completed autonomous workflow
 
@@ -61,7 +62,7 @@ The exact full-chain result, rather than noisy-time AUC, determines the next wor
   consensus/masked-consensus were all scored on the same 120-example large panel. Ranked by overall
   decoded gap: exclusion (42.20%) < stochastic (44.48% mean) < consensus (52.76%) <
   masked-consensus (53.11%) < baseline (56.39%). Consensus and masked-consensus are ruled out. See
-  [`stochastic_reference_probe.md`](stochastic_reference_probe.md).
+  [`stochastic_reference_probe.md`](../../stochastic_reference_probe.md).
 - [x] Require a CVRP100-specific gain without material CVRP20/CVRP50 regression. CVRP100/CVRP50
   gains are large and consistent across every seed for both exclusion and stochastic. CVRP20 shows
   a small, real regression (+2.7 to +3.6 pp mean, seed-dependent) that is an order of magnitude
@@ -70,7 +71,7 @@ The exact full-chain result, rather than noisy-time AUC, determines the next wor
   2.75 pp) — one exclusion seed lands worse than the baseline. Stochastic reference is recommended
   as the more reliable arm on this evidence; whether the remaining CVRP20 regression counts as
   "material" is an open call for the research owner. See
-  [`stochastic_reference_probe.md`](stochastic_reference_probe.md).
+  [`stochastic_reference_probe.md`](../../stochastic_reference_probe.md).
 - [x] **Superseded 2026-08-16.** Three independent per-size models beat the single frozen pooled
   model on both the large validation panel (46.03% -> 27.00% mean gap, ~41% relative) and the
   untouched test set (45.73% -> 28.63% mean gap, ~37% relative), confirming the CVRP20 regression
@@ -78,7 +79,7 @@ The exact full-chain result, rather than noisy-time AUC, determines the next wor
   gain enormously (-42pp / -12pp on test); N100 is noise-level indifferent to isolation (+2.5pp on
   the tiny 20-example test slice, -1.8pp on the larger panel). New recommended default: three
   per-size models (`diffusion_denoiser_s7799_stochastic_persize_n20/n50/n100_cuda`), shared frozen
-  GAT encoder. See [`stochastic_reference_probe.md`](stochastic_reference_probe.md) "Per-size
+  GAT encoder. See [`stochastic_reference_probe.md`](../../stochastic_reference_probe.md) "Per-size
   specialized models".
 - [x] (Superseded, kept for history) Freeze the sampler, target, checkpoint, and decoder before one-time test evaluation. Frozen:
   stochastic-reference targets, uniform-timestep sampling, exact-stochastic reverse sampling,
@@ -87,12 +88,12 @@ The exact full-chain result, rather than noisy-time AUC, determines the next wor
   chosen because it predates the multi-seed comparison and so cannot be a cherry-picked seed). The
   CVRP20 regression was judged non-blocking (an order of magnitude smaller than the CVRP50/CVRP100
   gains); see the freeze-decision reasoning in
-  [`stochastic_reference_probe.md`](stochastic_reference_probe.md).
+  [`stochastic_reference_probe.md`](../../stochastic_reference_probe.md).
 - [x] One-time untouched-test evaluation. Frozen model on the 60-example test set: F1 0.5447
   (was 0.4350), decoded gap 45.73% overall (was 72.13%), with every per-size gap improved including
   CVRP20 (63.54% vs. 70.78%) relative to the actual prior production checkpoint. Results are within
   ~2pp of the large validation panel, so the recipe generalizes rather than overfitting to the
-  selection panel. See [`stochastic_reference_probe.md`](stochastic_reference_probe.md).
+  selection panel. See [`stochastic_reference_probe.md`](../../stochastic_reference_probe.md).
 - [ ] Generate additional strong labels only after a verified model-side gain — now unblocked by a
   verified gain, but not started; scope and cost (9,000 R/C/RC instances need audit config authoring
   and are ~6x the previous 1,500-instance audit's solver load) should be estimated before committing
@@ -103,7 +104,7 @@ The exact full-chain result, rather than noisy-time AUC, determines the next wor
     JSON) → `label_audit.run_reference_label_audit(source, output, policy=..., expected_counts_by_size=...)`
     (the strong multi-seed PyVRP/OR-Tools audit; same function `tests/test_label_audit.py` exercises).
   - **Do not run `solve_dataset`/`save_labels` against the raw `data/raw/cvrp/spatial_stress_*`
-    directories directly** — those are the exact directories `spatial_stress_validation.md` hashed
+    directories directly** — those are the exact directories `docs/archive/evidence/spatial_stress_validation.md` hashed
     and verified as zero-overlap with training; writing labels there risks invalidating that
     evidence. Copy the instances (or just the CSVs) to a scratch/output directory first.
   - **Launched then paused, 2026-08-16 — not currently running.** A 60-instance pilot (20/regime at

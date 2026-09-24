@@ -124,6 +124,13 @@ component.
 
 **Estimate:** 1-2 days.
 
+**Status (2026-09-24): complete.** A fresh Python 3.12 environment installed the project and
+development extras successfully with PyVRP 0.14.0 and CPU-only PyTorch 2.14.0. `pip check`,
+`ruff check .`, and `ruff format --check .` pass. The explicit `paper_smoke` test passes on CPU,
+and the complete clean-environment suite reports 489 passed with four CUDA-only tests skipped.
+Commands, versions, and results are recorded in
+[`phase1_clean_repository_gate_2026-09-24.md`](phase1_clean_repository_gate_2026-09-24.md).
+
 - Recreate the environment with PyVRP 0.14 or newer.
 - Format the two currently failing files.
 - Require `ruff check`, `ruff format --check`, and the complete `pytest` suite to pass.

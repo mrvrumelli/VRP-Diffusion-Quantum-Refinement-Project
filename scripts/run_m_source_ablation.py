@@ -459,9 +459,7 @@ def _score_arm(
         "route_feasible_rate": route_summary["route_feasible_rate"],
         "route_num_vehicles": route_summary["route_mean_num_vehicles"],
         "route_vehicle_delta": route_summary["route_mean_vehicle_delta"],
-        "route_vehicle_inflation_ratio": route_summary[
-            "route_mean_vehicle_inflation_ratio"
-        ],
+        "route_vehicle_inflation_ratio": route_summary["route_mean_vehicle_inflation_ratio"],
         "route_singleton_fraction": route_summary["route_mean_singleton_route_fraction"],
         "route_positive_edge_recall": route_summary["route_matrix_positive_edge_recall"],
         "route_decode_runtime_seconds": route_summary["route_mean_decode_runtime_seconds"],

@@ -24,9 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_named_alignment_profiles_reference_matching_component_configs(
     profile_name: str,
 ) -> None:
-    profile = yaml.safe_load(
-        (ROOT / "configs" / "alignment" / f"{profile_name}.yaml").read_text()
-    )
+    profile = yaml.safe_load((ROOT / "configs" / "alignment" / f"{profile_name}.yaml").read_text())
 
     assert profile["profile_name"] == profile_name
     assert profile["contract_version"] == PAPER_CONTRACT_VERSION

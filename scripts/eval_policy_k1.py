@@ -80,9 +80,11 @@ def main() -> None:
             check_feasibility=True,
         )
         results[str(k)] = metrics
-        print(f"num_starts={k}: gap_percent={metrics['gap_percent']:.4f} "
-              f"feasible_rate={metrics['feasible_rate']:.4f} "
-              f"cost={metrics['cost']:.4f} best_cost={metrics['best_cost']:.4f}")
+        print(
+            f"num_starts={k}: gap_percent={metrics['gap_percent']:.4f} "
+            f"feasible_rate={metrics['feasible_rate']:.4f} "
+            f"cost={metrics['cost']:.4f} best_cost={metrics['best_cost']:.4f}"
+        )
 
     print(json.dumps(results, indent=2))
 

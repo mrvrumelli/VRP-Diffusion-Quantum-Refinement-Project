@@ -6,7 +6,7 @@ The model predicts the customer route-membership matrix: `M[i,j] = 1` exactly wh
 `i` and `j` occur in the same route. Current training uses one hard binary matrix per instance and
 BCE-with-logits in [`train_diffusion.py`](../src/vrp_diffusion_quantum/train/train_diffusion.py).
 
-The audit in [`label_audit_s7799_decision.md`](label_audit_s7799_decision.md) found several
+The audit in [`label_audit_s7799_decision.md`](../evidence/label_audit_s7799_decision.md) found several
 feasible, near-best solver references that disagree on route membership. Only 239/500 CVRP100
 sources passed the strict matrix-stability gate. Increasing solver budgets from 40 to 80 and 120
 seconds did not reliably remove the disagreement.

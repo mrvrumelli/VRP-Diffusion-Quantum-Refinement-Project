@@ -10,7 +10,7 @@
 # test split). Routing/cost-gap metrics are scored separately on
 # `dataset.accepted_matrix_examples_path` (the audited, cost/matrix-stability-accepted PyVRP
 # reference subset) since ordinary single-seed test-split labels are known-ambiguous for
-# CVRP50/100 (docs/label_audit_s7799_decision.md). That subset is drawn from the training pool
+# CVRP50/100 (docs/archive/evidence/label_audit_s7799_decision.md). That subset is drawn from the training pool
 # (see the run's `accepted_subset_train_overlap` provenance field), so its cost-gap numbers are
 # an audited-reference-quality diagnostic, not a held-out generalization measurement.
 #

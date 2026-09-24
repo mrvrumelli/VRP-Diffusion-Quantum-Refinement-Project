@@ -32,5 +32,5 @@ acceptance:
 # Confirmed safe to raise to 11-12 (thermal test stayed under 70C at full 12-worker load) but doing
 # so against this output_dir requires a fresh output_dir instead, since the audit's resume check
 # compares the full policy including `workers` and refuses to continue a run under different
-# settings (`ValueError: existing audit config differs`) -- see 3060ti_training_todo.md.
+# settings (`ValueError: existing audit config differs`) -- see docs/archive/plans/3060ti_training_todo.md.
 workers: 8

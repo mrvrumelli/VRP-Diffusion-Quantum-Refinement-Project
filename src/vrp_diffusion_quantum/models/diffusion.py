@@ -189,12 +189,8 @@ class BernoulliDiffusionSchedule(nn.Module):
         marg_one = m0_f * (1.0 - target_flip) + (1.0 - m0_f) * target_flip
         marg_zero = 1.0 - marg_one
 
-        likelihood_from_one = (
-            m_t_f * (1.0 - interval_flip) + (1.0 - m_t_f) * interval_flip
-        )
-        likelihood_from_zero = (
-            (1.0 - m_t_f) * (1.0 - interval_flip) + m_t_f * interval_flip
-        )
+        likelihood_from_one = m_t_f * (1.0 - interval_flip) + (1.0 - m_t_f) * interval_flip
+        likelihood_from_zero = (1.0 - m_t_f) * (1.0 - interval_flip) + m_t_f * interval_flip
         unnorm_one = likelihood_from_one * marg_one
         unnorm_zero = likelihood_from_zero * marg_zero
         return unnorm_one / (unnorm_one + unnorm_zero).clamp_min(torch.finfo(m_t_f.dtype).tiny)

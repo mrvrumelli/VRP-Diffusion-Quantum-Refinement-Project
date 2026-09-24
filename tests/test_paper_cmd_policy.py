@@ -190,12 +190,7 @@ def test_global_gat_can_be_extracted_from_a_full_diffusion_checkpoint(tmp_path: 
     _, pretrained = _gat_checkpoint(tmp_path / "gat_only.pt")
     denoiser_path = tmp_path / "diffusion.pt"
     torch.save(
-        {
-            "model": {
-                f"node_encoder.{key}": value
-                for key, value in pretrained.state_dict().items()
-            }
-        },
+        {"model": {f"node_encoder.{key}": value for key, value in pretrained.state_dict().items()}},
         denoiser_path,
     )
     restored = NodeGATEncoder(hidden_dim=16, num_layers=1, num_heads=4)
@@ -208,10 +203,12 @@ def test_global_gat_can_be_extracted_from_a_full_diffusion_checkpoint(tmp_path: 
     )
 
 
+@pytest.mark.paper_smoke
 def test_tiny_rl_training_lowers_cost_with_full_feasibility(tmp_path: Path) -> None:
     gat_path, _ = _gat_checkpoint(tmp_path / "gat.pt")
     torch.manual_seed(4)
     policy = build_policy_from_config(_model_config(gat_path))
+    assert next(policy.parameters()).device.type == "cpu"
     frozen_before = {
         name: parameter.detach().clone()
         for name, parameter in policy.paper_global_gat.named_parameters()

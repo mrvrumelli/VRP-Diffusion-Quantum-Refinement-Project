@@ -65,12 +65,14 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
     "cuda: tests that require a CUDA-capable GPU and CUDA-enabled PyTorch",
+    "paper_smoke: CPU smoke test for the complete paper_cmd policy path",
 ]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 src = ["src", "tests", "scripts"]
+extend-exclude = [".phase1-venv", ".test-tmp", ".test-tmp-*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "ANN", "RUF"]

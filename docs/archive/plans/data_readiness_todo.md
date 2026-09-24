@@ -3,7 +3,7 @@
 This list turns the August 2026 repository data audit into ordered implementation work. Items are
 roughly sorted from low-risk fixes to work that depends on trained models or long experiments.
 The latest completed implementation block is summarized in
-[`autonomous_work_report_2026-08-15.md`](autonomous_work_report_2026-08-15.md).
+[`autonomous_work_report_2026-08-15.md`](../session_reports/autonomous_work_report_2026-08-15.md).
 
 ## Current inventory
 

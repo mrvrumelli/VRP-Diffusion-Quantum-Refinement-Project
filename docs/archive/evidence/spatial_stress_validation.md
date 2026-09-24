@@ -28,13 +28,13 @@ Frozen directory hashes from the current generator/configuration are:
 - RC: `67c2d07824b999b7415bb12b4051a55081170a3fc2fc69cb270ae386ca71df9b`
 
 The machine-readable evidence is in
-[`assets/spatial_stress_validation/spatial_metrics.json`](assets/spatial_stress_validation/spatial_metrics.json),
+[`assets/spatial_stress_validation/spatial_metrics.json`](../../assets/spatial_stress_validation/spatial_metrics.json),
 with the same rows in CSV. Representative median-nearest-neighbor instances are shown below.
 
 An exact content-hash comparison against all 200,001 instances in the existing `s7799` corpus
 found zero overlaps with the 3,000 independent R instances (zero separately for CVRP20/50/100).
 The audit excludes generator metadata and hashes the capacity, ordered coordinates, and demands;
 see
-[`assets/spatial_stress_validation/r_vs_training_overlap.json`](assets/spatial_stress_validation/r_vs_training_overlap.json).
+[`assets/spatial_stress_validation/r_vs_training_overlap.json`](../../assets/spatial_stress_validation/r_vs_training_overlap.json).
 
-![Representative R, C, and RC instances](assets/spatial_stress_validation/representative_instances.png)
+![Representative R, C, and RC instances](../../assets/spatial_stress_validation/representative_instances.png)

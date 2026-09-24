@@ -20,9 +20,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--audit", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--competitive-tolerance", type=float, default=0.005)
-    parser.add_argument(
-        "--profile", choices=("train", "canonical", "validation"), default="train"
-    )
+    parser.add_argument("--profile", choices=("train", "canonical", "validation"), default="train")
     return parser.parse_args()
 
 
