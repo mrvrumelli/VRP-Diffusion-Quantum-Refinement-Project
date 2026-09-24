@@ -15,13 +15,14 @@ __all__ = ["FusionEncoder", "FusionEncoderOutput"]
 class FusionEncoderOutput:
     """Fused node/context embeddings and the learned local-information gate.
 
-    ``fusion_gate`` has the same shape as ``node_embeddings``. Values near zero favor the global
-    representation; values near one favor the local representation. Padded positions are zero.
+    For learned-gate fusion, ``fusion_gate`` has the same shape as ``node_embeddings``: values
+    near zero favor the global representation and values near one favor the local representation.
+    It is ``None`` for the paper's sum-then-MLP fusion.
     """
 
     node_embeddings: Tensor  # [batch, n_nodes, embedding_dim]
     graph_embedding: Tensor  # [batch, embedding_dim]
-    fusion_gate: Tensor  # [batch, n_nodes, embedding_dim]
+    fusion_gate: Tensor | None  # [batch, n_nodes, embedding_dim], absent for paper sum-MLP
 
 
 class FusionEncoder(nn.Module):

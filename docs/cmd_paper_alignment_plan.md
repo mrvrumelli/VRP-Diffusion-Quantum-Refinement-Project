@@ -95,6 +95,13 @@ instances, the defensible working hypothesis is:
 
 **Estimate:** 2-3 days.
 
+**Status (2026-09-24): complete.** The versioned operating contract is documented in
+[`cmd_paper_comparison_contract.md`](cmd_paper_comparison_contract.md). Named machine-readable
+profiles live in `configs/alignment/paper_cmd.yaml` and `configs/alignment/ours_robust.yaml`; the
+complete evidence classification and author-question register live in
+`configs/alignment/cmd_paper_evidence.yaml`. Config validation freezes paper-compatible choices,
+and checkpoint consumers reject missing, legacy, or cross-track provenance in `paper_cmd` runs.
+
 Create two named configurations:
 
 - `paper_cmd`: only paper-compatible choices;
@@ -167,6 +174,14 @@ must show:
 ## Phase 4 - Faithful encoder-decoder path
 
 **Estimate:** 5-8 days.
+
+**Status (2026-09-24): implemented and covered by automated gates.** The `paper_cmd` policy now
+loads either a standalone pretrained GAT or the `node_encoder` embedded in a diffusion checkpoint,
+stores the exact frozen weights inside policy checkpoints, and restores without depending on the
+original GAT file. Its separate local GAT is masked by `M`, and its fusion is sum followed by an
+MLP. The existing `ours_robust` Transformer and learned-gate path remain unchanged. Focused tests
+cover exact checkpoint equality, zero global-GAT gradients and parameter drift, a cost-lowering
+tiny RL run with 100% feasibility, and the no-`M`, no-local-encoder, and no-local-pointer modes.
 
 Add `architecture: paper_cmd` to the policy:
 

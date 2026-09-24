@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Literal
 
 import torch
@@ -29,6 +30,11 @@ from vrp_diffusion_quantum.models.local_masked_encoder import (
     LocalMaskedEncoderOutput,
     build_local_attention_prior,
 )
+from vrp_diffusion_quantum.models.paper_cmd_encoder import (
+    PaperGlobalGATEncoder,
+    PaperMaskedGATEncoder,
+    PaperSumMLPFusion,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +44,7 @@ __all__ = [
     "DecodeMode",
     "DecoderRollout",
     "DualPointerDecoder",
+    "PolicyArchitecture",
     "PolicyEncoding",
     "actions_to_routes",
     "build_decoder_local_adjacency",
@@ -48,6 +55,7 @@ __all__ = [
 ]
 
 DecodeMode = Literal["greedy", "sampling"]
+PolicyArchitecture = Literal["ours_robust", "paper_cmd"]
 
 # CMD Algorithm 1: NStart is every customer when N <= 100, else the 100 closest to the depot.
 NSTART_CAP = 100
@@ -697,6 +705,7 @@ class CVRPPolicy(nn.Module):
     def __init__(
         self,
         *,
+        architecture: PolicyArchitecture = "ours_robust",
         embedding_dim: int = 128,
         global_num_layers: int = 3,
         global_num_heads: int = 8,
@@ -715,44 +724,88 @@ class CVRPPolicy(nn.Module):
         use_context_perception: bool = True,
         savings_weight: float = 1.0,
         savings_epsilon: float = 1e-2,
+        global_gat_checkpoint: str | Path | None = None,
+        allow_uninitialized_global_gat: bool = False,
     ) -> None:
         super().__init__()
+        if architecture not in ("ours_robust", "paper_cmd"):
+            raise ValueError(
+                f"architecture must be 'ours_robust' or 'paper_cmd', got {architecture!r}"
+            )
         if not 0.0 <= local_threshold <= 1.0:
             raise ValueError(f"local_threshold must be in [0, 1], got {local_threshold}")
+        if architecture == "paper_cmd" and adjacency_mode != "hard":
+            raise ValueError("paper_cmd requires adjacency_mode='hard'")
+        if (
+            architecture == "paper_cmd"
+            and global_gat_checkpoint is None
+            and not allow_uninitialized_global_gat
+        ):
+            raise ValueError("paper_cmd requires model.global_gat_checkpoint")
+        self.architecture = architecture
         self.embedding_dim = embedding_dim
         self.use_local_encoder = use_local_encoder
         self.use_local_pointer = use_local_pointer
         self.local_threshold = local_threshold
 
-        self.global_encoder = GlobalEncoder(
-            embedding_dim=embedding_dim,
-            num_layers=global_num_layers,
-            num_heads=global_num_heads,
-            feed_forward_dim=feed_forward_dim,
-            dropout=dropout,
-        )
-        self.local_encoder = (
-            LocalMaskedEncoder(
+        if architecture == "paper_cmd":
+            self.global_encoder: GlobalEncoder | PaperGlobalGATEncoder = PaperGlobalGATEncoder(
                 embedding_dim=embedding_dim,
-                num_layers=local_num_layers,
-                num_heads=local_num_heads,
+                num_layers=global_num_layers,
+                num_heads=global_num_heads,
+                dropout=dropout,
+                checkpoint=global_gat_checkpoint,
+            )
+            self.local_encoder: LocalMaskedEncoder | PaperMaskedGATEncoder | None = (
+                PaperMaskedGATEncoder(
+                    embedding_dim=embedding_dim,
+                    num_layers=local_num_layers,
+                    num_heads=local_num_heads,
+                    dropout=dropout,
+                    hard_threshold=max(local_threshold, 1e-6),
+                )
+                if use_local_encoder
+                else None
+            )
+            self.fusion_encoder: FusionEncoder | PaperSumMLPFusion | None = (
+                PaperSumMLPFusion(
+                    embedding_dim=embedding_dim,
+                    feed_forward_dim=feed_forward_dim,
+                    dropout=dropout,
+                )
+                if use_local_encoder
+                else None
+            )
+        else:
+            self.global_encoder = GlobalEncoder(
+                embedding_dim=embedding_dim,
+                num_layers=global_num_layers,
+                num_heads=global_num_heads,
                 feed_forward_dim=feed_forward_dim,
                 dropout=dropout,
-                adjacency_mode=adjacency_mode,
-                hard_threshold=max(local_threshold, 1e-6),
             )
-            if use_local_encoder
-            else None
-        )
-        self.fusion_encoder = (
-            FusionEncoder(
-                embedding_dim=embedding_dim,
-                feed_forward_dim=feed_forward_dim,
-                dropout=dropout,
+            self.local_encoder = (
+                LocalMaskedEncoder(
+                    embedding_dim=embedding_dim,
+                    num_layers=local_num_layers,
+                    num_heads=local_num_heads,
+                    feed_forward_dim=feed_forward_dim,
+                    dropout=dropout,
+                    adjacency_mode=adjacency_mode,
+                    hard_threshold=max(local_threshold, 1e-6),
+                )
+                if use_local_encoder
+                else None
             )
-            if use_local_encoder
-            else None
-        )
+            self.fusion_encoder = (
+                FusionEncoder(
+                    embedding_dim=embedding_dim,
+                    feed_forward_dim=feed_forward_dim,
+                    dropout=dropout,
+                )
+                if use_local_encoder
+                else None
+            )
         self.decoder = DualPointerDecoder(
             embedding_dim=embedding_dim,
             num_heads=decoder_num_heads,
@@ -764,6 +817,28 @@ class CVRPPolicy(nn.Module):
             savings_weight=savings_weight,
             savings_epsilon=savings_epsilon,
         )
+
+    @property
+    def paper_global_gat(self) -> nn.Module:
+        """Expose the frozen diffusion GAT for exactness checks and checkpoint audits."""
+        if not isinstance(self.global_encoder, PaperGlobalGATEncoder):
+            raise AttributeError("paper_global_gat is available only for architecture='paper_cmd'")
+        return self.global_encoder.gat
+
+    @property
+    def paper_global_gat_checkpoint_payload(self) -> dict[str, object]:
+        """Return source checkpoint metadata used to construct the frozen paper GAT."""
+        if not isinstance(self.global_encoder, PaperGlobalGATEncoder):
+            raise AttributeError(
+                "paper_global_gat_checkpoint_payload is available only for paper_cmd"
+            )
+        return self.global_encoder.checkpoint_payload
+
+    def verify_paper_global_gat_frozen(self) -> None:
+        """Fail if the paper global encoder is trainable or has accumulated gradients."""
+        if not isinstance(self.global_encoder, PaperGlobalGATEncoder):
+            raise ValueError("frozen global GAT verification requires architecture='paper_cmd'")
+        self.global_encoder.verify_frozen()
 
     def encode(
         self,
@@ -810,15 +885,25 @@ class CVRPPolicy(nn.Module):
                 local_prior.weights >= self.local_threshold
             )
             if self.local_encoder is not None and self.fusion_encoder is not None:
-                local_output: LocalMaskedEncoderOutput = self.local_encoder(
-                    node_embeddings,
-                    m_hat,
-                    customer_node_indices,
-                    customer_mask,
-                    depot_index,
-                    node_mask,
-                    prior=local_prior,
-                )
+                local_output: LocalMaskedEncoderOutput
+                if isinstance(self.local_encoder, PaperMaskedGATEncoder):
+                    local_output = self.local_encoder(
+                        coords,
+                        demands,
+                        capacity,
+                        node_mask,
+                        local_prior,
+                    )
+                else:
+                    local_output = self.local_encoder(
+                        node_embeddings,
+                        m_hat,
+                        customer_node_indices,
+                        customer_mask,
+                        depot_index,
+                        node_mask,
+                        prior=local_prior,
+                    )
                 fused: FusionEncoderOutput = self.fusion_encoder(
                     node_embeddings,
                     local_output.node_embeddings,

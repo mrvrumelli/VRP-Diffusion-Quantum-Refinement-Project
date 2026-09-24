@@ -49,7 +49,10 @@ from vrp_diffusion_quantum.metrics.matrix_metrics import (
 )
 from vrp_diffusion_quantum.models.constraint_denoiser import ConstraintDenoiser
 from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
-from vrp_diffusion_quantum.utils.alignment import validate_alignment_config
+from vrp_diffusion_quantum.utils.alignment import (
+    require_artifact_alignment,
+    validate_alignment_config,
+)
 from vrp_diffusion_quantum.utils.experiment import ExperimentTracker
 from vrp_diffusion_quantum.utils.runtime import (
     capture_rng_state,
@@ -1060,7 +1063,13 @@ def main() -> None:
     gat_ckpt = model_cfg.get("gat_checkpoint")
     if gat_ckpt:
         gat_path = _ROOT / gat_ckpt if not Path(gat_ckpt).is_absolute() else Path(gat_ckpt)
-        model.load_gat_pretrained(gat_path)
+        gat_payload = model.load_gat_pretrained(gat_path)
+        if alignment.track == "paper_cmd":
+            require_artifact_alignment(
+                gat_payload,
+                expected_track="paper_cmd",
+                artifact_name="model.gat_checkpoint",
+            )
         if bool(model_cfg.get("freeze_node_encoder", False)):
             model.set_node_encoder_trainable(False)
     elif encoder_type == "gat" and bool(model_cfg.get("freeze_node_encoder", False)):

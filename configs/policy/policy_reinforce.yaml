@@ -2,6 +2,7 @@ experiment_name: policy_reinforce
 seed: 42
 alignment:
   track: ours_robust
+  contract_version: 1
   paper_id: arxiv:2603.07568v1
   claim: project extension; not a faithful paper baseline
 dataset:

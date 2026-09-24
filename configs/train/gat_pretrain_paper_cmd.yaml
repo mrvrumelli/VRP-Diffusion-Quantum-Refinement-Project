@@ -2,10 +2,13 @@ experiment_name: gat_pretrain_paper_cmd
 seed: 42
 alignment:
   track: paper_cmd
+  contract_version: 1
   paper_id: arxiv:2603.07568v1
   claim: paper-guided reconstruction; exact author seeds and GAT objective remain unconfirmed
 dataset:
   name: paper_cmd_hgs_50k_train
+  provenance_track: paper_cmd
+  label_policy: single_hgs_route_partition
   path: null
 validation:
   path: null

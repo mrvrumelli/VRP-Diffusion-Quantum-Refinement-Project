@@ -1,0 +1,20 @@
+profile_name: ours_robust
+contract_version: 1
+paper_id: arxiv:2603.07568v1
+claim: project extension; results must not be presented as the paper baseline
+component_configs:
+  gat_pretrain: configs/train/gat_pretrain.yaml
+  diffusion: configs/train/diffusion_denoiser.yaml
+  policy: configs/policy/policy_reinforce.yaml
+artifact_policy:
+  require_matching_track: false
+  accept_legacy_unlabelled_checkpoints: true
+dataset_policy:
+  labelled_targets: audited_single_stochastic_or_consensus
+  audited_or_consensus_targets_allowed: true
+architecture_policy:
+  policy: ours_robust
+  global_encoder: trainable_transformer
+  local_encoder: prior_masked_transformer
+  fusion: learned_gate
+

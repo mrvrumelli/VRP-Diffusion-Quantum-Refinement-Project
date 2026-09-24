@@ -101,8 +101,20 @@ def load_policy_checkpoint(
     checkpoint_path = Path(path)
     payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     model_cfg = (payload.get("extra") or {}).get("model") or {}
-    policy = build_policy_from_config(model_cfg)
+    if str(model_cfg.get("architecture", "ours_robust")) == "paper_cmd":
+        from vrp_diffusion_quantum.utils.alignment import require_artifact_alignment
+
+        require_artifact_alignment(
+            payload,
+            expected_track="paper_cmd",
+            artifact_name="policy checkpoint",
+        )
+    # The policy checkpoint itself contains the frozen GAT weights, so loading remains
+    # self-contained even if the original pretraining checkpoint has moved.
+    policy = build_policy_from_config(model_cfg, require_pretrained_global=False)
     policy.load_state_dict(payload["model"])
+    if policy.architecture == "paper_cmd":
+        policy.verify_paper_global_gat_frozen()
     policy.eval()
     if device is not None:
         policy.to(device)

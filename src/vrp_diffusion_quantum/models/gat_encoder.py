@@ -93,6 +93,7 @@ class _GATLayer(nn.Module):
         node_embed: Tensor,  # [B, N, in]
         node_mask: Tensor,  # [B, N] float {0,1}
         pairwise_distance: Tensor | None = None,  # [B, N, N]
+        adjacency_mask: Tensor | None = None,  # [B, N, N] bool
     ) -> Tensor:
         batch, n_nodes, _ = node_embed.shape
         h = self.proj(node_embed).view(batch, n_nodes, self.num_heads, self.head_dim)
@@ -104,14 +105,29 @@ class _GATLayer(nn.Module):
             logits = logits + self.distance_bias(pairwise_distance.unsqueeze(-1))
         logits = self.leaky_relu(logits)
 
-        # Mask padded keys/queries (self-loops remain; padding pairs are zeroed).
-        key_ok = node_mask[:, None, :, None]  # [B, 1, N, 1]
-        query_ok = node_mask[:, :, None, None]
-        logits = logits.masked_fill(key_ok * query_ok == 0, -1e9)
+        # Mask padded keys/queries and, for the local paper path, non-neighbour pairs.
+        key_ok = node_mask[:, None, :, None].to(dtype=torch.bool)  # [B, 1, N, 1]
+        query_ok = node_mask[:, :, None, None].to(dtype=torch.bool)
+        allowed = key_ok & query_ok
+        if adjacency_mask is not None:
+            if adjacency_mask.shape != (batch, n_nodes, n_nodes):
+                raise ValueError(
+                    "adjacency_mask must have shape "
+                    f"{(batch, n_nodes, n_nodes)}, got {tuple(adjacency_mask.shape)}"
+                )
+            if adjacency_mask.device != node_embed.device:
+                raise ValueError("adjacency_mask and node embeddings must be on the same device")
+            adjacency = adjacency_mask.to(dtype=torch.bool)
+            real_nodes = node_mask.to(dtype=torch.bool)
+            has_real_neighbour = (adjacency & real_nodes[:, None, :]).any(dim=-1)
+            if torch.any(real_nodes & ~has_real_neighbour):
+                raise ValueError("every real query node must have at least one allowed neighbour")
+            allowed = allowed & adjacency[:, :, :, None]
+        logits = logits.masked_fill(~allowed, -1e9)
 
         attn = torch.softmax(logits, dim=2)
         attn = torch.nan_to_num(attn, nan=0.0)
-        attn = self.dropout(attn) * key_ok
+        attn = self.dropout(attn) * key_ok.to(dtype=attn.dtype)
 
         # Aggregate: [B,N,N,H] x [B,N,H,D] -> [B,N,H,D]
         messages = torch.einsum("bijn,bjnd->bind", attn, h)
@@ -165,6 +181,7 @@ class NodeGATEncoder(nn.Module):
         node_mask: Tensor,  # [B, N] bool/float
         *,
         customer_coords: Tensor | None = None,  # [B, N, 2] for distance bias
+        adjacency_mask: Tensor | None = None,  # [B, N, N] for a masked local GAT
     ) -> Tensor:
         mask = node_mask.to(dtype=node_features.dtype)
         h: Tensor = self.input_proj(node_features) * mask.unsqueeze(-1)
@@ -174,7 +191,7 @@ class NodeGATEncoder(nn.Module):
                 customer_coords[:, :, None, :] - customer_coords[:, None, :, :], dim=-1
             )
         for layer, skip in zip(self.layers, self.residuals, strict=True):
-            h_new = layer(h, mask, distance)
+            h_new = layer(h, mask, distance, adjacency_mask)
             h = (h_new + skip(h)) * mask.unsqueeze(-1)
         return h
 

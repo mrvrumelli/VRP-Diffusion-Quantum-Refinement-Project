@@ -48,7 +48,10 @@ from vrp_diffusion_quantum.models.decoder import (
     nstart_count,
 )
 from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
-from vrp_diffusion_quantum.utils.alignment import validate_alignment_config
+from vrp_diffusion_quantum.utils.alignment import (
+    require_artifact_alignment,
+    validate_alignment_config,
+)
 from vrp_diffusion_quantum.utils.experiment import ExperimentTracker
 from vrp_diffusion_quantum.utils.feasibility import validate_routes
 from vrp_diffusion_quantum.utils.runtime import (
@@ -344,6 +347,8 @@ def train_policy(
     for epoch in range(num_epochs):
         epoch_started = time.perf_counter()
         policy.train()
+        if policy.architecture == "paper_cmd":
+            policy.verify_paper_global_gat_frozen()
         chunk_generator = torch.Generator(device="cpu").manual_seed(seed + epoch)
         rollout_generator = torch.Generator(device="cpu").manual_seed(seed + 7919 * (epoch + 1))
         epoch_loss = 0.0
@@ -393,6 +398,8 @@ def train_policy(
 
             optimizer.zero_grad(set_to_none=True)
             loss.backward()  # type: ignore[no-untyped-call]
+            if policy.architecture == "paper_cmd":
+                policy.verify_paper_global_gat_frozen()
             gradient_norm = torch.nn.utils.clip_grad_norm_(
                 policy.parameters(),
                 gradient_clip_norm if gradient_clip_norm is not None else float("inf"),
@@ -520,19 +527,28 @@ def train_policy(
     return history
 
 
-def build_policy_from_config(model_cfg: dict[str, Any]) -> CVRPPolicy:
+def build_policy_from_config(
+    model_cfg: dict[str, Any],
+    *,
+    require_pretrained_global: bool = True,
+) -> CVRPPolicy:
     """Instantiate :class:`CVRPPolicy` from the ``model`` block of a policy config."""
     architecture = str(model_cfg.get("architecture", "ours_robust"))
-    if architecture == "paper_cmd":
-        raise NotImplementedError(
-            "paper_cmd policy construction is not implemented yet; use the explicit template "
-            "as a fidelity contract, not with the ours_robust encoder"
-        )
-    if architecture != "ours_robust":
+    if architecture not in {"ours_robust", "paper_cmd"}:
         raise ValueError(
             f"model.architecture must be 'ours_robust' or 'paper_cmd', got {architecture!r}"
         )
-    return CVRPPolicy(
+    global_checkpoint = model_cfg.get("global_gat_checkpoint")
+    checkpoint_path: Path | None = None
+    if global_checkpoint and require_pretrained_global:
+        checkpoint_path = Path(str(global_checkpoint))
+        if not checkpoint_path.is_absolute():
+            checkpoint_path = _ROOT / checkpoint_path
+    if architecture == "paper_cmd" and checkpoint_path is None and require_pretrained_global:
+        raise ValueError("paper_cmd requires model.global_gat_checkpoint")
+
+    policy = CVRPPolicy(
+        architecture=architecture,  # type: ignore[arg-type]
         embedding_dim=int(model_cfg.get("embedding_dim", 128)),
         global_num_layers=int(model_cfg.get("global_num_layers", 5)),
         global_num_heads=int(model_cfg.get("global_num_heads", 8)),
@@ -551,7 +567,18 @@ def build_policy_from_config(model_cfg: dict[str, Any]) -> CVRPPolicy:
         use_context_perception=bool(model_cfg.get("use_context_perception", True)),
         savings_weight=float(model_cfg.get("savings_weight", 1.0)),
         savings_epsilon=float(model_cfg.get("savings_epsilon", 1e-2)),
+        global_gat_checkpoint=checkpoint_path,
+        allow_uninitialized_global_gat=not require_pretrained_global,
     )
+    if architecture == "paper_cmd":
+        if require_pretrained_global:
+            require_artifact_alignment(
+                policy.paper_global_gat_checkpoint_payload,
+                expected_track="paper_cmd",
+                artifact_name="model.global_gat_checkpoint",
+            )
+        policy.verify_paper_global_gat_frozen()
+    return policy
 
 
 def _build_prior(config: dict[str, Any], device: torch.device) -> PriorProvider | None:
@@ -572,6 +599,13 @@ def _build_prior(config: dict[str, Any], device: torch.device) -> PriorProvider 
     if not ckpt_path.is_absolute():
         ckpt_path = _ROOT / ckpt_path
     denoiser, payload = load_denoiser_checkpoint(ckpt_path, device=device)
+    alignment_track = str((config.get("alignment") or {}).get("track", "legacy_unspecified"))
+    if alignment_track == "paper_cmd":
+        require_artifact_alignment(
+            payload,
+            expected_track="paper_cmd",
+            artifact_name="prior.checkpoint",
+        )
     schedule_cfg = (payload.get("extra") or {}).get("schedule") or {}
     schedule = BernoulliDiffusionSchedule(
         num_timesteps=int(schedule_cfg.get("num_timesteps", 700)),

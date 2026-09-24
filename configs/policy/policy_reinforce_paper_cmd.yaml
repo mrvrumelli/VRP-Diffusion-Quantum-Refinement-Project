@@ -2,6 +2,7 @@ experiment_name: policy_reinforce_paper_cmd
 seed: 42
 alignment:
   track: paper_cmd
+  contract_version: 1
   paper_id: arxiv:2603.07568v1
   claim: paper-guided reconstruction; exact author seeds and test instances remain unconfirmed
 protocol:
@@ -10,6 +11,8 @@ protocol:
   synthetic_test_instances_per_size: 1000
 dataset:
   name: paper_cmd_uniform_rl_200k
+  provenance_track: paper_cmd
+  label_policy: unlabeled_pomo_distribution
   path: null
   cache_size: 0
 validation:
@@ -19,6 +22,9 @@ output:
   root: outputs/paper_cmd
 model:
   architecture: paper_cmd
+  # Required for a new run: GAT-only pretraining checkpoint or full diffusion checkpoint.
+  # A saved policy checkpoint embeds these frozen weights and is self-contained.
+  global_gat_checkpoint: null
   embedding_dim: 128
   global_num_layers: 5
   global_num_heads: 8

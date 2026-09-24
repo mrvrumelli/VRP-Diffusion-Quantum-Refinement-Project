@@ -1,5 +1,10 @@
 experiment_name: diffusion_denoiser
 seed: 42
+alignment:
+  track: ours_robust
+  contract_version: 1
+  paper_id: arxiv:2603.07568v1
+  claim: project extension with audited-label and robustness choices; not a paper baseline
 dataset:
   name: cvrp_uniform_train
   # Template: set this to a materialized training split, or use

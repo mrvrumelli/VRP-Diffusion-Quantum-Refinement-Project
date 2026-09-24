@@ -1,0 +1,20 @@
+profile_name: paper_cmd
+contract_version: 1
+paper_id: arxiv:2603.07568v1
+claim: paper-guided reconstruction with every unresolved choice declared in the evidence ledger
+component_configs:
+  gat_pretrain: configs/train/gat_pretrain_paper_cmd.yaml
+  diffusion: configs/train/diffusion_denoiser_paper_cmd.yaml
+  policy: configs/policy/policy_reinforce_paper_cmd.yaml
+artifact_policy:
+  require_matching_track: true
+  accept_legacy_unlabelled_checkpoints: false
+dataset_policy:
+  labelled_targets: single_hgs_route_partition
+  audited_or_consensus_targets_allowed: false
+architecture_policy:
+  policy: paper_cmd
+  global_encoder: frozen_pretrained_diffusion_gat
+  local_encoder: trainable_masked_gat
+  fusion: sum_mlp
+

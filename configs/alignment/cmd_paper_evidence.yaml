@@ -1,0 +1,183 @@
+schema_version: 1
+paper_id: arxiv:2603.07568v1
+paper_version_date: 2026-03-08
+classification_values:
+  - explicitly_stated
+  - mathematically_inferred
+  - ambiguous_awaiting_author_clarification
+scope: reproduction-relevant data, model, training, inference, and evaluation details
+details:
+  - id: constraint_matrix_definition
+    classification: explicitly_stated
+    value: M_ij is one exactly when customers i and j use the same vehicle route.
+    source: Section III-B and Section IV-B.1
+  - id: geometric_training_augmentation
+    classification: explicitly_stated
+    value: Four axial symmetries—horizontal, vertical, and two diagonals.
+    source: Section IV-A
+  - id: demand_training_augmentation
+    classification: explicitly_stated
+    value: Inversion, random reassignment, clockwise shift, and counter-clockwise shift within routes.
+    source: Section IV-A
+  - id: inference_augmentation
+    classification: explicitly_stated
+    value: Geometric augmentation only; demand augmentation is excluded at inference.
+    source: Algorithm 2 discussion
+  - id: diffusion_transition
+    classification: explicitly_stated
+    value: Symmetric binary transition Q_t with off-diagonal probability beta_t.
+    source: Section IV-B.2, Equation 8 context
+  - id: diffusion_training_steps
+    classification: explicitly_stated
+    value: 1000
+    source: Table I
+  - id: diffusion_inference_steps
+    classification: explicitly_stated
+    value: 50
+    source: Table I
+  - id: diffusion_beta_schedule
+    classification: explicitly_stated
+    value: Linear from 0.0001 to 0.02.
+    source: Section IV-B.2 and Table I
+  - id: diffusion_training_shape
+    classification: explicitly_stated
+    value: Batch size 32 for 50 epochs.
+    source: Table I
+  - id: pretrained_gat_shape
+    classification: explicitly_stated
+    value: Five layers, eight heads, embedding dimension 128, batch size 64.
+    source: Table I
+  - id: denoiser_global_features
+    classification: explicitly_stated
+    value: Node features come from the pretrained five-layer GAT and are used by the anisotropic denoiser.
+    source: Section IV-B.2, Equations 10-15
+  - id: frozen_global_policy_gat
+    classification: explicitly_stated
+    value: The policy reuses the diffusion GAT as a frozen fully connected global encoder.
+    source: Section IV-C.1 and Figure 4
+  - id: trainable_local_policy_gat
+    classification: explicitly_stated
+    value: A trainable GAT aggregates only neighbors selected by the predicted constraint matrix.
+    source: Section IV-C.1, Equations 16-17
+  - id: encoder_fusion
+    classification: explicitly_stated
+    value: Global and local node representations are summed, passed through a two-layer MLP, then mean pooled.
+    source: Section IV-C.1, Equation 18
+  - id: dual_pointer_decoder
+    classification: explicitly_stated
+    value: Local masked and global pointers are fused before single-head scoring.
+    source: Section IV-C.2 and Figure 4
+  - id: context_perception
+    classification: explicitly_stated
+    value: An MLP of local context is added to the fused pointer context.
+    source: Section IV-C.2, Equation 24
+  - id: savings_bias
+    classification: explicitly_stated
+    value: Log Clarke-Wright savings is added to single-head attention scores.
+    source: Section IV-C.2, Equation 25
+  - id: decoder_dimensions
+    classification: explicitly_stated
+    value: Hidden dimension 128, eight attention heads, QKV dimension 16, clipping constant 10.
+    source: Table I
+  - id: optimizer
+    classification: explicitly_stated
+    value: Adam with learning rate 0.0001 and weight decay 0.000001.
+    source: Table I
+  - id: policy_training_shape
+    classification: explicitly_stated
+    value: Batch size 32 and up to 100 epochs with early stopping.
+    source: Table I
+  - id: policy_objective
+    classification: explicitly_stated
+    value: Sampled REINFORCE trajectories with a multi-start average baseline and negative tour length reward.
+    source: Section IV-D.1 and Algorithm 1
+  - id: nstart_rule
+    classification: explicitly_stated
+    value: All customers through N=100; otherwise the 100 closest customers to the depot.
+    source: Algorithm 1 discussion
+  - id: synthetic_training_distribution
+    classification: explicitly_stated
+    value: Uniform coordinates in [0,1], integer demands 1-9, random depot, capacities 30/40/50 for N=20/50/100.
+    source: Section V-A.1
+  - id: training_corpus_sizes
+    classification: explicitly_stated
+    value: 50000 HGS-labelled diffusion instances and 200000 unlabeled policy instances.
+    source: Sections IV-D.1 and V-A.1
+  - id: xml100_protocol
+    classification: explicitly_stated
+    value: All 10000 XML100 instances covering 378 groups.
+    source: Section V-A.1
+  - id: training_hardware
+    classification: explicitly_stated
+    value: NVIDIA RTX A6000 48 GB and Intel Xeon Silver 4126.
+    source: Section V-A.2
+  - id: arbitrary_skipped_posterior
+    classification: mathematically_inferred
+    value: q(x_s | x_t, x_0) is computed from cumulative transition products for s<t; the paper gives only the adjacent-step posterior.
+    source: Inference step count plus Equation 8
+  - id: frozen_gat_identity
+    classification: mathematically_inferred
+    value: Reusing the same pretrained GAT means policy and diffusion weights must be exactly equal, not merely architecturally compatible.
+    source: Section IV-C.1 wording and Figure 4
+  - id: exact_random_seeds
+    classification: ambiguous_awaiting_author_clarification
+    value: No dataset, initialization, training, or evaluation seeds are reported.
+    source: Not specified in v1
+    reconstruction_choice: Seed 42 is the template default; every executed run must persist its actual seeds.
+  - id: hgs_label_budget
+    classification: ambiguous_awaiting_author_clarification
+    value: HGS version, stopping rule, time budget, threads, and seeds for label generation are absent.
+    source: Sections IV-D.1 and V-A.1 name HGS only
+    reconstruction_choice: Unresolved; the selected HGS version and budget must be frozen in the dataset manifest before Phase 2 generation.
+  - id: gat_pretraining_objective
+    classification: ambiguous_awaiting_author_clarification
+    value: Separate GAT loss, target, epoch count, validation criterion, and checkpoint selection are not specified.
+    source: Section IV-B.2 and Table I
+    reconstruction_choice: Weighted same-route pair BCE for 50 epochs, selecting by validation AUC with adaptive F1 threshold reporting.
+  - id: augmentation_enumeration
+    classification: ambiguous_awaiting_author_clarification
+    value: The exact Cartesian product, inclusion of identity, random-reassignment seed, and materialized multiplicity are unclear.
+    source: Section IV-A and Figure 1
+    reconstruction_choice: Sample one of eight D4 views and one of four named within-route demand permutations per source per epoch.
+  - id: skipped_transition_schedule
+    classification: ambiguous_awaiting_author_clarification
+    value: The exact inference timestep subsequence and arbitrary-skip reverse formula are not printed.
+    source: Section V-A.2 states DDIM-style reduction only
+    reconstruction_choice: Use 50 evenly spaced rounded timesteps including endpoints and the exact cumulative-transition posterior.
+  - id: synthetic_test_generation
+    classification: ambiguous_awaiting_author_clarification
+    value: Exact test seeds and whether the reported 1000-per-size instances are public/fixed are unspecified.
+    source: Section V and Table II
+    reconstruction_choice: Generate and freeze 1000 instances per size with recorded seeds and hashes before final evaluation.
+  - id: joint_or_per_size_training
+    classification: ambiguous_awaiting_author_clarification
+    value: It is unclear whether one joint model or separate N=20/50/100 models produced the reported results.
+    source: Not specified in v1
+    reconstruction_choice: Treat joint training across N=20/50/100 as the provisional paper baseline and report per-size training separately.
+  - id: early_stopping_rule
+    classification: ambiguous_awaiting_author_clarification
+    value: Patience, monitored metric, validation split, and minimum delta are not specified.
+    source: Table I says early stop only
+    reconstruction_choice: Patience 10; GAT monitors validation AUC, diffusion sample F1, and policy validation best cost.
+author_questions:
+  - id: exact_seeds
+    status: open
+    question: What exact seeds were used for dataset generation, HGS, initialization, minibatch order, diffusion sampling, and evaluation?
+  - id: hgs_budget
+    status: open
+    question: Which HGS version, time or iteration budget, thread count, stopping rule, and seed policy generated the 50000 labels?
+  - id: gat_pretraining_objective
+    status: open
+    question: What target, loss, epochs, validation metric, and checkpoint rule were used to pretrain the five-layer GAT?
+  - id: augmentation_enumeration
+    status: open
+    question: Which exact geometric and demand transforms are enumerated, is identity included, and are modalities combined as a Cartesian product?
+  - id: skipped_transition_formula
+    status: open
+    question: What timestep subsequence and reverse transition formula implement the 50-step DDIM-style discrete sampler?
+  - id: test_set_generation_seeds
+    status: open
+    question: What seeds or files define the 1000 synthetic test instances for each problem size?
+  - id: per_size_training
+    status: open
+    question: Are GAT, diffusion, and policy models trained jointly across sizes or separately for N=20, N=50, and N=100?
