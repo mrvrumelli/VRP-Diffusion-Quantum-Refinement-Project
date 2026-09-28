@@ -1,7 +1,8 @@
 """Anisotropic graph denoiser for constraint matrix ``M`` (CMD section IV-B2, eqs. 10-15).
 
 ``h^0 = GAT(G)`` (optional pretrained) + noisy ``m_t`` → logits for clean ``M``.
-Uses LayerNorm; pass ``customer_mask`` to ignore padded customers.
+The paper-compatible path uses BatchNorm in equations 11 and 13.  LayerNorm remains the default
+for legacy and ``ours_robust`` checkpoints; pass ``customer_mask`` to ignore padded customers.
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 import logging
 import math
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import torch
 from torch import Tensor, nn
@@ -29,6 +30,8 @@ __all__ = [
 ]
 
 NodeEncoderType = Literal["linear", "gat"]
+NormalizationType = Literal["layer_norm", "batch_norm"]
+EdgeInputFeatures = Literal["noisy_matrix", "noisy_matrix_distance"]
 
 # Edge feature layout: [m_t, pairwise_distance].
 _EDGE_FEATURE_DIM = 2
@@ -51,10 +54,18 @@ def sinusoidal_timestep_embedding(timesteps: Tensor, dim: int) -> Tensor:
     return embedding
 
 
+def _normalize_features(norm: nn.LayerNorm | nn.BatchNorm1d, features: Tensor) -> Tensor:
+    """Apply a channel norm to the final dimension of node or edge features."""
+    if isinstance(norm, nn.BatchNorm1d):
+        shape = features.shape
+        return cast(Tensor, norm(features.reshape(-1, shape[-1]))).reshape(shape)
+    return cast(Tensor, norm(features))
+
+
 class _AnisotropicLayer(nn.Module):
     """One anisotropic gated MP layer (CMD eqs. 10-13)."""
 
-    def __init__(self, hidden_dim: int) -> None:
+    def __init__(self, hidden_dim: int, *, normalization: NormalizationType) -> None:
         super().__init__()
         self.source_node = nn.Linear(hidden_dim, hidden_dim)
         self.target_node = nn.Linear(hidden_dim, hidden_dim)
@@ -67,8 +78,9 @@ class _AnisotropicLayer(nn.Module):
             nn.Linear(hidden_dim, hidden_dim),
         )
         self.time_proj = nn.Linear(hidden_dim, hidden_dim)
-        self.edge_norm = nn.LayerNorm(hidden_dim)
-        self.node_norm = nn.LayerNorm(hidden_dim)
+        norm_type = nn.BatchNorm1d if normalization == "batch_norm" else nn.LayerNorm
+        self.edge_norm = norm_type(hidden_dim)
+        self.node_norm = norm_type(hidden_dim)
 
     def forward(
         self,
@@ -79,7 +91,7 @@ class _AnisotropicLayer(nn.Module):
         node_mask: Tensor,  # [batch, n] float in {0, 1}
     ) -> tuple[Tensor, Tensor]:
         # eq. 11: refine the edge feature and inject the timestep.
-        edge_bar = self.edge_mlp(self.edge_norm(edge_embed))
+        edge_bar = self.edge_mlp(_normalize_features(self.edge_norm, edge_embed))
         edge_bar = edge_bar + self.time_proj(time_embed)[:, None, None, :]
 
         # eq. 10: new edge representation from source/target nodes and the refined edge feature.
@@ -93,7 +105,8 @@ class _AnisotropicLayer(nn.Module):
 
         # eq. 13: residual node update aggregating gated messages from neighbors j.
         aggregated = gate.sum(dim=2)
-        node_new = node_embed + torch.relu(self.node_norm(self.node_self(node_embed) + aggregated))
+        node_update = _normalize_features(self.node_norm, self.node_self(node_embed) + aggregated)
+        node_new = node_embed + torch.relu(node_update)
 
         node_new = node_new * node_mask[..., None]
         edge_new = edge_new * pair_mask[..., None]
@@ -119,6 +132,8 @@ class ConstraintDenoiser(nn.Module):
         gat_num_heads: int = 4,
         gat_dropout: float = 0.0,
         freeze_node_encoder: bool = False,
+        normalization: NormalizationType = "layer_norm",
+        edge_input_features: EdgeInputFeatures = "noisy_matrix_distance",
     ) -> None:
         super().__init__()
         if num_layers < 1:
@@ -127,11 +142,22 @@ class ConstraintDenoiser(nn.Module):
             raise ValueError(
                 f"node_encoder_type must be 'linear' or 'gat', got {node_encoder_type!r}"
             )
+        if normalization not in ("layer_norm", "batch_norm"):
+            raise ValueError(
+                f"normalization must be 'layer_norm' or 'batch_norm', got {normalization!r}"
+            )
+        if edge_input_features not in ("noisy_matrix", "noisy_matrix_distance"):
+            raise ValueError(
+                "edge_input_features must be 'noisy_matrix' or 'noisy_matrix_distance', "
+                f"got {edge_input_features!r}"
+            )
         self.hidden_dim = hidden_dim
         self.node_encoder_type: NodeEncoderType = node_encoder_type
         self.gat_num_layers = gat_num_layers
         self.gat_num_heads = gat_num_heads
         self.freeze_node_encoder = freeze_node_encoder
+        self.normalization: NormalizationType = normalization
+        self.edge_input_features: EdgeInputFeatures = edge_input_features
 
         if node_encoder_type == "linear":
             self.node_encoder: nn.Module = nn.Linear(NODE_FEATURE_DIM, hidden_dim)
@@ -143,14 +169,17 @@ class ConstraintDenoiser(nn.Module):
                 num_heads=gat_num_heads,
                 dropout=gat_dropout,
             )
-        self.edge_encoder = nn.Linear(_EDGE_FEATURE_DIM, hidden_dim)
+        edge_feature_dim = 1 if edge_input_features == "noisy_matrix" else _EDGE_FEATURE_DIM
+        self.edge_encoder = nn.Linear(edge_feature_dim, hidden_dim)
         self.time_encoder = nn.Sequential(
             nn.Linear(time_embed_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
         )
         self.time_embed_dim = time_embed_dim
-        self.layers = nn.ModuleList(_AnisotropicLayer(hidden_dim) for _ in range(num_layers))
+        self.layers = nn.ModuleList(
+            _AnisotropicLayer(hidden_dim, normalization=normalization) for _ in range(num_layers)
+        )
         self.output_head = nn.Linear(hidden_dim, 1)
         if freeze_node_encoder:
             self.set_node_encoder_trainable(False)
@@ -240,9 +269,13 @@ class ConstraintDenoiser(nn.Module):
         return encoded * node_mask[..., None]
 
     def _encode_edges(self, customer_coords: Tensor, m_t: Tensor, pair_mask: Tensor) -> Tensor:
-        coords_i = customer_coords[:, :, None, :]
-        coords_j = customer_coords[:, None, :, :]
-        distance = torch.linalg.norm(coords_i - coords_j, dim=-1)
-        edge_features = torch.stack([m_t, distance], dim=-1)
+        if self.edge_input_features == "noisy_matrix":
+            # Paper equation 10 defines e^0 = x_t. Distance is retained only in the robust path.
+            edge_features = m_t.unsqueeze(-1)
+        else:
+            coords_i = customer_coords[:, :, None, :]
+            coords_j = customer_coords[:, None, :, :]
+            distance = torch.linalg.norm(coords_i - coords_j, dim=-1)
+            edge_features = torch.stack([m_t, distance], dim=-1)
         encoded: Tensor = self.edge_encoder(edge_features)
         return encoded * pair_mask[..., None]

@@ -70,6 +70,8 @@ _PAPER_REQUIREMENTS: dict[AlignmentComponent, dict[str, object]] = {
         "model.gat_num_layers": 5,
         "model.gat_num_heads": 8,
         "model.freeze_node_encoder": True,
+        "model.normalization": "batch_norm",
+        "model.edge_input_features": "noisy_matrix",
         "schedule.num_timesteps": 1000,
         "schedule.beta_start": 1e-4,
         "schedule.beta_end": 2e-2,

@@ -158,6 +158,16 @@ hashes and no overlap.
 
 **Estimate:** 5-8 days.
 
+**Status (2026-09-24): engineering complete; empirical gate pending.** The paper configuration,
+BatchNorm denoiser updates, paper-compatible `e^0=x_t` edge input, arbitrary-interval posterior,
+50-step evaluation wiring, curve runner, and all requested mathematical/structural/determinism
+tests are implemented. Focused verification reports 81 passing tests, the complete CPU suite
+reports 507 passing tests, and the source tree passes Mypy. The repository does not yet contain the
+Phase 2 paper dataset, frozen evaluation panel, or a
+trained `paper_cmd` diffusion checkpoint, so the approximately 0.823 F1 result at 50 steps has not
+been reproduced. See
+[`phase3_faithful_diffusion_status_2026-09-24.md`](phase3_faithful_diffusion_status_2026-09-24.md).
+
 Implement a paper configuration with:
 
 - `T=1000`, `beta_1=1e-4`, and `beta_T=0.02`;

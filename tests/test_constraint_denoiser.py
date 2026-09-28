@@ -168,6 +168,42 @@ def test_forward_is_deterministic_with_seeded_init() -> None:
     assert torch.equal(out_a, out_b)
 
 
+def test_paper_denoiser_uses_batch_norm_and_noisy_matrix_edge_input() -> None:
+    torch.manual_seed(5)
+    batch = collate_batch([_example(20, seed=5), _example(20, seed=6)])
+    coords, demands, capacity = _customer_tensors(batch)
+    m_t = _noise(batch, t=500, seed=5)
+    model = ConstraintDenoiser(
+        hidden_dim=16,
+        num_layers=2,
+        time_embed_dim=16,
+        normalization="batch_norm",
+        edge_input_features="noisy_matrix",
+    )
+
+    logits = model(
+        coords,
+        demands,
+        capacity,
+        m_t,
+        torch.tensor([500, 500]),
+        customer_mask=batch.customer_mask,
+    )
+
+    assert model.edge_encoder.in_features == 1
+    assert all(isinstance(layer.edge_norm, torch.nn.BatchNorm1d) for layer in model.layers)
+    assert all(isinstance(layer.node_norm, torch.nn.BatchNorm1d) for layer in model.layers)
+    assert torch.all(torch.isfinite(logits))
+    assert torch.allclose(logits, logits.transpose(-1, -2), atol=1e-6)
+
+
+def test_denoiser_rejects_unknown_paper_modes() -> None:
+    with pytest.raises(ValueError, match="normalization"):
+        ConstraintDenoiser(normalization="instance_norm")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="edge_input_features"):
+        ConstraintDenoiser(edge_input_features="distance")  # type: ignore[arg-type]
+
+
 def test_backward_populates_gradients() -> None:
     torch.manual_seed(0)
     batch = collate_batch([_example(20, seed=0)])

@@ -129,6 +129,8 @@ def load_denoiser_checkpoint(
         gat_num_heads=int(model_cfg.get("gat_num_heads", 4)),
         gat_dropout=float(model_cfg.get("gat_dropout", 0.0)),
         freeze_node_encoder=bool(model_cfg.get("freeze_node_encoder", False)),
+        normalization=str(model_cfg.get("normalization", "layer_norm")),  # type: ignore[arg-type]
+        edge_input_features=str(model_cfg.get("edge_input_features", "noisy_matrix_distance")),  # type: ignore[arg-type]
     )
     from vrp_diffusion_quantum.models.gat_encoder import compat_layernorm_state_dict
 
@@ -230,10 +232,11 @@ def sample_constraint_matrix(
     generator: torch.Generator | None = None,
     threshold: float = 0.5,
     snapshot_every: int | None = None,
+    num_inference_steps: int | None = None,
     step_stride: int = 1,
     x0_clamp: float = 1e-3,
     transition_mode: Literal["stochastic", "deterministic"] = "stochastic",
-    sampler: Literal["skipped_posterior", "one_step_approx"] = "one_step_approx",
+    sampler: Literal["skipped_posterior", "one_step_approx"] = "skipped_posterior",
     prior_positive_probability: float = 0.5,
 ) -> MatrixPredictionResult:
     """Full reverse chain ``t = T-1 → 0`` → final ``m_hat`` / ``m_prob`` (+ optional snapshots).
@@ -241,6 +244,8 @@ def sample_constraint_matrix(
     Args:
         snapshot_every: if set (e.g. ``100``), store hard matrices every this many steps plus
             the endpoints, for heatmaps. ``None`` skips the trajectory (less memory).
+        num_inference_steps: number of evenly spaced denoising calls (the paper uses 50). When
+            provided, this takes precedence over ``step_stride``.
         step_stride: visit every ``step_stride``-th timestep (plus ``t=0``).
         x0_clamp: clamp soft ``x̂_0`` into ``[x0_clamp, 1 - x0_clamp]`` before the posterior
             so extreme probs do not destabilize multi-step sampling.
@@ -264,6 +269,7 @@ def sample_constraint_matrix(
         generator=generator,
         threshold=threshold,
         snapshot_every=snapshot_every,
+        num_inference_steps=num_inference_steps,
         step_stride=step_stride,
         x0_clamp=x0_clamp,
         transition_mode=transition_mode,
@@ -315,6 +321,8 @@ def predict_matrix_batch(
     device: torch.device | str | None = None,
     seed: int,
     step_stride: int = 1,
+    num_inference_steps: int | None = None,
+    sampler: Literal["skipped_posterior", "one_step_approx"] = "skipped_posterior",
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """Predict ``(m_prob, m_hat)`` for each example with one denoiser; batch size 1 per call.
 
@@ -349,6 +357,8 @@ def predict_matrix_batch(
                 customer_mask=mask,
                 generator=generator,
                 step_stride=step_stride,
+                num_inference_steps=num_inference_steps,
+                sampler=sampler,
             )
         probabilities.append(prediction.m_prob)
         hard_matrices.append(prediction.m_hat)
@@ -441,8 +451,10 @@ def evaluate_full_chain_sampling(
     seed: int = 0,
     threshold: float | None = None,
     adaptive_threshold: bool = True,
+    num_inference_steps: int | None = None,
     step_stride: int = 1,
     transition_mode: Literal["stochastic", "deterministic"] = "stochastic",
+    sampler: Literal["skipped_posterior", "one_step_approx"] = "skipped_posterior",
     prior_positive_probability: float = 0.5,
     batch_size: int = 1,
     confidence_level: float | None = None,
@@ -493,8 +505,10 @@ def evaluate_full_chain_sampling(
                 generator=generator,
                 threshold=hard_thr,
                 snapshot_every=None,
+                num_inference_steps=num_inference_steps,
                 step_stride=step_stride,
                 transition_mode=transition_mode,
+                sampler=sampler,
                 prior_positive_probability=prior_positive_probability,
             )
             for row, (_, example) in enumerate(chunk):
@@ -523,8 +537,12 @@ def evaluate_full_chain_sampling(
         "sample_num_examples": len(examples),
         "sample_threshold": 0.5,
         "sample_soft_threshold": float(soft_metrics.threshold),
+        "sample_num_inference_steps": (
+            schedule.num_timesteps if num_inference_steps is None else int(num_inference_steps)
+        ),
         "sample_step_stride": int(step_stride),
         "sample_transition_mode": transition_mode,
+        "sample_sampler": sampler,
         "sample_prior_positive_probability": float(prior_positive_probability),
         "sample_batch_size": int(batch_size),
         **summarize_routing_evaluations(
@@ -560,6 +578,18 @@ def _parse_sample_eval_args() -> argparse.Namespace:
     parser.add_argument("--sizes", type=int, nargs="+", default=[20, 50, 100])
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--batch-size", type=int, default=1)
+    parser.add_argument(
+        "--inference-steps",
+        type=int,
+        nargs="+",
+        default=None,
+        help="evaluate an inference-step curve (for example: 10 20 50 100); default is full T",
+    )
+    parser.add_argument(
+        "--sampler",
+        choices=["skipped_posterior", "one_step_approx"],
+        default="skipped_posterior",
+    )
     parser.add_argument("--confidence-level", type=float, default=0.95)
     parser.add_argument("--bootstrap-resamples", type=int, default=10_000)
     parser.add_argument("--device", type=str, default="auto")
@@ -607,27 +637,41 @@ def main() -> None:
     )
     print(f"scoring {len(examples)} examples (per_size={args.per_size}, sizes={args.sizes})")
 
-    metrics = evaluate_full_chain_sampling(
-        model,
-        schedule,
-        examples,
-        device=device,
-        seed=args.seed,
-        batch_size=args.batch_size,
-        confidence_level=args.confidence_level,
-        bootstrap_resamples=args.bootstrap_resamples,
-    )
-    print("=== full T->0 vs m_true ===")
-    for key in sorted(metrics):
-        print(f"  {key}: {metrics[key]}")
-
     out_dir = args.output_dir
     if out_dir is None:
         out_dir = _ROOT / "outputs" / "eval" / ckpt.parent.parent.name
     out_dir = out_dir if out_dir.is_absolute() else _ROOT / out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
-    metrics_path = out_dir / "sample_metrics.json"
-    metrics_path.write_text(json.dumps(metrics, indent=2, default=str))
+
+    requested_steps: list[int | None] = (
+        [None] if args.inference_steps is None else list(dict.fromkeys(args.inference_steps))
+    )
+    curve: dict[str, dict[str, Any]] = {}
+    for inference_steps in requested_steps:
+        label = "full" if inference_steps is None else str(inference_steps)
+        metrics = evaluate_full_chain_sampling(
+            model,
+            schedule,
+            examples,
+            device=device,
+            seed=args.seed,
+            batch_size=args.batch_size,
+            num_inference_steps=inference_steps,
+            sampler=args.sampler,
+            confidence_level=args.confidence_level,
+            bootstrap_resamples=args.bootstrap_resamples,
+        )
+        curve[label] = metrics
+        print(f"=== inference_steps={label} vs m_true ===")
+        for key in sorted(metrics):
+            print(f"  {key}: {metrics[key]}")
+
+    if args.inference_steps is None:
+        metrics_path = out_dir / "sample_metrics.json"
+        metrics_path.write_text(json.dumps(curve["full"], indent=2, default=str))
+    else:
+        metrics_path = out_dir / "inference_step_curve.json"
+        metrics_path.write_text(json.dumps(curve, indent=2, default=str))
     print(f"wrote {metrics_path}")
 
     meta = {
@@ -637,6 +681,8 @@ def main() -> None:
         "sizes": args.sizes,
         "seed": args.seed,
         "batch_size": args.batch_size,
+        "inference_steps": args.inference_steps,
+        "sampler": args.sampler,
         "confidence_level": args.confidence_level,
         "bootstrap_resamples": args.bootstrap_resamples,
         "device": str(device),
@@ -658,6 +704,10 @@ def main() -> None:
                 customer_mask=mask,
                 generator=torch.Generator(device="cpu").manual_seed(args.seed + i),
                 snapshot_every=None,
+                num_inference_steps=(
+                    None if args.inference_steps is None else args.inference_steps[-1]
+                ),
+                sampler=args.sampler,
             )
             m_true = example.constraint_matrix.astype(float)
             dens = float(sampled.m_hat.sum()) / max(m_true.size - m_true.shape[0], 1)

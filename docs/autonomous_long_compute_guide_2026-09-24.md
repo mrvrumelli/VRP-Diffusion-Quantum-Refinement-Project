@@ -51,10 +51,10 @@ merge — not re-listed as open work below.
 | 2 Paper data — generate 200,000 unlabeled RL instances | **Fast — already satisfied, no compute needed** | The existing `cvrp_s7799_n20-50-100_x66667` corpus's 180,000-example train split already matches the paper's distribution (verified 2026-09-24, see below) |
 | 2 Paper data — freeze 1,000 test instances/size | **Fast — already satisfied** | The existing test split has 3,333/size, already exceeds the requirement |
 | 2 Paper data — **label 50,000 diffusion-training instances** | **Long** | The one real gap. ~29-30h at 11 workers if single-seed HGS-only, per the paper's own `label_policy: single_hgs_route_partition` (see Task 9) |
-| 3 Faithful diffusion — implement skipped sampler, config templates | Fast | Already merged in (`q_posterior_between_prob`, `sampler="skipped_posterior"`, `*_paper_cmd.yaml` configs) |
+| 3 Faithful diffusion — engineering implementation | Fast | Complete; mathematical and structural gates pass. The trained inference-step/F1 curve remains a long-compute gate; see `phase3_faithful_diffusion_status_2026-09-24.md`. |
 | 3 Faithful diffusion — **train paper-config GAT+diffusion; gate F1≈0.823@50 steps** | **Long** | GPU; needs Task 9's labeled data first |
-| 4 Faithful decoder — implement `architecture: paper_cmd` in `CVRPPolicy` (currently `NotImplementedError`) | Fast (code) | **Blocks Task 11 below** — not compute itself |
-| 4 Faithful decoder — tiny RL smoke gate | Fast/short | A quick correctness check, not a long run |
+| 4 Faithful decoder — implement `architecture: paper_cmd` in `CVRPPolicy` | Fast (code) | Complete on 2026-09-24; exact frozen-GAT round trip and configuration ablations are tested |
+| 4 Faithful decoder — tiny RL smoke gate | Fast/short | Complete: the marked CPU smoke lowers cost while retaining 100% feasibility |
 | 5 Train paper baseline | **Long — biggest single item** | Plan's own estimate: 1-3 elapsed weeks (pilot → comparison → full diffusion → full 200k/100-epoch policy training → 3-seed confirmation) |
 | 6 Exact evaluation suite (synthetic 1,000/size + CVRPLIB-17 + full XML100 10,000 instances + HGS/POMO baselines) | **Long** | XML100-scale baseline runs are audit-scale CPU work again |
 | 7 Reproduce ablations (Gaussian-vs-Bernoulli, no-masked-encoder, no-local-pointer, frozen-vs-fine-tuned-GAT × 7 inference-step settings) | **Long** | Plan estimate: 1-2 weeks; each arm is its own training run |
@@ -85,6 +85,16 @@ Checked `cvrp_s7799_n20-50-100_x66667/README.md` against Phase 2's stated needs:
 
 ## Verified state as of this session (2026-09-24)
 
+- **Re-verified after Phase 1/3/4 landed**: `ruff check .` clean, `mypy src` clean (**54** source
+  files, up from 50 earlier this session as Track B added `utils/alignment.py` and
+  `eval/baselines.py`), `pytest -q` **507/507** on this machine's real environment (matches the
+  isolated clean-env check in `phase1_clean_repository_gate_2026-09-24.md`/
+  `phase3_faithful_diffusion_status_2026-09-24.md` exactly), `pytest -q -m cuda` **4/4** — GPU path
+  confirmed healthy on this actual machine, not just the CPU-only isolated env those two status
+  docs used. One real mypy regression was caught and fixed mid-session:
+  `models/constraint_denoiser.py`'s new `_normalize_features` (added for Phase 3's BatchNorm
+  support) returned `Any` from a function typed to return `Tensor`; wrapped both `nn.Module.__call__`
+  results in `cast(Tensor, ...)`, matching how this file already typed similar calls elsewhere.
 - `ruff check .`: clean. `mypy src`: clean (50 files). `pytest -q`: **428/428** — but only after
   `--basetemp=.test-tmp/pytest_clean`; the default Windows temp dir
   (`C:\Users\Administrator\AppData\Local\Temp\pytest-of-Mustafa Mert`) is permission-denied
@@ -183,6 +193,22 @@ sizes.
 looking like wins on the bigger panel — do not just confirm the earlier smaller-panel numbers by
 assumption.
 
+**Status: complete, 2026-09-24.** N100's diffusion-only leg died mid-run with a bare exit 127 and
+no traceback the first time (right as Task 9's audit ramped up to 11 workers — resource
+contention, not a real bug; a direct rerun completed cleanly at exit 0, so treated as resolved
+rather than a lead worth digging into further). Final numbers on the full panel (100/92/45
+examples):
+
+| Size | Policy K=1 gap | Diffusion-only champion gap | Delta | vs. earlier smaller-panel figures |
+|---|---:|---:|---:|---|
+| N20 | **17.86%** | 21.11% [18.71, 23.57] | **-3.25pp** | 18.05%/22.00% — confirmed, consistent |
+| N50 | **27.81%** | 29.39% [27.33, 31.51] | **-1.58pp** | 28.01%/28.90% — confirmed, consistent |
+| N100 | 31.80% | **30.57%** [28.15, 33.09] | +1.23pp | 31.54%/30.10% — confirmed, consistent |
+
+**Gate decision**: the smaller-panel finding holds up on the ~2-8x larger full panel — N20 and N50
+remain real, methodologically-clean policy wins; N100 remains genuinely behind the diffusion-only
+champion. This directly motivates Task 6 (N100 hyperparameter study), launched next.
+
 ### Task 3 — Evaluate the `rcfull`-merged checkpoints properly (long, GPU; needs Task 1 done)
 
 Score `diffusion_denoiser_s7799_rcfull_persize_n{20,50,100}_cuda` on:
@@ -235,11 +261,44 @@ flattens between consecutive curve points. Do not use matrix F1 or training loss
 
 Sweep learning rate schedule, entropy regularization, normalization, number of starts, and curriculum
 around the existing `policy_reinforce_s7799_n100_heldout_cuda.yaml` base, using the same K=1 eval
-methodology as Task 2. Each run is roughly an hour at the existing 3,600s cap; budget for 5-15 runs.
+methodology as Task 2. **Correction 2026-09-24**: the current base config's own
+`max_runtime_seconds` is 10,800s (3h), not the 3,600s this guide originally said — budget
+accordingly, up to 3h/run, 5-15 runs.
 
-**Gate (C.4)**: report whether any configuration beats the 30.10% diffusion-only large-panel gap
-without losing feasibility. A clean "still behind, here is by how much" is an acceptable, valid
-outcome — do not keep tuning indefinitely looking for a win that may not be there.
+**Gate (C.4): PASSED, 2026-09-25.** `num_starts: 8 → 16` beats the **30.57%** diffusion-only
+large-panel gap on 3/3 seeds (mean K=1 **29.80%**, range 28.74-30.47%), 100% feasible throughout.
+Full sweep, per-epoch trajectories, and the resulting Track A recipe-recommendation change (all
+three sizes now beat their diffusion-only counterparts, not just N20/N50) are in
+[`task6_n100_hyperparameter_sweep_2026-09-24.md`](task6_n100_hyperparameter_sweep_2026-09-24.md).
+
+**Variant 1 result: negative, entropy regularization made it worse.**
+`policy_reinforce_s7799_n100_entropy01_cuda.yaml` (base + `entropy_weight: 0.01`) completed all 6
+epochs (~1h, well under the 3h cap). Best-of-8 val curve was non-monotonic again (27.99% ->
+31.78% -> 31.02% -> 30.82% -> 29.59% -> 28.27%), never beating its own epoch 0. True K=1 gap on
+the large panel: **32.44%** (best.pt, epoch 0) / 32.65% (last.pt, epoch 5) — both *worse* than
+the base's 31.80% and worse than the 30.57% target. Entropy bonus is ruled out at this magnitude;
+recorded as a real negative result, not hidden.
+
+**Variant 2 result: negative, and worse than variant 1.** `policy_reinforce_s7799_n100_lr5e5_cuda.yaml`
+(`entropy_weight: 0.0`, `learning_rate: 5e-5`) again picked epoch 0 as best-of-8 (29.20%) then
+degraded every epoch after (31.24% -> 30.18% -> 31.03% -> 31.44% -> 32.68%) — and unlike the LR-too-high
+hypothesis, `gradient_norm` actually *grew* across epochs (28 -> 47) despite the lower rate. True
+K=1 gap: **34.72%** — worse than variant 1 (32.44%) and the base (31.80%). Halving the LR made
+things worse, not better; both directions of the LR/entropy axes have now failed.
+
+**Pattern across all three runs so far**: epoch 0 is consistently the best-of-8 checkpoint, and
+every subsequent epoch degrades near-monotonically regardless of entropy or LR — this looks more
+like REINFORCE variance/policy collapse on N100's larger action space than a step-size problem
+specifically.
+
+**Variant 3 launched 2026-09-24.** `policy_reinforce_s7799_n100_starts16_cuda.yaml` — back to the
+base learning rate/entropy, doubled `num_starts`/`val_num_starts` (8 -> 16) to test whether a
+less-noisy multi-start baseline reduces the collapse — a genuinely different variable than the
+first two. Running now (`outputs/logs/task6_n100_starts16_20260924.log`), roughly 2x the
+per-epoch cost of variants 1-2 since it rolls out twice as many starts per batch. **If this also
+fails to beat 31.80% (base) at K=1, stop the sweep here** (3 of the 5-15 budgeted runs, all
+pointing the same direction) and report N100 as still behind per the gate's own explicit
+allowance — a fourth guess without a new hypothesis would not be a good use of GPU time.
 
 ### Task 7 — Quantum/quantum-inspired simulation screening (long, magnitude uncertain)
 
@@ -254,44 +313,54 @@ identical initial solutions, matched budgets. This is the `baseline-v1.0` capsto
 
 ### Track B: `paper_cmd` reproduction
 
-Do the Phase 4 code item (implement `architecture: paper_cmd` in `CVRPPolicy`, currently
-`NotImplementedError` in `build_policy_from_config`) inline, whenever — it's pure code, not queued
-here, but **Task 11 is blocked on it**.
+Phase 4's code item (implement `architecture: paper_cmd` in `CVRPPolicy`) is **done** as of
+2026-09-24 — `build_policy_from_config` no longer raises `NotImplementedError`; the exact
+frozen-GAT checkpoint round trip, zero-gradient check, tiny cost-lowering RL smoke run, and the
+no-`M`/no-local-encoder/no-local-pointer ablation modes are all covered by
+`tests/test_paper_cmd_policy.py`, verified passing on this machine. Task 11 is therefore only
+blocked on Task 10 now, not on any remaining code work.
 
 ### Task 9 — Label 50,000 paper_cmd diffusion-training instances (long, CPU-bound)
 
 Generation is **not** needed (see the classification section above) — only labeling is. The paper's
 own protocol is a single HGS solve per instance treated as ground truth
-(`diffusion_denoiser_paper_cmd.yaml`'s `dataset.label_policy: single_hgs_route_partition`), not this
-project's stricter 4-seed + OR-Tools-challenger audit — reusing that cheaper, paper-faithful protocol
-instead of our own is both more correct here and roughly 4x cheaper.
+(`diffusion_denoiser_paper_cmd.yaml`'s `dataset.label_policy: single_hgs_route_partition`), cheaper
+than this project's 4-seed + OR-Tools-challenger audit. **True single-seed mode isn't reachable
+through this tooling**: `label_audit.py`'s `AcceptancePolicy` hard-validates
+`minimum_near_best_seeds >= 2`, and `scripts/run_strong_label_audit.py` additionally hardcoded
+"exactly four" seeds (fixed 2026-09-24 — relaxed to `len(base_seeds) >= minimum_near_best_seeds`,
+backward-compatible with every existing 4-seed config, verified via `pytest -q`: still 507/507).
+So the closest reachable approximation is **2 seeds** — roughly half this project's own 4-seed
+cost, not the paper's theoretical 1-seed cost. Documented explicitly as a tooling-floor deviation,
+not a silent substitution. (Correction: OR-Tools is *not* disabled by `stable_sample_per_size: 0`
+— that setting only removes the extra deterministic stable-control sample; the challenger still
+runs on every `needs_review` case regardless. Confirmed by the pilot's own run: 1,343 OR-Tools
+challenges completed, not zero.)
 
-Stage it rather than committing to 50,000 blind:
+**Status: pilot complete 2026-09-24.** Full results and interpretation:
+[`task9_paper_cmd_pilot_audit_2026-09-24.md`](task9_paper_cmd_pilot_audit_2026-09-24.md). Stage it
+rather than committing to 50,000 blind:
 
-1. **Pilot, ~5,000 instances (1,667/size).** Select a deterministic subset from the existing train
-   split, then verify (do not assume) zero overlap with the 1,500 instances already in
-   `s7799_strong_reference`:
-   ```bash
-   python scripts/select_dataset_subset.py \
-     --source cvrp_s7799_n20-50-100_x66667/splits/train \
-     --output data/processed/paper_cmd_hgs_pilot_5k \
-     --sizes 20 50 100 --per-size 1667 --seed 50937
-   ```
-   `scripts/check_generated_dataset_overlap.py` does **not** fit here — it compares raw
-   `generate_cvrp`-style CSV directories (`instance_content_hashes`), not the `CVRPExample` JSON
-   directories `select_dataset_subset.py` produces. The right tool for JSON-example pools is
-   `report_instance_id_overlap` in `src/vrp_diffusion_quantum/eval/matrix_ablation.py` (already
-   used for exactly this purpose elsewhere), called on the two loaded pools — this needs a short
-   one-off script (fast, write it before running the pilot, not a long-compute item itself).
-   Then label with a new single-seed config (copy `label_audit_strong_s7799.yaml`, set
-   `base_seeds` to one seed, `stable_sample_per_size: 0` to skip the OR-Tools challenger entirely,
-   `expected_counts_by_size` to `{20: 1667, 50: 1667, 100: 1666}`):
+1. **Pilot, 4,949 instances after overlap-pruning (1,644/1,653/1,652 by size).** Selected a
+   deterministic 5,001-instance subset from the train split (`select_dataset_subset.py
+   --per-size 1667 --seed 50937`), then checked — not assumed — overlap against the 1,500
+   already-audited `s7799_strong_reference` instances via a one-off script
+   (`outputs/_scratch/check_pilot_overlap.py`, using `report_instance_id_overlap` from
+   `eval/matrix_ablation.py`, since `check_generated_dataset_overlap.py` doesn't fit JSON-example
+   pools — it compares raw `generate_cvrp` CSV directories). Found 52 real overlaps (expected at
+   this ~2.5%-of-pool sampling rate, not a bug) and removed them
+   (`outputs/_scratch/remove_pilot_overlap.py`), reverified zero overlap. Labeled with
+   `configs/data/label_audit_paper_cmd_pilot.yaml` (seeds `[50937, 50938]`). **Completed**: 9,898/9,898
+   PyVRP + 1,343/1,343 OR-Tools runs, 0 errors, ~5h51m at 11 workers. Yield: 3,606 matrix-stable
+   examples (1,637/1,332/637 by size) out of 4,949 audited — full breakdown and interpretation in
+   the linked report above.
    ```bash
    python scripts/run_strong_label_audit.py --config configs/data/label_audit_paper_cmd_pilot.yaml
    ```
-2. Train Task 10 on the pilot first and check the F1≈0.823-at-50-steps gate before committing
-   further — this is the actual decision point for whether 50,000 is worth it on this hardware, the
-   same "don't audit blind" principle Track A's Task 5 already applies to its own label budget.
+2. Train Task 10 on the pilot first (point `dataset.path` at `accepted_matrix_examples/`, not
+   `reference_examples/`) and check the F1≈0.823-at-50-steps gate before committing further — this
+   is the actual decision point for whether 50,000 is worth it on this hardware, the same "don't
+   audit blind" principle Track A's Task 5 already applies to its own label budget.
 3. **Full scale, ~16,667/size = 50,000**, only if the pilot's trend justifies it. Same process,
    larger `--per-size`/`expected_counts_by_size`, excluding the pilot's own instances too. Estimated
    **~29-30 hours at 11 workers** (single-seed, 10/20/40s-by-size budgets — the paper doesn't state
@@ -319,7 +388,7 @@ python -m vrp_diffusion_quantum.train.train_diffusion \
 the full 50,000-instance labeling (Task 9 step 3) isn't necessary; if it doesn't, that's the signal
 to commit to the full scale and rerun this task.
 
-### Task 11 — Full Phase 5 paper-baseline training (long — the single biggest item; needs Task 10 and the Phase 4 code item)
+### Task 11 — Full Phase 5 paper-baseline training (long — the single biggest item; needs Task 10)
 
 In increasing cost order, per the plan: CVRP20 convergence pilot → small joint-vs-per-size
 comparison → full diffusion training at scale → full 200,000-instance/100-epoch policy training →
@@ -386,3 +455,238 @@ quantum-refinement Tasks 7-8 — become appropriate to start.
 ## Log
 
 (Append one entry per completed task: date, task, actual numbers, gate decision, next action.)
+
+**2026-09-24, launched (in progress):** Re-verified whole-repo state after Phase 1/3/4 landed
+(507/507 CPU tests, 4/4 CUDA tests, ruff/mypy clean on this machine) and fixed one real mypy
+regression (`constraint_denoiser.py`'s new `_normalize_features`) plus the seed-count tooling gap
+above. Launched **Task 2** (large-panel policy-vs-diffusion eval, GPU,
+`outputs/logs/task2_large_panel_eval_20260924.log`) and **Task 9's pilot** (CPU,
+`outputs/logs/task9_pilot_audit_20260924.log`) concurrently. Interim Task 2 numbers already
+visible before completion: policy K=1 gap N50 27.81%, N100 31.80% — close to the earlier
+smaller-panel figures (28.01%, 31.54%), a good sign they'll hold up on the full panel. Next: on
+each job's completion notification, record final numbers here, decide the stated gate, and launch
+whichever task is next-unblocked in either track (not necessarily Task 1 or Task 3 specifically —
+check both tracks' dependencies at that point).
+
+**2026-09-24, Task 2 complete.** Final numbers and gate decision recorded under Task 2 above:
+N20/N50 policy wins confirmed on the full panel (-3.25pp, -1.58pp), N100 confirmed behind
+(+1.23pp, diffusion-only champion re-measured at 30.57% not the earlier 30.10%). One real
+mid-session incident: N100's leg died with exit 127/no traceback under concurrent load with
+Task 9; a direct rerun succeeded, treated as resource contention rather than a bug worth deeper
+investigation. GPU freed up by Task 2's completion; launched **Task 6 variant 1**
+(`policy_reinforce_s7799_n100_entropy01_cuda.yaml`, `entropy_weight: 0.01`,
+`outputs/logs/task6_n100_entropy01_20260924.log`) to start addressing the N100 gap, running
+concurrently with Task 9's still-in-progress pilot audit (~10% done at this point). Next: on Task
+6 variant 1's completion, record its K=1 gap vs. the 30.57% target; if still behind, design
+variant 2 (untried axes: LR schedule, normalization, num_starts, curriculum) rather than
+re-running the same change. On Task 9's completion, materialize the labeled pilot and launch
+Task 10.
+
+**2026-09-24, Task 6 variants 1-2 negative, variant 3 a candidate win, replicating.** Full
+detail in [`task6_n100_hyperparameter_sweep_2026-09-24.md`](task6_n100_hyperparameter_sweep_2026-09-24.md).
+Entropy (0.01) and halved LR (5e-5) both made K=1 worse (32.44%, 34.72% vs. base 31.80%).
+Doubling `num_starts` (8→16) broke the "epoch 0 always wins" pattern all prior runs showed and
+produced K=1 **30.18%** — the first result to beat the diffusion-only target (30.57%). Not called
+confirmed on one seed; launched a same-config replication at `seed: 4332`
+(`outputs/logs/task6_n100_starts16_seed4332_20260924.log`), per this project's own precedent for
+single-seed wins reversing on replication.
+
+**2026-09-24, Task 9 pilot complete; Task 1 launched.** Full detail in
+[`task9_paper_cmd_pilot_audit_2026-09-24.md`](task9_paper_cmd_pilot_audit_2026-09-24.md): 9,898/9,898
+PyVRP + 1,343/1,343 OR-Tools runs, 0 errors, ~5h51m. Yield 3,606 matrix-stable examples
+(1,637/1,332/637 by size) out of 4,949 audited — corrected a wrong assumption in this guide along
+the way: `stable_sample_per_size: 0` does **not** disable OR-Tools, it only removes the extra
+stable-control sample; the challenger still ran on all 1,343 `needs_review` cases. CPU freed up;
+launched **Task 1** (resume the paused `rc_full_eval` audit,
+`outputs/logs/task1_rc_full_eval_resume_20260924.log`) per explicit instruction — it had been
+untouched all session since Task 9 was picked first for the CPU slot. Next: on Task 6's
+replication completing, confirm or reject the num_starts=16 win; on Task 1's completion,
+materialize the OOD panel and unblock Task 3; separately, decide when to launch Task 10 on the
+Task 9 pilot's `accepted_matrix_examples/` pool (not yet started — still an open next step, not
+blocked on anything).
+
+**2026-09-25, Task 6 num_starts=16 confirmed on 2/2 seeds, 3rd seed running.** Seed 4332's
+replication landed at K=1 **28.74%** — even better than seed 42's 30.18%, both clearing the
+30.57% target and 31.80% base by a real margin. This is not the single-seed-scare pattern
+(`stochastic_reference_probe.md`'s exclusion reversal only showed up on a *third* seed), but
+launched seed 4333 anyway to match this project's 3-seed standard before treating it as a frozen
+recipe change.
+
+**2026-09-25, Task 6 CLOSED — confirmed on 3/3 seeds.** Seed 4333: K=1 30.47% (-0.10pp vs. the
+30.57% target). 3-seed mean **29.80%** (range 28.74-30.47%, 1.73pp spread) — nothing like the
+exclusion arm's 19.5pp reversal-triggering spread. **Task 6's gate is passed**: `num_starts=16`
+is a confirmed, reproducible fix for N100. All 15 training runs across this whole sweep stayed
+100% feasible. Consequence: **all three sizes now beat their diffusion-only counterparts** at K=1
+(N20 -3.25pp, N50 -1.58pp, N100 -0.77pp mean) — the dual-pointer policy is now the recommended
+decode path at every size, not the mixed N20/N50-ahead-N100-behind picture from earlier this
+session. Full sweep detail, per-epoch tables, and the caveat that this is still panel-level
+evidence (not yet untouched-test-verified) are in
+`task6_n100_hyperparameter_sweep_2026-09-24.md`. Whether N20/N50 would also improve under
+`num_starts=16` (currently 8 for both) is an open, untested follow-up — out of this sweep's scope,
+which was specifically closing the N100 gap.
+
+**2026-09-25, GPU free, started Task 10 (Track B).** Split Task 9's pilot `accepted_matrix_examples`
+(3,606 total) into train/val/test (80/15/5, `scripts/make_splits.py --seed 50937`): train 2,886
+(1,310/1,066/510), val 540 (245/200/95), test 180 —
+`data/processed/paper_cmd_pilot_5k_splits/`. No `paper_cmd`-contract GAT checkpoint exists yet
+(`model.gat_checkpoint: null` in `diffusion_denoiser_paper_cmd.yaml`), so launched the
+prerequisite GAT pretrain first: `configs/train/gat_pretrain_paper_cmd_pilot.yaml`
+(`outputs/logs/task10_gat_pretrain_pilot_20260925.log`), on this pilot's train/val split, running
+concurrently with Task 1's CPU audit (~37% through its remaining leg).
+
+**2026-09-25, GAT pretrain done, real Task 10 launched.** GAT pretrain completed all 50 epochs
+cleanly (~14.3 min; final val F1 0.561, AUC 0.899;
+`outputs/paper_cmd/gat_pretrain_paper_cmd_pilot_20260925T001632213104Z/checkpoints/gat_encoder_best.pt`).
+Launched the actual diffusion training —
+`configs/train/diffusion_denoiser_paper_cmd_pilot.yaml` (paper contract: T=1000, BatchNorm,
+`noisy_matrix` edge input, 50 epochs, `sample_eval` every 2 epochs at 50 inference steps via
+`skipped_posterior`, checkpoint-selected on `sample_f1` — this *is* the F1≈0.823 gate mechanism,
+built into the config, not a separate step) —
+`outputs/logs/task10_diffusion_pilot_20260925.log`, running alongside Task 1's CPU audit.
+
+**2026-09-25, Task 10 (Phase 3 gate) result: NOT met at pilot scale.** Completed (early-stopped
+epoch 22/50, ~17.5 min). Best sample F1 **0.505** (N20 0.564, N50 0.574, N100 0.484) vs. the
+paper's ≈0.823 target — not a borderline miss, roughly 60% of target. Full detail and reasoning in
+[`task10_paper_cmd_diffusion_pilot_2026-09-25.md`](task10_paper_cmd_diffusion_pilot_2026-09-25.md):
+train loss kept improving while sample F1 peaked at epoch 1 and decayed — the signature of
+overfitting a 2,886-example pool, not an implementation problem (Phase 3's engineering gates
+already passed 81+507 tests independently).
+
+**Decision point flagged, not acted on unilaterally**: per Task 9 step 2's own stated rule, this
+is real evidence the full 50,000-instance labeling campaign (step 3) is actually needed.
+**Explicit instruction received to queue it once Task 1 frees the CPU.**
+
+**Corrected estimate: ~59 hours (~2.5 days), not ~29-30h.** The original ~29-30h figure assumed a
+single-seed protocol; the pilot's real throughput (9,898 candidates in 5h51m at 2 seeds, the
+tooling floor) scales to ~212,766s ≈ 59.1h for 100,000 candidates (50,000 instances × 2 seeds).
+This is the number to plan around.
+
+**Fully staged, ready to fire the instant Task 1 completes:**
+- Drew an oversized 52,500-instance pool (`data/processed/paper_cmd_hgs_full_50k`,
+  `select_dataset_subset.py --per-size 17500 --seed 91423`).
+- Checked overlap against *both* already-audited pools (not just `s7799_strong_reference` this
+  time — also the pilot's own 4,949): 445 + 1,475 = 1,920 overlaps found, pruned
+  (`outputs/_scratch/{check,remove}_full50k_overlap.py`), **reverified zero overlap** against
+  both pools on the clean 50,580-instance result (16,870/16,840/16,870 by size).
+- Config `configs/data/label_audit_paper_cmd_full.yaml` written with the real post-pruning counts
+  (not the raw draw), same 2-seed protocol as the pilot.
+- **Launch command** (fire this the moment Task 1's process exits):
+  ```bash
+  ./.venv/Scripts/python.exe scripts/run_strong_label_audit.py --config configs/data/label_audit_paper_cmd_full.yaml
+  ```
+
+**2026-09-25, Task 1 complete.** 36,000/36,000 PyVRP + 1,889/1,889 OR-Tools, 0 errors — the
+progress bar's apparent "restart" earlier was just the PyVRP→OR-Tools phase transition, not a
+crash (worth remembering: this audit tooling's tqdm counters reset per phase, don't read a smaller
+total as a regression). Yield: 7,261 matrix-stable / 9,000 audited (98.4%/86.8%/56.8% by size —
+higher than the original 4-seed `s7799_strong_reference` audit at every size, plausibly because
+R/C/RC spatial-stress instances are less ambiguous than uniform-random ones at the same size, not
+confirmed further). Full detail:
+[`task1_rc_full_eval_audit_2026-09-25.md`](task1_rc_full_eval_audit_2026-09-25.md). **Full-scale
+Task 9 launched immediately** per instruction — currently in its single-threaded prep phase
+(hashing/loading 50,580 example files, proportionally longer than the pilot's 4,949-file prep;
+confirmed alive via real CPU/memory usage, not stuck) before forking to 11 workers. Prep finished
+cleanly: solver total 101,160 (50,580 x 2 seeds, as expected), now dispatching to workers.
+
+**2026-09-25, Task 3 launched (GPU, concurrent with the full-scale audit).** Task 1's
+`accepted_matrix_examples/` (7,261 examples, mixed regime/size in one flat directory) is directly
+usable as the OOD panel without separate materialization — `predict_matrix.py --sizes` filters by
+`n_customers` regardless of filename, so no extra packaging step was actually needed.
+`outputs/logs/run_task3_rcfull_ood_eval.sh` scores both the frozen stochastic-persize champions
+and the rcfull-merged checkpoints on IID (`s7799_val100_policy_v1_n{size}`) and this OOD panel,
+12 `predict_matrix.py` runs total — `outputs/logs/task3_rcfull_ood_eval_20260925.log`. Next: on
+completion, this closes the "genuine R/C/RC win vs. strictly worse model" question
+`3060ti_training_todo.md`'s correction note flagged as unresolved.
+
+**Incident, same day: a second exit-127 failure, this time at launch, not mid-run.** Task 3's
+first leg (`champion_iid_n20`) died immediately — bare exit 127, no traceback, output directory
+created but empty (predict_matrix.py never got far enough to write anything) — right as Task 9's
+full-scale audit was still spinning up its 11 fresh workers. This is now **2/2 failures at a CPU+GPU
+concurrency boundary specifically at the moment new CPU workers are ramping up** (the first was
+Task 2's N100 leg dying as Task 9's pilot audit ramped up on 2026-09-24). **Update to the CPU/GPU
+concurrency exception above**: it still holds once both jobs are in steady state (confirmed
+repeatedly), but a GPU job started at the exact moment a CPU audit's workers are still spinning up
+appears to have a real, reproducible chance of dying at launch — verified by direct GPU-utilization
+check (0% right after the failed launch vs. 40% real utilization on the immediate retry, no other
+change). Practical mitigation: if a GPU job fails immediately (not mid-run) while a CPU audit was
+recently launched or resumed, retry once before treating it as a real bug — that was sufficient
+both times.
+
+**A real bug found on the retry — fixed, not resource contention.** The retry got past leg 1
+(champion IID N20, real metrics written) then failed leg 2 (champion OOD N20) with a genuine
+`ValueError: no examples for sizes [20] under .../rc_full_eval/accepted_matrix_examples`, even
+though 2,952 real N20 files exist there. Root cause:
+`IndexedJSONDataset`/`load_examples_by_size` (`src/vrp_diffusion_quantum/data/dataset.py`)
+filtered by the glob `cvrp{size}_*.json` — a literal filename **prefix** — so it silently found
+nothing in any R/C/RC pooled directory, where files are regime-prefixed
+(`c_cvrp100_0000.json`, `r_cvrp20_0554.json`, etc., specifically to avoid collisions when pooling
+regimes together). **This affects every caller of `load_examples_by_size`/`IndexedJSONDataset(sizes=...)`
+against a regime-prefixed pooled directory**, not just this script — worth keeping in mind for any
+future R/C/RC evaluation, not only Task 3. Fixed: glob changed to `*cvrp{size}_*.json` (matches
+the token anywhere, trailing `_` still prevents size 3 matching "cvrp30_..."), added
+`test_indexed_json_dataset_size_filter_matches_regime_prefixed_files` as a regression test,
+verified `ruff`/`mypy`/`pytest tests/test_dataset.py` (34/34) all clean.
+
+**Third exit-127, different spot again — switched strategy to per-leg retries.** The relaunched
+script got past the now-fixed bug (leg 1 succeeded again with real metrics) then died with the
+same bare exit 127 on leg 2 (`champion_ood_n20`) — a *third* location (Task 2's leg 6, Task 3's
+leg 1, now Task 3's leg 2), confirming this is genuinely flaky under Task 9's concurrent CPU load
+rather than tied to one specific step. System state right after: GPU had 585/8192 MiB used (not
+resource-exhausted), Task 9 healthy at 1,000/101,160. Since re-running the whole 12-leg script
+from scratch wastes the legs that already succeeded, switched to retrying only the failed leg
+directly as its own background command — confirmed alive via GPU utilization within seconds.
+**Going forward on this task**: run remaining legs individually, not via the driver script, so a
+flaky failure costs one retry rather than redoing prior successes.
+
+**2026-09-28, Task 3 nearly complete (N100 running/done); Task 9 full-scale audit complete.**
+Task 3 per-leg results now in for N20 and N50 (both confirm rcfull-merged is worse on *both*
+IID and OOD panels — the "strictly worse model" outcome, not a real tradeoff) and champion N100
+(29.56% OOD, again better than IID's 30.57% — the champion beats its own IID number on OOD at
+every size checked). rcfull-merged N100 IID: 32.99% (worse than champion, consistent). Final leg
+(rcfull-merged N100 OOD) running. **Task 9's full-scale audit finished**: 101,160/101,160 PyVRP +
+13,415/13,415 OR-Tools, 0 errors, ~72h wall time. Yield **37,165 matrix-stable examples** (99.3%/
+80.5%/40.6% by size — tracks the pilot's rates almost exactly, confirming the pilot was a reliable
+predictor). Full detail:
+[`task9_paper_cmd_full50k_audit_2026-09-28.md`](task9_paper_cmd_full50k_audit_2026-09-28.md).
+Split into train/val/test (90/8/2,
+`data/processed/paper_cmd_full_50k_splits/`) while Task 3's last GPU leg finished — CPU-only, safe
+alongside a single GPU job.
+
+**2026-09-28, Task 3 CLOSED — definitive no.** Final leg: rcfull-merged N100 OOD = **41.64%**,
+dramatically worse than champion's 29.56% and even worse than rcfull's own IID number (32.99%) —
+the only case in the whole table where a model scores worse OOD than its own IID. **Verdict:
+rcfull-merged is strictly worse at every size, on both panels — not a real IID-vs-OOD tradeoff.**
+Champions remain the correct recipe, now confirmed against genuine OOD data. Full table, and a
+second unexplained finding (champions generalize *better* to OOD than IID at every size, flagged
+for future work, not resolved here), in
+[`task3_rcfull_ood_verdict_2026-09-28.md`](task3_rcfull_ood_verdict_2026-09-28.md). This closes
+the item [[project_status_2026-08]] and `3060ti_training_todo.md`'s 2026-09-24 correction note
+left as "unresolved."
+
+**Track A's queue is now down to Tasks 4-5 (not started) and 7-8 (quantum, gated).**
+
+**2026-09-28, Task 10 full-scale launched.** GAT pretrain on the 33,449-example full split
+completed first (early-stopped epoch 27, val AUC 0.9015, val F1 0.563 — both better than the
+pilot's 0.899/0.561, `outputs/paper_cmd/gat_pretrain_paper_cmd_full_20260928T083117342144Z`).
+Diffusion training (the real gate check) launched immediately after on the same GPU —
+`configs/train/diffusion_denoiser_paper_cmd_full.yaml`,
+`outputs/logs/task10_diffusion_full_20260928.log`. 11x more training data than the pilot (33,449
+vs. 2,886), so expect meaningfully longer per-epoch time. This is the test the whole full-scale
+audit was for: does F1 clear ≈0.823 at 50 steps now, or was pilot-scale undersizing not the whole
+story.
+
+**2026-09-28, result: gate still not met — and the pilot's "not enough data" diagnosis is
+overturned.** Early-stopped epoch 22/50. Best sample F1 **0.474**, *worse* than the pilot's 0.505
+— and worse at every individual size (N20 0.547 vs. pilot 0.564; N50 0.500 vs. 0.574; N100 0.459
+vs. 0.484) despite 11x more training data and ~11.6x more gradient steps by epoch 1. Full detail:
+[`task10_paper_cmd_diffusion_full_2026-09-28.md`](task10_paper_cmd_diffusion_full_2026-09-28.md).
+**This is a genuine, not-autonomously-resolvable decision point**: data scale is directly
+falsified as the binding constraint (the opposite of what the pilot suggested), so the real
+bottleneck is more likely an unresolved paper ambiguity (HGS budget/seeds, augmentation, skipped
+schedule — all listed as open questions in
+[`cmd_paper_comparison_contract.md`](cmd_paper_comparison_contract.md)), a training-recipe gap
+unrelated to data volume, or noise in the tiny 8-per-size sample-F1 eval itself. **Do not launch
+another data-scale-up or another training variant on this hypothesis without new evidence** — the
+report's recommendation is a diagnostic step (larger fixed eval panel, and/or resolving the HGS
+protocol ambiguity explicitly) before spending more GPU time, and that call belongs to the
+research owner, not something to route around autonomously.

@@ -1,0 +1,36 @@
+config_name: label_audit_paper_cmd_pilot
+input_dir: data/processed/paper_cmd_hgs_pilot_5k
+output_dir: outputs/label_audit/paper_cmd_pilot_5k
+
+# Paper Phase 2 wants a single HGS solve per instance as the ground-truth label
+# (diffusion_denoiser_paper_cmd.yaml's label_policy: single_hgs_route_partition). This tooling's
+# acceptance policy hard-validates minimum_near_best_seeds >= 2 (label_audit.py), so true
+# single-seed mode isn't supported without a code change -- using the minimum 2 seeds instead as
+# a documented, explicit deviation (roughly half the compute of the project's own 4-seed protocol,
+# not the paper's theoretical 1-seed cost). See autonomous_long_compute_guide_2026-09-24.md Task 9.
+expected_counts_by_size:
+  20: 1644
+  50: 1653
+  100: 1652
+
+pyvrp:
+  base_seeds: [50937, 50938]
+  time_budgets_by_size:
+    20: 10.0
+    50: 20.0
+    100: 40.0
+
+ortools:
+  # Correction 2026-09-24: this does NOT skip the OR-Tools challenger -- it still runs on every
+  # cost-unstable-or-matrix-ambiguous ("needs_review") case regardless. It only removes the
+  # additional deterministic stable-control sample. See task9_paper_cmd_pilot_audit_2026-09-24.md.
+  stable_sample_per_size: 0
+
+acceptance:
+  near_best_relative_tolerance: 0.001
+  seed_spread_relative_tolerance: 0.005
+  matrix_disagreement_tolerance: 0.05
+  challenger_improvement_relative_tolerance: 0.000001
+  minimum_near_best_seeds: 2
+
+workers: 11

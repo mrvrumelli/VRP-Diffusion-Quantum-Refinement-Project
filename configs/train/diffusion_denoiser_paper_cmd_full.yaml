@@ -1,4 +1,4 @@
-experiment_name: diffusion_denoiser_paper_cmd
+experiment_name: diffusion_denoiser_paper_cmd_full
 seed: 42
 alignment:
   track: paper_cmd
@@ -6,14 +6,14 @@ alignment:
   paper_id: arxiv:2603.07568v1
   claim: paper-guided reconstruction; exact author seeds and skipped sampler remain unconfirmed
 dataset:
-  name: paper_cmd_hgs_50k_train
+  name: paper_cmd_hgs_full_train
   provenance_track: paper_cmd
   label_policy: single_hgs_route_partition
-  path: null
+  path: data/processed/paper_cmd_full_50k_splits/train
   lazy: true
   cache_size: 0
 validation:
-  path: null
+  path: data/processed/paper_cmd_full_50k_splits/val
   cache_size: 0
 output:
   root: outputs/paper_cmd
@@ -25,7 +25,7 @@ model:
   gat_num_layers: 5
   gat_num_heads: 8
   gat_dropout: 0.0
-  gat_checkpoint: null
+  gat_checkpoint: outputs/paper_cmd/gat_pretrain_paper_cmd_full_20260928T083117342144Z/checkpoints/gat_encoder_best.pt
   freeze_node_encoder: true
   normalization: batch_norm
   edge_input_features: noisy_matrix
@@ -58,4 +58,4 @@ sample_eval:
   num_inference_steps: 50
   sampler: skipped_posterior
 mlflow:
-  enabled: true
+  enabled: false

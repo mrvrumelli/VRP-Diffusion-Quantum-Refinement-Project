@@ -209,3 +209,74 @@ def test_posterior_probabilities_are_valid() -> None:
     m_t = schedule.q_sample(m, t, generator=torch.Generator().manual_seed(2))
     posterior = schedule.q_posterior_prob(m_t, m, t)
     assert torch.all((posterior >= 0.0) & (posterior <= 1.0))
+
+
+def _binary_transition_probability(start: int, end: int, betas: torch.Tensor) -> float:
+    """Enumerate a two-state bit-flip chain across ``betas``."""
+    distribution = torch.zeros(2, dtype=torch.float64)
+    distribution[start] = 1.0
+    for beta in betas.to(torch.float64):
+        kernel = torch.tensor([[1.0 - beta, beta], [beta, 1.0 - beta]], dtype=torch.float64)
+        distribution = distribution @ kernel
+    return float(distribution[end])
+
+
+@pytest.mark.parametrize("clean", [0.0, 1.0])
+@pytest.mark.parametrize("observed", [0.0, 1.0])
+def test_skipped_posterior_matches_brute_force_binary_chain(clean: float, observed: float) -> None:
+    schedule = BernoulliDiffusionSchedule(num_timesteps=5, beta_start=0.05, beta_end=0.25)
+    target_t, current_t = 1, 4
+    actual = schedule.q_posterior_between_prob(
+        torch.tensor([observed]),
+        torch.tensor([clean]),
+        t=current_t,
+        target_t=target_t,
+    ).item()
+
+    weights = []
+    for target_state in (0, 1):
+        clean_to_target = _binary_transition_probability(
+            int(clean), target_state, schedule.betas[: target_t + 1]
+        )
+        target_to_observed = _binary_transition_probability(
+            target_state, int(observed), schedule.betas[target_t + 1 : current_t + 1]
+        )
+        weights.append(clean_to_target * target_to_observed)
+    expected = weights[1] / sum(weights)
+
+    assert actual == pytest.approx(expected, abs=1e-6)
+
+
+def test_skipped_posterior_reduces_to_adjacent_posterior() -> None:
+    schedule = BernoulliDiffusionSchedule(num_timesteps=6, beta_start=0.02, beta_end=0.12)
+    clean = torch.tensor([0.0, 1.0, 0.0, 1.0])
+    observed = torch.tensor([0.0, 0.0, 1.0, 1.0])
+    current_t = 4
+    actual = schedule.q_posterior_between_prob(observed, clean, t=current_t, target_t=current_t - 1)
+
+    previous_flip = schedule.q_bar_flip_prev[current_t]
+    previous_one = clean * (1.0 - previous_flip) + (1.0 - clean) * previous_flip
+    beta = schedule.betas[current_t]
+    likelihood_one = observed * (1.0 - beta) + (1.0 - observed) * beta
+    likelihood_zero = (1.0 - observed) * (1.0 - beta) + observed * beta
+    expected = likelihood_one * previous_one
+    expected = expected / (expected + likelihood_zero * (1.0 - previous_one))
+
+    assert torch.allclose(actual, expected, atol=1e-6)
+
+
+@pytest.mark.parametrize(
+    ("current_t", "target_t"),
+    [(0, -1), (3, 0), (5, 2)],
+)
+def test_skipped_posterior_probabilities_are_valid(current_t: int, target_t: int) -> None:
+    schedule = BernoulliDiffusionSchedule(num_timesteps=6)
+    observed = torch.tensor([0.0, 1.0])
+    clean_probability = torch.tensor([0.1, 0.9])
+
+    posterior = schedule.q_posterior_between_prob(
+        observed, clean_probability, t=current_t, target_t=target_t
+    )
+
+    assert torch.all(torch.isfinite(posterior))
+    assert torch.all((posterior >= 0.0) & (posterior <= 1.0))

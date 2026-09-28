@@ -223,10 +223,14 @@ def test_full_chain_checkpoint_selection_uses_fixed_seed(
     model = ConstraintDenoiser(hidden_dim=8, num_layers=1, time_embed_dim=8)
     schedule = BernoulliDiffusionSchedule(num_timesteps=3)
     observed_seeds: list[int] = []
+    observed_sampling: list[tuple[int | None, str]] = []
 
     def fake_sample_eval(*args: object, **kwargs: object) -> dict[str, object]:
         del args
         observed_seeds.append(int(kwargs["seed"]))
+        observed_sampling.append(
+            (kwargs.get("num_inference_steps"), str(kwargs.get("sampler")))  # type: ignore[arg-type]
+        )
         value = 20.0 - len(observed_seeds)
         return {
             "sample_f1": 0.5,
@@ -250,12 +254,15 @@ def test_full_chain_checkpoint_selection_uses_fixed_seed(
         sample_eval_examples=examples,
         sample_eval_every=1,
         sample_eval_seed=777,
+        sample_num_inference_steps=2,
+        sample_sampler="skipped_posterior",
         checkpoint_dir=ckpt_dir,
         best_metric="route_mean_cost_gap_percent",
         minimize_best=True,
     )
 
     assert observed_seeds == [777, 777]
+    assert observed_sampling == [(2, "skipped_posterior"), (2, "skipped_posterior")]
     assert history[-1]["route_mean_cost_gap_percent"] == 18.0
     payload = torch.load(ckpt_dir / "best.pt", map_location="cpu", weights_only=False)
     assert payload["epoch"] == 1

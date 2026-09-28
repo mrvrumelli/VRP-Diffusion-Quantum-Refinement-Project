@@ -1,0 +1,36 @@
+config_name: label_audit_paper_cmd_full
+input_dir: data/processed/paper_cmd_hgs_full_50k
+output_dir: outputs/label_audit/paper_cmd_full_50k
+
+# Full-scale paper_cmd diffusion-training labeling (autonomous_long_compute_guide_2026-09-24.md
+# Task 9, step 3). The pilot (task9_paper_cmd_pilot_audit_2026-09-24.md) proved the audit pipeline
+# and gave real per-size yield rates; this run scales the same 2-seed protocol (the tooling floor
+# -- see scripts/run_strong_label_audit.py's minimum_near_best_seeds check) to ~50,000 instances.
+# Same seed pair as the pilot for consistency; expected_counts_by_size set from the actual
+# post-overlap-pruning count (see outputs/_scratch/remove_full50k_overlap.py's printed counts),
+# not assumed from the raw --per-size draw.
+expected_counts_by_size:
+  20: 16870
+  50: 16840
+  100: 16870
+
+pyvrp:
+  base_seeds: [50937, 50938]
+  time_budgets_by_size:
+    20: 10.0
+    50: 20.0
+    100: 40.0
+
+ortools:
+  # Does NOT disable the challenger entirely -- it still runs on every cost-unstable-or-matrix-
+  # ambiguous case. This setting only removes the extra deterministic stable-control sample.
+  stable_sample_per_size: 0
+
+acceptance:
+  near_best_relative_tolerance: 0.001
+  seed_spread_relative_tolerance: 0.005
+  matrix_disagreement_tolerance: 0.05
+  challenger_improvement_relative_tolerance: 0.000001
+  minimum_near_best_seeds: 2
+
+workers: 11

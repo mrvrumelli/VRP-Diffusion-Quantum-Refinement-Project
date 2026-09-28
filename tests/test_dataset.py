@@ -556,3 +556,31 @@ def test_indexed_json_dataset_supports_size_filter_slice_and_negative_index(
     assert dataset[-1].instance.instance_id == "cvrp3_0"
     with pytest.raises(IndexError):
         _ = dataset[1]
+
+
+def test_indexed_json_dataset_size_filter_matches_regime_prefixed_files(
+    tmp_path: Path,
+) -> None:
+    """R/C/RC pooled audits prefix filenames (e.g. "c_cvrp100_0.json") to avoid collisions; the
+    size filter must still find them, not just literal "cvrp{size}_*.json" files."""
+    save_example(_tiny_example("c_cvrp3_0"), tmp_path / "c_cvrp3_0.json")
+    save_example(_tiny_example("r_cvrp3_0"), tmp_path / "r_cvrp3_0.json")
+    small_solution = LabeledSolution(
+        routes=[[0, 1]],
+        cost=1.0,
+        num_vehicles=1,
+        feasible=True,
+        solver_name="test",
+        time_budget=None,
+        seed=0,
+        runtime_seconds=0.0,
+    )
+    save_example(
+        make_example(_small_instance("rc_cvrp2_0"), small_solution),
+        tmp_path / "rc_cvrp2_0.json",
+    )
+
+    dataset = IndexedJSONDataset(tmp_path, sizes=[3])
+    assert len(dataset) == 2
+    assert {example.instance.n_customers for example in dataset[:]} == {3}
+    assert {example.instance.instance_id for example in dataset[:]} == {"c_cvrp3_0", "r_cvrp3_0"}

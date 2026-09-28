@@ -1,0 +1,63 @@
+experiment_name: policy_reinforce_s7799_n100_starts16_seed4332_cuda
+seed: 4332
+dataset:
+  name: s7799_audit_policy_v1_n100
+  path: data/processed/s7799_audit_policy_v1_n100
+  cache_size: 0
+validation:
+  path: data/processed/s7799_val100_policy_v1_n100
+  cache_size: 0
+output:
+  root: outputs/policy
+model:
+  embedding_dim: 128
+  global_num_layers: 5
+  global_num_heads: 8
+  local_num_layers: 5
+  local_num_heads: 8
+  feed_forward_dim: 512
+  dropout: 0.0
+  decoder_num_heads: 8
+  clip_constant: 10.0
+  adjacency_mode: hard
+  local_threshold: 0.5
+  use_local_encoder: true
+  use_local_pointer: true
+  use_global_pointer: true
+  use_savings_bias: true
+  use_context_perception: true
+  savings_weight: 1.0
+  savings_epsilon: 0.01
+prior:
+  source: denoiser
+  checkpoint: outputs/train/diffusion_denoiser_s7799_stochastic_persize_n100_cuda_20260816T152405895038Z/checkpoints/best.pt
+  num_inference_steps: 50
+  threshold: 0.5
+  use_probabilities: true
+training:
+  epochs: 6
+  # Task 6 variant 3 replication (autonomous_long_compute_guide_2026-09-24.md /
+  # task6_n100_hyperparameter_sweep_2026-09-24.md): seed 42's num_starts=16 run beat the target
+  # (K=1 30.18% vs. 30.57%), the first variant to do so -- but it's one seed on one panel, and
+  # this project's own established rigor (stochastic_reference_probe.md) previously reversed a
+  # single-seed "win" on replication. Same config, only the seed changes (42 -> 4332), to check
+  # reliability before calling this the new N100 recipe.
+  learning_rate: 0.0001
+  weight_decay: 0.000001
+  batch_size: 16
+  num_starts: 16
+  val_num_starts: 16
+  start_node_cap: 100
+  baseline: multi_start
+  entropy_weight: 0.0
+  gradient_clip_norm: 1.0
+  early_stop_patience: 0
+  check_feasibility: true
+  device: cuda
+  deterministic: false
+  max_runtime_seconds: 10800
+checkpoint:
+  best_metric: val_best_cost
+  minimize: true
+mlflow:
+  enabled: false

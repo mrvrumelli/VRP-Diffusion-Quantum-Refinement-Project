@@ -65,8 +65,12 @@ def main() -> None:
         raise ValueError("workers must be >= 1")
     pyvrp_cfg = config["pyvrp"]
     base_seeds = tuple(int(seed) for seed in pyvrp_cfg["base_seeds"])
-    if len(base_seeds) != 4:
-        raise ValueError("the strong-label audit requires exactly four PyVRP base seeds")
+    if len(base_seeds) < acceptance.minimum_near_best_seeds:
+        raise ValueError(
+            "pyvrp.base_seeds must have at least acceptance.minimum_near_best_seeds "
+            f"entries, got {len(base_seeds)} seeds and "
+            f"minimum_near_best_seeds={acceptance.minimum_near_best_seeds}"
+        )
     policy = AuditPolicy(
         pyvrp_base_seeds=base_seeds,
         time_budgets_by_size=_int_float_map(pyvrp_cfg["time_budgets_by_size"]),

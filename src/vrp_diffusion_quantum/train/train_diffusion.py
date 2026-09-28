@@ -518,9 +518,11 @@ def train_constraint_denoiser(
     decision_threshold: float | None = None,
     adaptive_threshold: bool = True,
     t_sample: str = "uniform",
+    sample_num_inference_steps: int | None = None,
     sample_step_stride: int = 1,
     sample_eval_seed: int | None = None,
     sample_transition_mode: str = "stochastic",
+    sample_sampler: str = "skipped_posterior",
     sample_prior_positive_probability: float = 0.5,
     mixed_precision: bool = False,
     gradient_accumulation_steps: int = 1,
@@ -545,8 +547,12 @@ def train_constraint_denoiser(
         raise ValueError(f"t_sample must be 'uniform' or 'high', got {t_sample!r}")
     if sample_step_stride < 1:
         raise ValueError(f"sample_step_stride must be >= 1, got {sample_step_stride}")
+    if sample_num_inference_steps is not None and sample_num_inference_steps < 1:
+        raise ValueError("sample_num_inference_steps must be >= 1")
     if sample_transition_mode not in {"stochastic", "deterministic"}:
         raise ValueError(f"unsupported sample_transition_mode: {sample_transition_mode}")
+    if sample_sampler not in {"skipped_posterior", "one_step_approx"}:
+        raise ValueError(f"unsupported sample_sampler: {sample_sampler}")
     if gradient_accumulation_steps < 1:
         raise ValueError("gradient_accumulation_steps must be >= 1")
     if gradient_clip_norm is not None and gradient_clip_norm <= 0:
@@ -822,17 +828,22 @@ def train_constraint_denoiser(
                 seed=seed + 20_000 if sample_eval_seed is None else sample_eval_seed,
                 threshold=0.5,
                 adaptive_threshold=False,
+                num_inference_steps=sample_num_inference_steps,
                 step_stride=sample_step_stride,
                 transition_mode=sample_transition_mode,  # type: ignore[arg-type]
+                sampler=sample_sampler,  # type: ignore[arg-type]
                 prior_positive_probability=sample_prior_positive_probability,
             )
             row.update(sample_metrics)
             logger.info(
-                "epoch=%d sample_f1=%.4f sample_precision=%.4f sample_recall=%.4f (full T→0, n=%d)",
+                "epoch=%d sample_f1=%.4f sample_precision=%.4f sample_recall=%.4f "
+                "(steps=%s sampler=%s n=%d)",
                 epoch,
                 sample_metrics["sample_f1"],
                 sample_metrics["sample_precision"],
                 sample_metrics["sample_recall"],
+                sample_metrics.get("sample_num_inference_steps", "full"),
+                sample_metrics.get("sample_sampler", sample_sampler),
                 sample_metrics["sample_num_examples"],
             )
 
@@ -1059,6 +1070,8 @@ def main() -> None:
         gat_num_heads=int(model_cfg.get("gat_num_heads", 4)),
         gat_dropout=float(model_cfg.get("gat_dropout", 0.0)),
         freeze_node_encoder=bool(model_cfg.get("freeze_node_encoder", False)),
+        normalization=str(model_cfg.get("normalization", "layer_norm")),  # type: ignore[arg-type]
+        edge_input_features=str(model_cfg.get("edge_input_features", "noisy_matrix_distance")),  # type: ignore[arg-type]
     )
     gat_ckpt = model_cfg.get("gat_checkpoint")
     if gat_ckpt:
@@ -1224,9 +1237,15 @@ def main() -> None:
                 decision_threshold=decision_threshold,
                 adaptive_threshold=adaptive_threshold,
                 t_sample=str(train_cfg.get("t_sample", "uniform")),
+                sample_num_inference_steps=(
+                    int(sample_cfg["num_inference_steps"])
+                    if sample_cfg.get("num_inference_steps") is not None
+                    else None
+                ),
                 sample_step_stride=int(sample_cfg.get("step_stride", 1)),
                 sample_eval_seed=int(sample_cfg.get("seed", seed + 20_000)),
                 sample_transition_mode=str(sample_cfg.get("transition_mode", "stochastic")),
+                sample_sampler=str(sample_cfg.get("sampler", "skipped_posterior")),
                 sample_prior_positive_probability=float(
                     sample_cfg.get("prior_positive_probability", 0.5)
                 ),

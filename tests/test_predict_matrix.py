@@ -127,6 +127,64 @@ def test_deterministic_sampler_is_seed_independent() -> None:
     assert np.allclose(first.m_prob, second.m_prob)
 
 
+def test_skipped_sampler_preserves_structure_at_every_transition() -> None:
+    torch.manual_seed(12)
+    example = _example(6, seed=12)
+    coords, demands, capacity, _m_true, mask = example_to_model_inputs(example)
+    model = ConstraintDenoiser(hidden_dim=16, num_layers=1, time_embed_dim=16)
+    schedule = BernoulliDiffusionSchedule(num_timesteps=9)
+
+    result = sample_constraint_matrix(
+        model,
+        schedule,
+        coords=coords,
+        demands=demands,
+        capacity=capacity,
+        customer_mask=mask,
+        generator=torch.Generator().manual_seed(77),
+        snapshot_every=1,
+        num_inference_steps=5,
+        sampler="skipped_posterior",
+    )
+
+    assert result.trajectory is not None
+    assert len(result.trajectory) == 6  # initial prior plus all five sampled states
+    for transition in result.trajectory:
+        _assert_valid_hard(transition, 6)
+
+
+def test_skipped_sampler_is_deterministic_under_fixed_seed() -> None:
+    torch.manual_seed(13)
+    example = _example(6, seed=13)
+    coords, demands, capacity, _m_true, mask = example_to_model_inputs(example)
+    model = ConstraintDenoiser(hidden_dim=16, num_layers=1, time_embed_dim=16)
+    schedule = BernoulliDiffusionSchedule(num_timesteps=10)
+    kwargs = {
+        "coords": coords,
+        "demands": demands,
+        "capacity": capacity,
+        "customer_mask": mask,
+        "snapshot_every": 1,
+        "num_inference_steps": 4,
+        "sampler": "skipped_posterior",
+    }
+
+    first = sample_constraint_matrix(
+        model, schedule, generator=torch.Generator().manual_seed(1234), **kwargs
+    )
+    second = sample_constraint_matrix(
+        model, schedule, generator=torch.Generator().manual_seed(1234), **kwargs
+    )
+
+    assert np.array_equal(first.m_hat, second.m_hat)
+    assert np.array_equal(first.m_prob, second.m_prob)
+    assert first.trajectory is not None and second.trajectory is not None
+    assert all(
+        np.array_equal(left, right)
+        for left, right in zip(first.trajectory, second.trajectory, strict=True)
+    )
+
+
 def test_sampler_rejects_invalid_prior_and_mode() -> None:
     example = _example(4, seed=4)
     coords, demands, capacity, _m_true, mask = example_to_model_inputs(example)
@@ -179,6 +237,44 @@ def test_load_denoiser_checkpoint_roundtrip(tmp_path: Path) -> None:
     for (n1, p1), (n2, p2) in zip(model.named_parameters(), loaded.named_parameters(), strict=True):
         assert n1 == n2
         assert torch.allclose(p1, p2)
+
+
+def test_load_paper_denoiser_checkpoint_roundtrip(tmp_path: Path) -> None:
+    torch.manual_seed(21)
+    model = ConstraintDenoiser(
+        hidden_dim=16,
+        num_layers=2,
+        time_embed_dim=16,
+        normalization="batch_norm",
+        edge_input_features="noisy_matrix",
+    )
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    path = tmp_path / "paper.pt"
+    model_config = {
+        "hidden_dim": 16,
+        "num_layers": 2,
+        "time_embed_dim": 16,
+        "normalization": "batch_norm",
+        "edge_input_features": "noisy_matrix",
+    }
+    save_denoiser_checkpoint(
+        path,
+        model=model,
+        optimizer=optimizer,
+        epoch=1,
+        row={"sample_f1": 0.5},
+        best_metric_name="sample_f1",
+        best_metric_value=0.5,
+        extra={"model": model_config},
+    )
+
+    loaded, _payload = load_denoiser_checkpoint(path)
+
+    assert loaded.normalization == "batch_norm"
+    assert loaded.edge_input_features == "noisy_matrix"
+    assert loaded.edge_encoder.in_features == 1
+    for key, value in model.state_dict().items():
+        assert torch.equal(value, loaded.state_dict()[key])
 
 
 def test_select_examples_by_size() -> None:
@@ -287,6 +383,25 @@ def test_evaluate_full_chain_sampling_supports_same_size_batches() -> None:
     assert metrics["sample_batch_size"] == 2
     assert metrics["sample_num_examples_n4"] == 2
     assert metrics["sample_num_examples_n5"] == 1
+
+
+def test_evaluate_sampling_honours_paper_step_count_and_sampler() -> None:
+    torch.manual_seed(9)
+    examples = [_example(4, seed=9)]
+    model = ConstraintDenoiser(hidden_dim=16, num_layers=1, time_embed_dim=16)
+    schedule = BernoulliDiffusionSchedule(num_timesteps=12)
+
+    metrics = evaluate_full_chain_sampling(
+        model,
+        schedule,
+        examples,
+        seed=9,
+        num_inference_steps=5,
+        sampler="skipped_posterior",
+    )
+
+    assert metrics["sample_num_inference_steps"] == 5
+    assert metrics["sample_sampler"] == "skipped_posterior"
 
 
 def test_evaluate_full_chain_sampling_rejects_invalid_batch_size() -> None:

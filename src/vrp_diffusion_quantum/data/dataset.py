@@ -37,7 +37,11 @@ class IndexedJSONDataset(Sequence[CVRPExample]):
         if cache_size < 0:
             raise ValueError(f"cache_size must be non-negative, got {cache_size}")
         root = Path(dataset_dir)
-        patterns = ["*.json"] if sizes is None else [f"cvrp{int(size)}_*.json" for size in sizes]
+        # Match the size token anywhere in the filename, not just as a literal prefix, so
+        # regime-prefixed pooled files (e.g. "c_cvrp100_0000.json" from the R/C/RC spatial-stress
+        # audits) are found too, not just plain "cvrp{size}_*.json" files. The trailing "_" keeps
+        # size 3 from matching "cvrp30_..." or "cvrp3_..." from matching a differently-sized file.
+        patterns = ["*.json"] if sizes is None else [f"*cvrp{int(size)}_*.json" for size in sizes]
         paths = {
             path
             for pattern in patterns
