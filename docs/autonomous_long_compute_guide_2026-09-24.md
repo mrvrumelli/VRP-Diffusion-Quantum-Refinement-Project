@@ -690,3 +690,53 @@ another data-scale-up or another training variant on this hypothesis without new
 report's recommendation is a diagnostic step (larger fixed eval panel, and/or resolving the HGS
 protocol ambiguity explicitly) before spending more GPU time, and that call belongs to the
 research owner, not something to route around autonomously.
+
+**2026-09-29, full investigation run to completion, PAUSED per explicit instruction.** Given
+direct authorization ("try one by one until something works out"), ran the full diagnostic
+sequence: (1) large-panel re-eval ruled out measurement noise (0.4707, tight CI); (2) retraining
+on the fully unfiltered label pool ruled out stability-filtering bias (0.4731, statistically
+identical); (3) re-scoring at 10-1000 inference steps ruled out the sampler/step-count (flat to
+slightly declining, not improving); (4) a dedicated N20-only model (cleanest possible labels)
+ruled out multi-size interference as the main driver (0.5389, essentially unchanged from N20's
+share of the mixed result); (5) attempting a single training-hyperparameter change (augmentation)
+was **structurally blocked** — the `paper_cmd` alignment contract hard-locks every training
+hyperparameter to the paper's exact stated values by design, so true Option-3-style tuning isn't
+possible without leaving the track entirely. Full writeup:
+[`task10_f1_gate_investigation_2026-09-29.md`](task10_f1_gate_investigation_2026-09-29.md).
+
+**Per explicit instruction, Track B's F1 investigation is now paused** rather than continued into
+the two remaining candidates (resolving the open HGS-budget/seed-count ambiguity, or a
+track-crossing frozen-vs-trainable-GAT comparison) — both are real scope decisions, not more of
+the same quick diagnostic loop. **Redirecting to Track A's untouched Task 5** next.
+
+**2026-09-29, Task 5 expansion audit launched; learning-curve pipeline staged.** Drew an
+expansion pool from `splits/train`, checked overlap against every already-audited s7799 subset
+(`label_audit_s7799`, `paper_cmd_hgs_pilot_5k`, `paper_cmd_hgs_full_50k`) — first draw
+(1,600/size) came back 32% overlapping (57,029/180,000 = 31.7% of the full train split is now
+already used across pilot/full-scale/original audits), so redrew larger (2,300/size) and pruned to
+a clean **1,566/1,582/1,597-per-size (4,745 total), zero-overlap-by-construction** pool. Launched
+the same 4-seed protocol as the original audit
+(`configs/data/label_audit_s7799_expansion.yaml`, seeds `[73021-73024]`, 10/20/40s budgets) —
+running now, `outputs/logs/task5_audit_expansion_20260929.log`, ~110/18,980 solver candidates in
+first 7 minutes (early estimate ~20h, CPU-bound, 11 workers, GPU idle).
+
+While the audit runs, staged the learning-curve half of Task 5 so it can fire the instant the
+audit completes, matching Task 10's "ready to fire" pattern:
+[`outputs/_scratch/build_task5_curve.py`](../outputs/_scratch/build_task5_curve.py) materializes
+train-profile labels from the original audit and the new expansion audit separately (same
+`TrainingLabelPolicy` modes as production: 20=original, 50=canonical_else_multi,
+100=multi_reference), merges them into one combined pool, then draws **nested** 500/1,000/2,000
+per-size subsets (same seed across the three per-size draws per size guarantees 500⊂1,000⊂2,000,
+so the three curve points are a clean scaling comparison, not three independent samples). Ran the
+original-audit half now (safe — no dependency on the running audit): it reproduced the existing
+production pools' counts *exactly* (500/536/1,268 for N20/50/100), confirming the script's process
+matches how `s7799_audit_policy_v1_n{20,50,100}` was itself built. The expansion half correctly
+fails right now (`no feasible PyVRP candidates` — expected, the audit isn't done) and will succeed
+in one shot once it is. Also pre-generated all 9 training configs
+(`configs/train/diffusion_denoiser_s7799_task5_curve_n{20,50,100}_{500,1000,2000}_cuda.yaml`,
+templated off the existing per-size recipes, identical hyperparameters, only
+`dataset.name`/`dataset.path` differ). **Remaining steps once the audit finishes**: rerun
+`build_task5_curve.py` (materializes+merges+subsets in one call), then launch the 9
+`train_matrix_predictor.py` runs, applying the stop rule (C.2) — stop adding data once the
+frozen-panel decoded route-gap gain flattens between consecutive curve points, not on F1/loss
+alone.

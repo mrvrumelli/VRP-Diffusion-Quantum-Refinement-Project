@@ -1,0 +1,32 @@
+config_name: label_audit_s7799_expansion
+input_dir: data/processed/s7799_audit_expansion_1500
+output_dir: outputs/label_audit/s7799_expansion_1500
+
+# Track A Task 5 (autonomous_long_compute_guide_2026-09-24.md): expand the audited IID pool by
+# ~1,500/size so the 500/1,000/2,000-per-size learning curve is possible. Same 4-seed protocol as
+# the original label_audit_strong_s7799.yaml audit, distinct seed block per that convention.
+# Selected from cvrp_s7799_n20-50-100_x66667/splits/train, verified zero overlap against
+# label_audit_s7799, paper_cmd_hgs_pilot_5k, and paper_cmd_hgs_full_50k before labeling.
+expected_counts_by_size:
+  20: 1566
+  50: 1582
+  100: 1597
+
+pyvrp:
+  base_seeds: [73021, 73022, 73023, 73024]
+  time_budgets_by_size:
+    20: 10.0
+    50: 20.0
+    100: 40.0
+
+ortools:
+  stable_sample_per_size: 50
+
+acceptance:
+  near_best_relative_tolerance: 0.001
+  seed_spread_relative_tolerance: 0.005
+  matrix_disagreement_tolerance: 0.05
+  challenger_improvement_relative_tolerance: 0.000001
+  minimum_near_best_seeds: 2
+
+workers: 11
