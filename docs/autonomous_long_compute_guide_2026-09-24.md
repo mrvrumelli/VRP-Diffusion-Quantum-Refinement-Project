@@ -740,3 +740,100 @@ templated off the existing per-size recipes, identical hyperparameters, only
 `train_matrix_predictor.py` runs, applying the stop rule (C.2) — stop adding data once the
 frozen-panel decoded route-gap gain flattens between consecutive curve points, not on F1/loss
 alone.
+
+**2026-09-29/30, Task 5 audit paused and resumed cleanly across the gap, then completed.** User
+requested a pause; killed the process mid-run (PyVRP had actually already finished, 18,980/18,980
+cached, OR-Tools challenges 1,175/1,414 in progress). Resumed 2026-09-30 with the identical
+command — cache-signature check found 18,741/18,980 valid PyVRP results and only recomputed 239,
+confirming the audit's resume path is reliable in practice, not just in the code. Finished clean:
+4,745/4,745 instances, 18,980 PyVRP + 1,414 OR-Tools, **0 errors**. Full detail:
+[`task5_audit_expansion_2026-09-30.md`](task5_audit_expansion_2026-09-30.md). Ran
+`build_task5_curve.py` to completion: combined pool 9,598 examples (2,066/2,435/5,097 by size,
+N20/N50/N100), all 9 nested 500/1,000/2,000-per-size subsets drawn successfully. **Starting the
+9-run training curve now**, one run at a time on the GPU (each capped at `max_runtime_seconds:
+3600`), re-scoring each checkpoint against the frozen `s7799_val100_policy_v1_n{size}` panel via
+`predict_matrix.py` (same panel/methodology as Task 2, so results are directly comparable to the
+already-known diffusion-only champion gaps: N20 21.11%, N50 29.39%, N100 30.57%), applying the
+stop rule (C.2) per size as each curve point's large-panel gap comes in.
+
+**Correction, same day**: the first N20/500 launch used the wrong entrypoint
+(`scripts/train_matrix_predictor.py`, a plain supervised trainer with no route decoding or
+checkpointing) instead of the actual diffusion pipeline
+(`python -m vrp_diffusion_quantum.train.train_diffusion`, the one `run_gat_then_diffusion.sh`
+itself uses) — caught immediately from the suspiciously instant "completion" and missing
+`sample_eval`/checkpoint output, deleted, relaunched correctly. All curve runs from here on use
+the correct module invocation.
+
+**N20/500 result**: `route_mean_cost_gap_percent` **32.43%** [29.89, 34.92] on the frozen
+`s7799_val100_policy_v1_n20` panel (100 examples, full 700-step reverse chain, same methodology
+as Task 2). Notably *worse* than the existing N20 champion's 21.11% at the same nominal
+"500 examples" size — but this is a different random 500 (drawn via fixed seed from the combined
+2,066-example pool, not the original production pool's own 500), so this could be subset variance
+rather than a regression. Not drawing a conclusion from one point; N20/1000 (a strict superset of
+this exact 500) is running next and will show whether this is noise or a real pattern.
+
+**N20/1000 result**: `route_mean_cost_gap_percent` **18.99%** [17.04, 21.02] — a huge jump from
+500's 32.43%, and now *better* than the existing champion's 21.11% (at 500, different pool).
+Confirms N20/500's result was small-sample variance, not a regression. No flattening at all
+between 500->1000 (gain is large and in the expected direction) — stop rule (C.2) says continue.
+N20/2000 launched next.
+
+**N20/2000 result**: `route_mean_cost_gap_percent` **28.67%** [26.18, 31.21] — *worse* than 1000's
+18.99%, making the full N20 curve **non-monotonic** (32.43 -> 18.99 -> 28.67), not a clean
+flattening. Each curve point is a single run with no repeated seeds, and this pipeline has already
+shown high run-to-run variance at small scale elsewhere this session (the Track B F1
+investigation's pilot-vs-full-scale reversal). Cannot cleanly attribute this to a real data-size
+effect vs. checkpoint-selection noise (training's own best-checkpoint metric only samples 5/size,
+the same noisy-proxy issue flagged in Task 10's investigation) without repeated seeds per point,
+which is out of the current budget — flagging as an open caveat rather than picking a false
+winner. Proceeding to N50's curve next per the original plan.
+
+**N50/500 result**: **26.07%** [24.25, 27.93] — comparable to (slightly better than) the existing
+N50 champion's 29.39% at the same nominal size. N50/1000 launched next.
+
+**N50/1000 result**: **31.83%** [29.73, 33.98] — worse than 500's 26.07%, another non-monotonic
+result matching N20's pattern (more audited data is not cleanly improving results at single-run
+granularity). Given the ambiguity, finishing the full originally-planned 9-run set rather than
+truncating early on a noisy 2-point read; N50/2000 launched next.
+
+**N50/2000 result**: **31.50%** [29.46, 33.59] — essentially identical to 1000's 31.83%
+(overlapping CIs), a genuine flattening between 1000 and 2000. But the best point in the whole N50
+curve remains 500 (26.07%), the smallest one — reinforcing that more audited data is not reliably
+helping at single-run granularity here. N50's curve is complete. Proceeding to N100's curve next —
+the size that matters most given the known N100 policy-vs-diffusion gap.
+
+**N100/500 result**: **32.22%** [29.93, 34.44] — comparable to the existing N100 champion's
+30.57% (overlapping CIs). N100/1000 launched next.
+
+**N100/1000 result**: **27.43%** [25.61, 29.29] — a real improvement over 500's 32.22% (CIs barely
+overlap), and now *better* than the existing N100 champion's 30.57%. The most promising result of
+the curve so far, on the size that matters most (Track A's known N100 gap). N100/2000 (final run
+of the 9) launched next.
+
+**N100/2000 result and Task 5 CLOSED**: **32.98%** [31.01, 34.97] — a regression back up from
+1000's 27.43%, the exact same peak-shaped pattern as N20 (dip at 1000, back up at 2000). All 9
+curve points now complete. Full writeup, including the honest non-monotonic-curve finding and the
+one concrete actionable result:
+[`task5_learning_curve_2026-09-30.md`](task5_learning_curve_2026-09-30.md).
+
+**Summary**: this did not produce a clean scaling curve — N20 and N100 both peak at 1,000
+(1,000 far better than both 500 and 2,000), N50 is best at its smallest point (500) then flattens.
+Every point is a single run with no repeated seeds, so this reads as high single-run variance at
+this data scale (consistent with Task 6's N100 REINFORCE variance and Track B's pilot-vs-full-scale
+reversal elsewhere this session), not a settled "more data helps/hurts" answer — flagging that a
+confident answer needs repeated seeds per point, a real scope decision, not taken unilaterally.
+**Concrete actionable result regardless**: N100/1,000's checkpoint (27.43%) beats the existing
+production N100 champion (30.57%) by a real margin — independently useful for Track A's known
+N100 weak spot. N20/1,000 (18.99%) similarly beats its own champion (21.11%).
+
+**Track A's untouched backlog is now Tasks 7-8** (quantum refinement), both still gated behind
+D.1-D.3 prerequisite work and the classical-baseline freeze per `project_findings_2026-09-24.md`.
+Track B remains paused per explicit instruction. Did one further bounded, safe check on the N100/1,000 candidate (reuses the existing checkpoint
+and panel, no new training): re-scored with a different decode seed (`--seed 1` vs. default 0) to
+rule out decode-sampling noise. **Result: bit-for-bit identical** (27.427780464180348 both times)
+— the improvement over the champion isn't a lucky stochastic draw. Training-side variance (the
+curve's own non-monotonicity) is unaffected by this and still stands as the open question.
+
+No further autonomous compute task is queued; awaiting direction on repeated-seed curve
+confirmation, further N100/N20 candidate-checkpoint validation (e.g. promoting to champion status),
+or Track B's remaining two F1-gate candidates.
