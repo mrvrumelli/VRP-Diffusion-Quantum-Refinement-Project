@@ -94,6 +94,15 @@ def _model_config(checkpoint: Path, **overrides: object) -> dict[str, object]:
     return config
 
 
+def test_paper_policy_rejects_depot_relative_pretrained_features(tmp_path: Path) -> None:
+    checkpoint, _ = _gat_checkpoint(tmp_path / "relative.pt")
+    payload = torch.load(checkpoint, weights_only=False)
+    payload["extra"]["model"] = {"coordinate_frame": "depot_relative"}
+    torch.save(payload, checkpoint)
+    with pytest.raises(ValueError, match="requires absolute-coordinate weights"):
+        build_policy_from_config(_model_config(checkpoint))
+
+
 def _encode(policy: CVRPPolicy, batch: CVRPBatch, *, with_prior: bool) -> PolicyEncoding:
     return policy.encode(
         batch.coords,

@@ -167,7 +167,9 @@ class BernoulliDiffusionSchedule(nn.Module):
         Schedule indices use ``t=0`` for the first noised state. ``target_t=-1`` denotes the
         clean matrix. For ``target_t=t-1`` this is exactly :meth:`q_posterior_prob`; unlike the
         previous stride approximation, larger gaps compose every intervening bit-flip kernel.
-        ``m_true`` may be a soft clean prediction, matching the existing reverse-chain use.
+        ``m_true`` is a hard clean state. Soft inputs retain the historical plug-in-prior
+        behavior for reproducibility; they are NOT the learned reverse transition. Use
+        :meth:`p_reverse_between_prob` for a predicted clean probability (CMD eq. 9).
         """
         current = torch.as_tensor(t, device=m_t.device, dtype=torch.long)
         target = torch.as_tensor(target_t, device=m_t.device, dtype=torch.long)
@@ -194,6 +196,29 @@ class BernoulliDiffusionSchedule(nn.Module):
         unnorm_one = likelihood_from_one * marg_one
         unnorm_zero = likelihood_from_zero * marg_zero
         return unnorm_one / (unnorm_one + unnorm_zero).clamp_min(torch.finfo(m_t_f.dtype).tiny)
+
+    def p_reverse_between_prob(
+        self,
+        m_t: Tensor,
+        clean_probability: Tensor,
+        *,
+        t: Tensor | int,
+        target_t: Tensor | int,
+    ) -> Tensor:
+        """Mix normalized hard-clean posteriors using the model's clean-state weights.
+
+        The model already conditions its prediction on the observation. Normalizing a
+        soft prior inside ``q_posterior_between_prob`` would condition those weights on
+        the observation again. At ``target_t=-1`` this mixture equals the prediction.
+        """
+        probability = clean_probability.to(device=m_t.device, dtype=torch.get_default_dtype())
+        zero = self.q_posterior_between_prob(
+            m_t, torch.zeros_like(probability), t=t, target_t=target_t
+        )
+        one = self.q_posterior_between_prob(
+            m_t, torch.ones_like(probability), t=t, target_t=target_t
+        )
+        return (1.0 - probability) * zero + probability * one
 
     @staticmethod
     def _symmetrize(matrix: Tensor, customer_mask: Tensor | None) -> Tensor:

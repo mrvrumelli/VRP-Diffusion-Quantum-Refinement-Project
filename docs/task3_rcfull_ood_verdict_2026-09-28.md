@@ -1,5 +1,7 @@
 # rcfull-merged vs. champion: IID and OOD verdict — 2026-09-28
 
+**Correction, 2026-09-30 (R1):** The evidence supports aggregate checkpoint losses, not a verdict for each distribution: the nine R/C/RC-by-size cells remain outstanding. N50/N100 OOD matrix F1 falls despite lower route gaps. Only N100 acceptance improves over IID. See the [review](autonomous_work_review_2026-09-30.md) and [execution log](corrective_execution_2026-09-30.md). Historical run values below are retained.
+
 Track A Task 3 ([`autonomous_long_compute_guide_2026-09-24.md`](autonomous_long_compute_guide_2026-09-24.md)):
 the real arbiter [[project_status_2026-08]] flagged as unresolved back in August — is the
 `rcfull`-merged training experiment (R/C/RC spatial-stress data folded into the per-size

@@ -1,5 +1,7 @@
 # N100 policy hyperparameter sweep — 2026-09-24/25 (CONFIRMED: `num_starts=16` closes the gap, 3/3 seeds)
 
+**Correction, 2026-09-30 (R1):** The table selects base epoch 5, not always epoch 0. The described study contains six runs (base, three variants, two replications), not 15. Increased gradient norm after reducing learning rate does not establish the cause. The N100 improvement remains a candidate until policy ratio-of-total-cost gap and diffusion mean-instance gap are recomputed on a common panel and inference protocol. See the [review](autonomous_work_review_2026-09-30.md) and [execution log](corrective_execution_2026-09-30.md). Historical run values below are retained.
+
 Track A Task 6 ([`autonomous_long_compute_guide_2026-09-24.md`](autonomous_long_compute_guide_2026-09-24.md)):
 Task 2 confirmed the dual-pointer policy is still behind the diffusion-only champion at N100
 (31.80% vs. 30.57% K=1 gap, see

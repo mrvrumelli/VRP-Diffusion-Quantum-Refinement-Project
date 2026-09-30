@@ -10,6 +10,7 @@ from typing import Any
 
 import numpy as np
 
+from vrp_diffusion_quantum.data.dataset import load_example
 from vrp_diffusion_quantum.data.splits import SplitMaterialization, materialize_example
 from vrp_diffusion_quantum.utils.experiment import hash_dataset
 
@@ -100,6 +101,70 @@ def select_example_subset(
         "materialization": materialization,
         "examples_sha256": examples_sha256,
         "examples": entries,
+    }
+    (output / "subset_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    return manifest
+
+
+def select_source_subset(
+    source_dir: str | Path,
+    output_dir: str | Path,
+    *,
+    sizes: list[int],
+    per_size: int,
+    seed: int,
+    excluded_source_ids: set[str] | None = None,
+) -> dict[str, Any]:
+    """Select nested source prefixes, retaining every reference of each selected source.
+
+    Source identity is the original instance ID (unchanged by reference materialization).
+    This function expects original/reference files, not precomputed geometric augmentations.
+    Exclusion occurs BEFORE ordering and selection, so all curve points use one safe pool.
+    """
+    if per_size < 1 or not sizes or any(size < 1 for size in sizes):
+        raise ValueError("positive sizes and per_size are required")
+    source, output = Path(source_dir).resolve(), Path(output_dir).resolve()
+    if source == output or source in output.parents:
+        raise ValueError("output must be outside the source directory")
+    if output.exists() and any(output.iterdir()):
+        raise FileExistsError(f"output directory is not empty: {output}")
+    grouped: dict[int, dict[str, list[Path]]] = defaultdict(lambda: defaultdict(list))
+    for path in sorted(source.glob("*.json")):
+        if path.name.endswith("manifest.json"):
+            continue
+        example = load_example(path)
+        identity = example.instance.instance_id
+        if excluded_source_ids and identity in excluded_source_ids:
+            continue
+        if example.instance.n_customers in sizes:
+            grouped[example.instance.n_customers][identity].append(path)
+    selected: list[tuple[int, str, Path]] = []
+    for size in sorted(set(sizes)):
+        identities = sorted(grouped[size])
+        if len(identities) < per_size:
+            raise ValueError(f"need {per_size} CVRP{size} sources, found {len(identities)}")
+        rng = np.random.default_rng(np.random.SeedSequence([seed, size]))
+        for index in rng.permutation(len(identities))[:per_size]:
+            identity = identities[int(index)]
+            selected.extend((size, identity, path) for path in grouped[size][identity])
+    output.mkdir(parents=True, exist_ok=True)
+    entries = []
+    for size, identity, path in selected:
+        materialize_example(path, output / path.name, "hardlink")
+        entries.append({"file": path.name, "instance_id": identity, "n_customers": size})
+    manifest = {
+        "schema_version": 2,
+        "selection_unit": "source",
+        "seed": seed,
+        "source_dir": str(source),
+        "per_size": per_size,
+        "unique_source_counts_by_size": {str(size): per_size for size in sorted(set(sizes))},
+        "reference_counts_by_size": {
+            str(size): sum(e["n_customers"] == size for e in entries) for size in sorted(set(sizes))
+        },
+        "count": len(entries),
+        "examples": entries,
+        "examples_sha256": hash_dataset(output),
     }
     (output / "subset_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     return manifest

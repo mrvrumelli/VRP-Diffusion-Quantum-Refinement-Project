@@ -134,6 +134,7 @@ class ConstraintDenoiser(nn.Module):
         freeze_node_encoder: bool = False,
         normalization: NormalizationType = "layer_norm",
         edge_input_features: EdgeInputFeatures = "noisy_matrix_distance",
+        coordinate_frame: str = "absolute",
     ) -> None:
         super().__init__()
         if num_layers < 1:
@@ -151,6 +152,9 @@ class ConstraintDenoiser(nn.Module):
                 "edge_input_features must be 'noisy_matrix' or 'noisy_matrix_distance', "
                 f"got {edge_input_features!r}"
             )
+        if coordinate_frame not in {"absolute", "depot_relative"}:
+            raise ValueError("unsupported coordinate_frame")
+        self.coordinate_frame = coordinate_frame
         self.hidden_dim = hidden_dim
         self.node_encoder_type: NodeEncoderType = node_encoder_type
         self.gat_num_layers = gat_num_layers
@@ -195,7 +199,13 @@ class ConstraintDenoiser(nn.Module):
         if self.node_encoder_type != "gat":
             raise ValueError("load_gat_pretrained requires node_encoder_type='gat'")
         assert isinstance(self.node_encoder, NodeGATEncoder)
-        return load_gat_encoder_checkpoint(path, self.node_encoder, strict=strict)
+        payload = load_gat_encoder_checkpoint(path, self.node_encoder, strict=strict)
+        frame = ((payload.get("extra") or {}).get("model") or {}).get(
+            "coordinate_frame", "absolute"
+        )
+        if frame != self.coordinate_frame:
+            raise ValueError("GAT and denoiser coordinate frames must match")
+        return payload
 
     def forward(
         self,

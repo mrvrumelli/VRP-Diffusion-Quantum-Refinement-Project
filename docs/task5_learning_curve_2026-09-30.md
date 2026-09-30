@@ -1,5 +1,7 @@
 # Task 5 — audited-data learning curve — 2026-09-30
 
+**Correction, 2026-09-30 (R1):** The 500/1000/2000 labels count files, not distinct sources. Actual N20 sources: 500/1000/2000; N50: 480/934/1754; N100: 456/835/1375. N50/500 is an improvement candidate (26.07% versus historical 29.39%), alongside N20/1000 and N100/1000. These single-seed validation results do not establish scaling or a confirmed winner. Original Task 4 and nine OOD cells remain open; quantum tasks are not the only backlog. See the [review](autonomous_work_review_2026-09-30.md) and [execution log](corrective_execution_2026-09-30.md). Historical run values below are retained.
+
 Track A Task 5 ([`autonomous_long_compute_guide_2026-09-24.md`](autonomous_long_compute_guide_2026-09-24.md)):
 train the 500/1,000/2,000-per-size diffusion learning curve on the expanded audited pool
 (audit completion: [`task5_audit_expansion_2026-09-30.md`](task5_audit_expansion_2026-09-30.md))

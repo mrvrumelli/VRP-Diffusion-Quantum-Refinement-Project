@@ -1,5 +1,11 @@
 # OR Baseline Comparison
 
+**2026-09-30 update:** the historical smoke comparison below uses a label pool that also feeds
+training. The [corrective benchmark](corrective_results_2026-09-30.md) supplies the common
+source-audited held-out development panel, complete policy timing, solver timing comparisons,
+and a six-instance CVRPLIB expansion with the declared fleet enforced. Read that report for
+current learned-versus-classical conclusions; the values below remain historical evidence.
+
 This report compares classical OR baselines under matched wall-clock budgets. Each selected instance is solved by every baseline at the same per-instance time limit; quality is measured against the committed strong-reference label cost.
 
 - Data: `outputs/label_audit/s7799_strong_reference/accepted_matrix_examples`

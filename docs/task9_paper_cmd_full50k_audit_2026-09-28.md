@@ -1,5 +1,7 @@
 # paper_cmd full-scale label audit — completed 2026-09-28
 
+**Correction, 2026-09-30 (R1):** The audit solved 50,580 sources, but filtered training contains 33,449 examples (15,080/12,200/6,169 by size), not 50,000 training sources. Metadata naming single_hgs_route_partition does not establish that provenance. See the [review](autonomous_work_review_2026-09-30.md) and [execution log](corrective_execution_2026-09-30.md). Historical run values below are retained.
+
 Track B Task 9, step 3 ([`autonomous_long_compute_guide_2026-09-24.md`](autonomous_long_compute_guide_2026-09-24.md)):
 the full-scale labeling campaign, launched after the pilot
 ([`task9_paper_cmd_pilot_audit_2026-09-24.md`](task9_paper_cmd_pilot_audit_2026-09-24.md)) proved

@@ -1,5 +1,10 @@
 # RTX 3060 Ti training checklist
 
+> **Freeze correction — 2026-09-30.** The corrective source-count curve triggered its declared
+> stop rule; it did not establish a new finalist. Classical/paper freezes and quantum work
+> remain gated. See [completed corrective evidence](../../corrective_results_2026-09-30.md)
+> and the [decision manifest](../../evidence/corrective_20260930/candidate_baseline.json).
+
 > **Status correction — 2026-09-24.** The historical notes below stop while the R/C/RC audit was
 > paused, but later on-disk manifests prove that all 9,000 spatial sources were subsequently
 > materialized into audited policy-v1 and policy-v2 training-label sets, and size-specific

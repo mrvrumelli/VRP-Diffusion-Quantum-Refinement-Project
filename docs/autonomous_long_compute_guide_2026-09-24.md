@@ -1,5 +1,26 @@
 # Autonomous long-compute execution guide — 2026-09-24
 
+**Execution update, 2026-09-30:** the authorized corrective R1-R12 queue has reached its
+bounded completion/stop gates, including Track B diagnostics. See the
+[execution log](corrective_execution_2026-09-30.md), [results](corrective_results_2026-09-30.md)
+and [defer-freeze decision](evidence/corrective_20260930/candidate_baseline.json).
+Original Task 4 now has a common-panel quality/time comparison and six-instance CVRPLIB
+expansion; all nine OOD cells are reported. The repeated short source-count curve failed its
+expansion rule. No final-test promotion, paper reproduction or quantum launch is justified.
+Earlier pause/status summaries below are historical. Exit 127's cause remains unresolved;
+CPU contention was not established. Original Task 4 must use a common held-out panel,
+not its proposed training-pool command. Earlier claims that faithful sampler engineering
+was complete are superseded by the confirmed eq. 9 mixture defect.
+
+**Review update, 2026-09-30:** the
+[findings report](autonomous_work_review_2026-09-30.md) identifies implementation, evaluation and
+reporting issues in the completed runs below. Read the
+[prioritized corrective task list](autonomous_work_priority_tasks_2026-09-30.md) before choosing
+the next experiment. The review initially restored original Task 4 and the per-regime Task 3
+breakdown to the backlog; the execution update above gives their subsequent status. The later
+historical statement that only Tasks 7–8 remain is superseded. The review itself did not resume
+Track B; subsequent user authorization covered the bounded corrective work.
+
 Companion to [`project_findings_2026-09-24.md`](project_findings_2026-09-24.md) (Track A: the
 `ours_robust` action plan) and [`cmd_paper_alignment_plan.md`](cmd_paper_alignment_plan.md)
 (Track B: the `paper_cmd` faithful-reproduction plan, merged onto this branch from
@@ -229,13 +250,18 @@ checkpoints on both panels.
 ### Task 4 — Matched-budget comparison + CVRPLIB expansion (long, mixed CPU/GPU)
 
 ```bash
-./.venv/Scripts/python.exe eval/compare_or_baselines.py \
-  --data-dir outputs/label_audit/s7799_strong_reference/accepted_matrix_examples \
-  --sizes 20 50 100 --instances-per-size 20 \
-  --time-budgets 1.0 5.0 --solvers pyvrp ortools --seed 42
+./.venv/Scripts/python.exe scripts/run_corrective_baselines.py
+./.venv/Scripts/python.exe scripts/run_corrective_baselines.py --policy --end-to-end
+./.venv/Scripts/python.exe scripts/run_corrective_baselines.py --matched-time
 ```
-scaled up from the current 2-per-size smoke run, plus the frozen policy/diffusion numbers from Tasks
-2-3 reported alongside under the same declared time budgets (B.2). Expand the CVRPLIB subset beyond
+**2026-09-30 correction:** these commands use the frozen source-audited development panel
+in `outputs/corrective_20260930/panel.json` (eight held-out graphs per size), not the training
+label pool in the superseded example. The first run uses 1/3-second solver search caps; the
+second measures complete policy inference; the third matches solver search caps to those
+measured K=16 policy times. Solver setup is extra and is separately visible in actual elapsed
+time. This is a bounded quality/time comparison, not a strict identical-hardware deadline test.
+Report the corrected diffusion-only results on these same graphs alongside (B.2).
+Expand the CVRPLIB subset beyond
 the current one-instance parser smoke test the same way (B.3) — pull in more CVRPLIB instances and
 run them through the same matched-budget harness.
 

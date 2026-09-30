@@ -77,7 +77,8 @@ def test_symmetrize_zero_diagonal() -> None:
     assert torch.all(torch.diagonal(out, dim1=-2, dim2=-1) == 0)
 
 
-def test_sample_constraint_matrix_valid_shape() -> None:
+@pytest.mark.parametrize("sampler", ["skipped_posterior", "posterior_mixture_v2"])
+def test_sample_constraint_matrix_valid_shape(sampler: str) -> None:
     torch.manual_seed(0)
     n = 5
     example = _example(n, seed=0)
@@ -93,6 +94,7 @@ def test_sample_constraint_matrix_valid_shape() -> None:
         customer_mask=mask,
         generator=torch.Generator().manual_seed(0),
         snapshot_every=2,
+        sampler=sampler,  # type: ignore[arg-type]
     )
     _assert_valid_hard(result.m_hat, n)
     _assert_valid_prob(result.m_prob, n)

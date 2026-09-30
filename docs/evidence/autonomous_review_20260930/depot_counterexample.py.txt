@@ -1,0 +1,46 @@
+"""Exact six-customer example: a changed depot can change optimal route membership."""
+import itertools
+import json
+from pathlib import Path
+
+import numpy as np
+
+
+def solve(customers, depot):
+    route_costs = {}
+    for size in range(1, 4):
+        for group in itertools.combinations(range(6), size):
+            mask = sum(1 << i for i in group)
+            options = []
+            for route in itertools.permutations(group):
+                cost = np.linalg.norm(depot - customers[route[0]])
+                cost += sum(np.linalg.norm(customers[a] - customers[b]) for a, b in zip(route, route[1:]))
+                cost += np.linalg.norm(customers[route[-1]] - depot)
+                options.append((float(cost), route))
+            route_costs[mask] = min(options)
+    dp = {0: (0., [])}
+    for state in range(1, 64):
+        candidates = []
+        for mask, (cost, route) in route_costs.items():
+            if mask & (state & -state) and (mask & state) == mask:
+                previous_cost, previous_routes = dp[state ^ mask]
+                candidates.append((previous_cost + cost, previous_routes + [list(route)]))
+        dp[state] = min(candidates)
+    return dp[63]
+
+
+for seed in range(100):
+    customers = np.random.default_rng(seed).uniform(0, 1, (6, 2))
+    results = []
+    for depot in ([.05, .05], [.95, .95], [.05, .95], [.95, .05]):
+        cost, routes = solve(customers, np.array(depot))
+        results.append({'depot': depot, 'optimal_cost': cost, 'routes': routes})
+    partitions = {tuple(sorted(tuple(sorted(route)) for route in r['routes'])) for r in results}
+    if len(partitions) > 1:
+        evidence = {'seed': seed, 'customer_coordinates': customers.tolist(), 'demands': [1] * 6,
+                    'capacity': 3, 'distinct_optimal_partitions': len(partitions), 'exact_solutions': results}
+        Path(__file__).with_suffix('.json').write_text(json.dumps(evidence, indent=2) + '\n')
+        print(json.dumps(evidence, indent=2))
+        break
+else:
+    raise AssertionError('No counterexample in bounded search')

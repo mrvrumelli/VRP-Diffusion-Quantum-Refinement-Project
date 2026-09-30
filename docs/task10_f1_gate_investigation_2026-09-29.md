@@ -1,5 +1,7 @@
 # Track B F1 gate investigation — 2026-09-29 (paused)
 
+**Correction, 2026-09-30 (R1):** Five explanations were not eliminated: one augmentation variant never trained, and the other comparisons do not isolate all proposed causes. Step sweeps used the defective legacy sampler. Filtered/unfiltered selected panels share only 47 instances and cannot establish a controlled filtering effect. The rejected offline augmentation flag was not additional augmentation on top of the existing online recipe. See the [review](autonomous_work_review_2026-09-30.md) and [execution log](corrective_execution_2026-09-30.md). Historical run values below are retained.
+
 Full account of diagnosing why `paper_cmd` diffusion training can't clear the paper's ≈0.823
 sample-F1 target, after the full-scale training run
 ([`task10_paper_cmd_diffusion_full_2026-09-28.md`](task10_paper_cmd_diffusion_full_2026-09-28.md))

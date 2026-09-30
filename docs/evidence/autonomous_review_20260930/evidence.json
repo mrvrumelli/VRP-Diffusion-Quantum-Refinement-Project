@@ -1,0 +1,202 @@
+{
+  "task5_actual_training": [
+    {
+      "run": "diffusion_denoiser_s7799_stochastic_task5_curve_n100_1000_cuda_20260930T021223658360Z",
+      "epochs": 15,
+      "unique_sources": 835,
+      "optimizer_steps": 795
+    },
+    {
+      "run": "diffusion_denoiser_s7799_stochastic_task5_curve_n100_2000_cuda_20260930T024149734486Z",
+      "epochs": 15,
+      "unique_sources": 1375,
+      "optimizer_steps": 1290
+    },
+    {
+      "run": "diffusion_denoiser_s7799_stochastic_task5_curve_n100_500_cuda_20260930T014426467540Z",
+      "epochs": 15,
+      "unique_sources": 456,
+      "optimizer_steps": 435
+    },
+    {
+      "run": "diffusion_denoiser_s7799_stochastic_task5_curve_n20_1000_cuda_20260929T224438261794Z",
+      "epochs": 15,
+      "unique_sources": 1000,
+      "optimizer_steps": 945
+    },
+    {
+      "run": "diffusion_denoiser_s7799_stochastic_task5_curve_n20_2000_cuda_20260929T231955011441Z",
+      "epochs": 15,
+      "unique_sources": 2000,
+      "optimizer_steps": 1875
+    },
+    {
+      "run": "diffusion_denoiser_s7799_stochastic_task5_curve_n20_500_cuda_20260929T221100111041Z",
+      "epochs": 15,
+      "unique_sources": 500,
+      "optimizer_steps": 480
+    },
+    {
+      "run": "diffusion_denoiser_s7799_stochastic_task5_curve_n50_1000_cuda_20260930T003218959818Z",
+      "epochs": 15,
+      "unique_sources": 934,
+      "optimizer_steps": 885
+    },
+    {
+      "run": "diffusion_denoiser_s7799_stochastic_task5_curve_n50_2000_cuda_20260930T010734502883Z",
+      "epochs": 15,
+      "unique_sources": 1754,
+      "optimizer_steps": 1650
+    },
+    {
+      "run": "diffusion_denoiser_s7799_stochastic_task5_curve_n50_500_cuda_20260929T235853209424Z",
+      "epochs": 15,
+      "unique_sources": 480,
+      "optimizer_steps": 450
+    }
+  ],
+  "panel_comparison": {
+    "full_and_unfiltered_val_intersection": 245,
+    "full_val_in_unfiltered_train": 2676,
+    "actual_1500_panel_intersection": 47,
+    "actual_full_panel_in_unfiltered_train": 1352
+  },
+  "posterior_counterexamples": [
+    {
+      "t": 20,
+      "s": 0,
+      "observed": [
+        0.0,
+        1.0
+      ],
+      "predicted_x0": [
+        0.20000000298023224,
+        0.20000000298023224
+      ],
+      "implemented": [
+        0.0015445126919075847,
+        0.9758650064468384
+      ],
+      "eq9_mixture": [
+        0.19681762158870697,
+        0.2127276211977005
+      ]
+    },
+    {
+      "t": 100,
+      "s": 80,
+      "observed": [
+        0.0,
+        1.0
+      ],
+      "predicted_x0": [
+        0.20000000298023224,
+        0.20000000298023224
+      ],
+      "implemented": [
+        0.011930733919143677,
+        0.8926356434822083
+      ],
+      "eq9_mixture": [
+        0.07105587422847748,
+        0.7240533828735352
+      ]
+    },
+    {
+      "t": 0,
+      "s": -1,
+      "observed": [
+        0.0,
+        1.0
+      ],
+      "predicted_x0": [
+        0.20000000298023224,
+        0.20000000298023224
+      ],
+      "implemented": [
+        2.49985732807545e-05,
+        0.9996001720428467
+      ],
+      "eq9_mixture": [
+        0.20000000298023224,
+        0.20000000298023224
+      ]
+    }
+  ],
+  "depot_input_invariance": {
+    "changed_depot": true,
+    "all_five_model_input_tensors_identical": true
+  },
+  "probe_device": "cuda",
+  "probe_panel": [
+    "cvrp_s7799_n20-50-100_x66667_cvrp20_41285",
+    "cvrp_s7799_n20-50-100_x66667_cvrp20_23356",
+    "cvrp_s7799_n20-50-100_x66667_cvrp20_20555",
+    "cvrp_s7799_n20-50-100_x66667_cvrp20_32427",
+    "cvrp_s7799_n20-50-100_x66667_cvrp20_21366",
+    "cvrp_s7799_n20-50-100_x66667_cvrp20_22721",
+    "cvrp_s7799_n20-50-100_x66667_cvrp20_29913",
+    "cvrp_s7799_n20-50-100_x66667_cvrp20_16140",
+    "cvrp_s7799_n20-50-100_x66667_cvrp50_33854",
+    "cvrp_s7799_n20-50-100_x66667_cvrp50_63290",
+    "cvrp_s7799_n20-50-100_x66667_cvrp50_40400",
+    "cvrp_s7799_n20-50-100_x66667_cvrp50_15004",
+    "cvrp_s7799_n20-50-100_x66667_cvrp50_42314",
+    "cvrp_s7799_n20-50-100_x66667_cvrp50_26187",
+    "cvrp_s7799_n20-50-100_x66667_cvrp50_18283",
+    "cvrp_s7799_n20-50-100_x66667_cvrp50_42517",
+    "cvrp_s7799_n20-50-100_x66667_cvrp100_23146",
+    "cvrp_s7799_n20-50-100_x66667_cvrp100_52544",
+    "cvrp_s7799_n20-50-100_x66667_cvrp100_25172",
+    "cvrp_s7799_n20-50-100_x66667_cvrp100_8384",
+    "cvrp_s7799_n20-50-100_x66667_cvrp100_17700",
+    "cvrp_s7799_n20-50-100_x66667_cvrp100_62107",
+    "cvrp_s7799_n20-50-100_x66667_cvrp100_0005",
+    "cvrp_s7799_n20-50-100_x66667_cvrp100_14741"
+  ],
+  "probe_note": "24 diagnostic validation examples; not a new benchmark or a reproduction claim.",
+  "probe_results": [
+    {
+      "checkpoint": "outputs\\paper_cmd\\diffusion_denoiser_paper_cmd_full_20260928T090607233005Z\\checkpoints\\best.pt",
+      "variant": "current",
+      "epoch": 1,
+      "f1": 0.4676747415522296,
+      "precision": 0.3868044920877999,
+      "recall": 0.5912992586812329,
+      "auc": 0.8363419792151016,
+      "diagnostic_best_threshold_f1": 0.4680312969256303,
+      "diagnostic_best_threshold": 0.6,
+      "f1_n20": 0.5802469135802469,
+      "f1_n50": 0.5129351644841904,
+      "f1_n100": 0.4418578871522004
+    },
+    {
+      "checkpoint": "outputs\\paper_cmd\\diffusion_denoiser_paper_cmd_full_20260928T090607233005Z\\checkpoints\\best.pt",
+      "variant": "eq9_mixture",
+      "epoch": 1,
+      "f1": 0.47796610169491527,
+      "precision": 0.40762665198237885,
+      "recall": 0.5776433866562622,
+      "auc": 0.81957707863427,
+      "diagnostic_best_threshold_f1": 0.4822640933709665,
+      "diagnostic_best_threshold": 0.1,
+      "f1_n20": 0.5842391304347826,
+      "f1_n50": 0.5554106910039114,
+      "f1_n100": 0.44118332168646635
+    },
+    {
+      "checkpoint": "outputs\\paper_cmd\\diffusion_denoiser_paper_cmd_pilot_20260925T003139960628Z\\checkpoints\\best.pt",
+      "variant": "current",
+      "epoch": 1,
+      "f1": 0.5017718860742879,
+      "precision": 0.378065664556962,
+      "recall": 0.7458056964494733,
+      "auc": 0.9014499950421754,
+      "diagnostic_best_threshold_f1": 0.5114749305657068,
+      "diagnostic_best_threshold": 0.6,
+      "f1_n20": 0.5231788079470199,
+      "f1_n50": 0.5639703512729617,
+      "f1_n100": 0.48391293036163385
+    }
+  ]
+}

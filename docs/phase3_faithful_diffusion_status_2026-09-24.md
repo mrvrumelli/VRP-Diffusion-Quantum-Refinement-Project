@@ -1,5 +1,7 @@
 # Phase 3 faithful diffusion status — 2026-09-24
 
+**Correction, 2026-09-30 (R3):** Earlier mathematical-completeness claims below are superseded. The legacy sampler normalized a soft clean prior instead of mixing normalized hard-state posteriors (eq. 9). The explicit `posterior_mixture_v2` path now implements the mixture and passes independent binary-chain enumeration. Legacy `skipped_posterior` retains historical behavior. This fixes inference mathematics; it does not establish trained-model reproduction. See [execution evidence](corrective_execution_2026-09-30.md).
+
 ## Result
 
 The Phase 3 engineering implementation and automated mathematical gates are complete. The

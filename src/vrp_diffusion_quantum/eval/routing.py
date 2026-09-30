@@ -10,6 +10,7 @@ import numpy as np
 import numpy.typing as npt
 
 from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance
+from vrp_diffusion_quantum.eval.comparison import cost_gaps
 from vrp_diffusion_quantum.eval.confidence import bootstrap_mean_interval
 from vrp_diffusion_quantum.utils.constraint_matrix import build_constraint_matrix
 from vrp_diffusion_quantum.utils.feasibility import route_cost, validate_routes
@@ -282,6 +283,16 @@ def summarize_routing_evaluations(
             true_positives / recall_denominator if recall_denominator else 0.0
         ),
     }
+    if feasible:
+        summary.update(
+            {
+                "route_" + key: value
+                for key, value in cost_gaps(
+                    [result.decoded_cost for result in feasible],
+                    [result.reference_cost for result in feasible],
+                ).items()
+            }
+        )
     if confidence_level is not None and feasible:
         interval = bootstrap_mean_interval(
             [result.cost_gap_percent for result in feasible],

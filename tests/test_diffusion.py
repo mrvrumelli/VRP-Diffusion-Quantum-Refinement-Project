@@ -280,3 +280,37 @@ def test_skipped_posterior_probabilities_are_valid(current_t: int, target_t: int
 
     assert torch.all(torch.isfinite(posterior))
     assert torch.all((posterior >= 0.0) & (posterior <= 1.0))
+
+
+@pytest.mark.parametrize("probability", [0.0, 0.2, 0.7, 1.0])
+@pytest.mark.parametrize("observed", [0, 1])
+@pytest.mark.parametrize("target_t", [-1, 0, 3])
+def test_learned_reverse_matches_enumerated_mixture(
+    probability: float, observed: int, target_t: int
+) -> None:
+    schedule = BernoulliDiffusionSchedule(5, beta_start=0.05, beta_end=0.25)
+    expected = 0.0
+    for clean, weight in ((0, 1 - probability), (1, probability)):
+        joint = [
+            _binary_transition_probability(clean, state, schedule.betas[: target_t + 1])
+            * _binary_transition_probability(state, observed, schedule.betas[target_t + 1 :])
+            for state in (0, 1)
+        ]
+        expected += weight * joint[1] / sum(joint)
+    actual = schedule.p_reverse_between_prob(
+        torch.tensor([observed]), torch.tensor([probability]), t=4, target_t=target_t
+    )
+    assert actual.item() == pytest.approx(expected, abs=1e-6)
+
+
+def test_mixture_clean_endpoint_and_legacy_counterexample() -> None:
+    schedule = BernoulliDiffusionSchedule(1000)
+    observed = torch.tensor([0.0, 1.0])
+    prediction = torch.tensor([0.2, 0.2])
+    assert torch.allclose(
+        schedule.p_reverse_between_prob(observed, prediction, t=20, target_t=-1), prediction
+    )
+    legacy = schedule.q_posterior_between_prob(observed, prediction, t=20, target_t=0)
+    corrected = schedule.p_reverse_between_prob(observed, prediction, t=20, target_t=0)
+    assert legacy.tolist() == pytest.approx([0.0015445, 0.975865], abs=2e-6)
+    assert corrected.tolist() == pytest.approx([0.1968176, 0.212728], abs=2e-6)

@@ -12,9 +12,14 @@ cross-reference between docs was updated to the new paths.
 
 | File | What it is |
 |---|---|
+| [`corrective_execution_2026-09-30.md`](../corrective_execution_2026-09-30.md) | Live R1-R12 execution status, implemented fixes, verification and remaining gates. |
+| [`corrective_results_2026-09-30.md`](../corrective_results_2026-09-30.md) | Completed corrective experiment tables, paired uncertainty, calibration/normalization findings and expanded classical benchmarks. |
+| [`corrective_curve_protocol_2026-09-30.md`](../corrective_curve_protocol_2026-09-30.md) | Predeclared bounded scaling protocol and stop rule. |
+| [`autonomous_work_review_2026-09-30.md`](../autonomous_work_review_2026-09-30.md) | Review of September 24–30 work: confirmed defects, comparison problems, F1-gap hypotheses, and reproducible diagnostics. Read before relying on recent task conclusions. |
+| [`autonomous_work_priority_tasks_2026-09-30.md`](../autonomous_work_priority_tasks_2026-09-30.md) | Prioritized corrective tasks R1–R12, with dependencies, deliverables and completion gates. Execution authorized; check the live execution log for completion. |
 | [`project_findings_2026-09-24.md`](../project_findings_2026-09-24.md) | Current status + ordered action plan for the `ours_robust` track. Start here. |
 | [`cmd_paper_alignment_plan.md`](../cmd_paper_alignment_plan.md) | Current status + 9-phase plan for the `paper_cmd` faithful-reproduction track. |
-| [`phase3_faithful_diffusion_status_2026-09-24.md`](../phase3_faithful_diffusion_status_2026-09-24.md) | Phase 3 implementation audit: engineering gates complete; trained F1/inference-step curve still pending. |
+| [`phase3_faithful_diffusion_status_2026-09-24.md`](../phase3_faithful_diffusion_status_2026-09-24.md) | Historical Phase 3 audit with a correction for the soft-posterior defect; see corrective results for new inference evidence. |
 | [`cmd_paper_comparison_contract.md`](../cmd_paper_comparison_contract.md) | The two tracks' Phase 0 operating contract (what's frozen, what's still an open author question). |
 | [`autonomous_long_compute_guide_2026-09-24.md`](../autonomous_long_compute_guide_2026-09-24.md) | The executable long-compute task queue for both tracks — commands, gates, completion signals. |
 | [`stochastic_reference_probe.md`](../stochastic_reference_probe.md) | **The authoritative evidence trail for the currently active diffusion recipe** (three per-size stochastic-reference denoisers). Long, but every current default traces back to a specific table here. |

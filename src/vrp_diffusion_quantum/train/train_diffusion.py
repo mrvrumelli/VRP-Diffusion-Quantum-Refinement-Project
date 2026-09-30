@@ -36,6 +36,7 @@ from vrp_diffusion_quantum.data.dataset import (
     size_homogeneous_batches,
     size_homogeneous_chunks,
 )
+from vrp_diffusion_quantum.data.single_reference import validate_single_reference_dataset
 from vrp_diffusion_quantum.data.training_labels import select_stochastic_references
 from vrp_diffusion_quantum.data.types import CVRPExample
 from vrp_diffusion_quantum.inference.predict_matrix import (
@@ -81,6 +82,8 @@ EpochCallback = Callable[[dict[str, Any]], None]
 
 def customer_tensors_from_batch(
     batch: CVRPBatch,
+    *,
+    coordinate_frame: str = "absolute",
 ) -> tuple[Tensor, Tensor, Tensor]:
     """Gather per-customer coords/demands (depot excluded) from a collated batch.
 
@@ -90,6 +93,13 @@ def customer_tensors_from_batch(
     """
     idx = batch.customer_node_indices.clamp(min=0)
     coords = torch.gather(batch.coords, 1, idx.unsqueeze(-1).expand(-1, -1, 2))
+    if coordinate_frame == "depot_relative":
+        depot = batch.coords[
+            torch.arange(len(batch.coords), device=batch.coords.device), batch.depot_index
+        ]
+        coords = coords - depot.unsqueeze(1)
+    elif coordinate_frame != "absolute":
+        raise ValueError("unsupported coordinate_frame")
     demands = torch.gather(batch.demands, 1, idx)
     mask = batch.customer_mask
     return coords * mask.unsqueeze(-1), demands * mask, batch.capacity
@@ -411,7 +421,9 @@ def evaluate_constraint_denoiser(
         batch = collate_batch(chunk)
         if model_device.type != "cpu":
             batch = _batch_to_device(batch, model_device)
-        coords, demands, capacity = customer_tensors_from_batch(batch)
+        coords, demands, capacity = customer_tensors_from_batch(
+            batch, coordinate_frame=model.coordinate_frame
+        )
         m_t, t = _noise_batch(schedule, batch, generator=generator, t_sample=t_sample)
         with torch.autocast(
             device_type=model_device.type,
@@ -482,8 +494,9 @@ def save_denoiser_checkpoint(
     }
     if scaler is not None:
         payload["scaler"] = scaler.state_dict()
-    if extra:
-        payload["extra"] = extra
+    metadata = dict(extra or {})
+    metadata["model"] = {**metadata.get("model", {}), "coordinate_frame": model.coordinate_frame}
+    payload["extra"] = metadata
     torch.save(payload, target)
     return target
 
@@ -551,7 +564,7 @@ def train_constraint_denoiser(
         raise ValueError("sample_num_inference_steps must be >= 1")
     if sample_transition_mode not in {"stochastic", "deterministic"}:
         raise ValueError(f"unsupported sample_transition_mode: {sample_transition_mode}")
-    if sample_sampler not in {"skipped_posterior", "one_step_approx"}:
+    if sample_sampler not in {"skipped_posterior", "one_step_approx", "posterior_mixture_v2"}:
         raise ValueError(f"unsupported sample_sampler: {sample_sampler}")
     if gradient_accumulation_steps < 1:
         raise ValueError("gradient_accumulation_steps must be >= 1")
@@ -692,7 +705,9 @@ def train_constraint_denoiser(
             ):
                 if device is not None:
                     batch = _batch_to_device(batch, device)
-                coords, demands, capacity = customer_tensors_from_batch(batch)
+                coords, demands, capacity = customer_tensors_from_batch(
+                    batch, coordinate_frame=model.coordinate_frame
+                )
                 m_t, t = _noise_batch(schedule, batch, generator=train_generator, t_sample=t_sample)
                 loss_target = batch.constraint_matrix
                 pair_weights = None
@@ -1024,6 +1039,8 @@ def main() -> None:
             "configs/train/diffusion_denoiser_s7799.yaml"
         )
     dataset_path = _ROOT / dataset_path_value
+    if alignment.track == "paper_cmd":
+        validate_single_reference_dataset(dataset_path)
     output_root = _ROOT / config["output"]["root"]
     model_cfg = config["model"]
     train_cfg = config["training"]
@@ -1062,6 +1079,7 @@ def main() -> None:
     if encoder_type not in ("linear", "gat"):
         raise ValueError(f"model.node_encoder_type must be 'linear' or 'gat', got {encoder_type!r}")
     model = ConstraintDenoiser(
+        coordinate_frame=str(model_cfg.get("coordinate_frame", "absolute")),
         hidden_dim=int(model_cfg.get("hidden_dim", 64)),
         num_layers=int(model_cfg.get("num_layers", 3)),
         time_embed_dim=int(model_cfg.get("time_embed_dim", 64)),

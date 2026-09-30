@@ -154,6 +154,7 @@ def test_evaluate_record_outputs_requested_metrics(
     record = discover_records(tmp_path)[0]
 
     result = MagicMock()
+    mock_read.return_value.vehicle_types.return_value = [MagicMock()]
     result.cost.return_value = 10
     result.runtime = 0.25
     result.is_feasible.return_value = True
@@ -179,6 +180,10 @@ def test_evaluate_record_outputs_requested_metrics(
     assert row["subset_hash"] == "abc123"
     assert mock_read.call_args.kwargs["round_func"] == "round"
     assert mock_solve.call_args.kwargs["display"] is False
+    assert row["fleet_mode"] == "at_most_declared"
+    mock_read.return_value.vehicle_types.return_value[0].replace.assert_called_once_with(
+        num_available=2
+    )
 
 
 def test_summarize_and_write_csv(tmp_path: Path) -> None:

@@ -86,6 +86,7 @@ def example_to_model_inputs(
     example: CVRPExample,
     *,
     device: torch.device | str | None = None,
+    coordinate_frame: str = "absolute",
 ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
     """Pack one :class:`CVRPExample` into denoiser tensors (batch size 1).
 
@@ -94,6 +95,12 @@ def example_to_model_inputs(
     """
     n = example.instance.n_customers
     coords = torch.as_tensor(example.instance.customer_coords(), dtype=torch.float32).unsqueeze(0)
+    if coordinate_frame == "depot_relative":
+        coords = coords - torch.as_tensor(
+            example.instance.coords[example.instance.depot_index], dtype=torch.float32
+        )
+    elif coordinate_frame != "absolute":
+        raise ValueError("unsupported coordinate_frame")
     demands = torch.as_tensor(example.instance.customer_demands(), dtype=torch.float32).unsqueeze(0)
     capacity = torch.as_tensor([example.instance.capacity], dtype=torch.float32)
     m_true = torch.as_tensor(example.constraint_matrix, dtype=torch.float32).unsqueeze(0)
@@ -121,6 +128,7 @@ def load_denoiser_checkpoint(
     extra = payload.get("extra") or {}
     model_cfg = extra.get("model") or {}
     model = ConstraintDenoiser(
+        coordinate_frame=str(model_cfg.get("coordinate_frame", "absolute")),
         hidden_dim=int(model_cfg.get("hidden_dim", hidden_dim)),
         num_layers=int(model_cfg.get("num_layers", num_layers)),
         time_embed_dim=int(model_cfg.get("time_embed_dim", time_embed_dim)),
@@ -236,7 +244,9 @@ def sample_constraint_matrix(
     step_stride: int = 1,
     x0_clamp: float = 1e-3,
     transition_mode: Literal["stochastic", "deterministic"] = "stochastic",
-    sampler: Literal["skipped_posterior", "one_step_approx"] = "skipped_posterior",
+    sampler: Literal[
+        "skipped_posterior", "one_step_approx", "posterior_mixture_v2"
+    ] = "skipped_posterior",
     prior_positive_probability: float = 0.5,
 ) -> MatrixPredictionResult:
     """Full reverse chain ``t = T-1 → 0`` → final ``m_hat`` / ``m_prob`` (+ optional snapshots).
@@ -322,7 +332,9 @@ def predict_matrix_batch(
     seed: int,
     step_stride: int = 1,
     num_inference_steps: int | None = None,
-    sampler: Literal["skipped_posterior", "one_step_approx"] = "skipped_posterior",
+    sampler: Literal[
+        "skipped_posterior", "one_step_approx", "posterior_mixture_v2"
+    ] = "skipped_posterior",
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """Predict ``(m_prob, m_hat)`` for each example with one denoiser; batch size 1 per call.
 
@@ -335,7 +347,9 @@ def predict_matrix_batch(
     probabilities: list[np.ndarray] = []
     hard_matrices: list[np.ndarray] = []
     for index, example in enumerate(examples):
-        coords, demands, capacity, _, mask = example_to_model_inputs(example, device=device)
+        coords, demands, capacity, _, mask = example_to_model_inputs(
+            example, device=device, coordinate_frame=model.coordinate_frame
+        )
         generator = torch.Generator(device="cpu").manual_seed(seed + index)
         if mode == "one_shot":
             prediction = predict_matrix_one_shot(
@@ -454,7 +468,9 @@ def evaluate_full_chain_sampling(
     num_inference_steps: int | None = None,
     step_stride: int = 1,
     transition_mode: Literal["stochastic", "deterministic"] = "stochastic",
-    sampler: Literal["skipped_posterior", "one_step_approx"] = "skipped_posterior",
+    sampler: Literal[
+        "skipped_posterior", "one_step_approx", "posterior_mixture_v2"
+    ] = "skipped_posterior",
     prior_positive_probability: float = 0.5,
     batch_size: int = 1,
     confidence_level: float | None = None,
@@ -489,7 +505,12 @@ def evaluate_full_chain_sampling(
     for n, indexed_examples in indexed_by_size.items():
         for start in range(0, len(indexed_examples), batch_size):
             chunk = indexed_examples[start : start + batch_size]
-            inputs = [example_to_model_inputs(example, device=device) for _, example in chunk]
+            inputs = [
+                example_to_model_inputs(
+                    example, device=device, coordinate_frame=model.coordinate_frame
+                )
+                for _, example in chunk
+            ]
             coords = torch.cat([item[0] for item in inputs])
             demands = torch.cat([item[1] for item in inputs])
             capacity = torch.cat([item[2] for item in inputs])
@@ -587,7 +608,7 @@ def _parse_sample_eval_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sampler",
-        choices=["skipped_posterior", "one_step_approx"],
+        choices=["skipped_posterior", "one_step_approx", "posterior_mixture_v2"],
         default="skipped_posterior",
     )
     parser.add_argument("--confidence-level", type=float, default=0.95)
@@ -694,7 +715,9 @@ def main() -> None:
     if args.save_heatmaps > 0:
         n_save = min(args.save_heatmaps, len(examples))
         for i, example in enumerate(examples[:n_save]):
-            coords, demands, capacity, _, mask = example_to_model_inputs(example, device=device)
+            coords, demands, capacity, _, mask = example_to_model_inputs(
+                example, device=device, coordinate_frame=model.coordinate_frame
+            )
             sampled = sample_constraint_matrix(
                 model,
                 schedule,

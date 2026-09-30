@@ -1,5 +1,7 @@
 # rc_full_eval OOD audit — completed 2026-09-25
 
+**Correction, 2026-09-30 (R1):** Only N100 has higher acceptance than IID: N20 98.4% < 98.6%; N50 86.8% < 94.4%; N100 56.8% > 47.8%. Claims of higher acceptance at every size are superseded. See the [review](autonomous_work_review_2026-09-30.md) and [execution log](corrective_execution_2026-09-30.md). Historical run values below are retained.
+
 Track A Task 1 ([`autonomous_long_compute_guide_2026-09-24.md`](autonomous_long_compute_guide_2026-09-24.md)):
 finish the fresh R/C/RC out-of-distribution eval-batch audit (seeds 9901-9903) that had been
 paused since 2026-08-26 at 18,219/36,000 candidates. This pool exists specifically to give the

@@ -1,5 +1,10 @@
 # Review of autonomous work, September 24–30, 2026
 
+**Execution follow-up:** the user subsequently authorized corrective work. See [implemented changes and status](corrective_execution_2026-09-30.md) and [new experiment results](corrective_results_2026-09-30.md). The review below records the pre-correction state; its small probe is not the latest benchmark.
+
+Companion: [prioritized corrective task list](autonomous_work_priority_tasks_2026-09-30.md).
+The task list defines dependencies, deliverables and completion gates for the findings below.
+
 The solver audits and saved experiment results represent useful work, but several reports
 overstate what the experiments establish. There are also concrete implementation and comparison
 problems. The present evidence does **not** justify the conclusion that implementation errors
@@ -15,8 +20,9 @@ manifests, training CSVs, and evaluation JSONs. Repository HEAD was
 `26deeb74c7ab4b4081a3f48c61ab7c9741f573fd`, with pre-existing local changes.
 
 This review added documentation and bounded diagnostic artifacts only. It did not modify
-production code, checkpoints, datasets, or the existing reports, and did not launch training or
-solver-labeling jobs. New numerical checks are reproducible with
+production code, checkpoints or datasets, and did not launch training or solver-labeling jobs.
+The documentation follow-up links this report and its task list from the guide and report index;
+existing experimental values are preserved. New numerical checks are reproducible with
 [verify_review.py](../outputs/autonomous_review_20260930/verify_review.py); results are in
 [evidence.json](../outputs/autonomous_review_20260930/evidence.json).
 
@@ -309,19 +315,21 @@ ablations; claiming a single proven root cause now would repeat the reports' cen
 
 **Recommended next work, in order**
 
-1. Define a common evaluation contract: fixed source IDs disjoint from every compared training
-   set, explicit matrix F1 aggregation and threshold, one route-gap definition, matched inference
-   settings, per-instance outputs, and instance-bootstrap paired differences.
-2. Correct and independently test the soft-posterior mixture, retaining a named legacy sampler
-   for old checkpoints/results. Re-evaluate saved checkpoints before considering retraining.
-3. Check depot-aware features, unweighted/probability-calibrated objectives, and BatchNorm/batch
-   ordering with bounded, explicitly labeled diagnostics. Include a tiny-set fit sanity check and
-   fixed-noise-level evaluations. Keep the paper ambiguity ledger honest about these assumptions.
-4. Reuse the existing HGS candidates with shared source-level splits. Rebuild the Task 5 subsets
-   by source, preserving all references. Only then use repeated seeds to study a scaling curve.
-5. Reassess all three Task 5 candidates, including N50/500, and the N100 policy gate on a disjoint
-   panel with consistent metrics. Complete Task 4 and the missing R/C/RC cell breakdown before
-   treating the classical baseline as frozen.
+The [corrective task list](autonomous_work_priority_tasks_2026-09-30.md) is the detailed execution
+plan. Its order is:
+
+1. Reconcile unsupported conclusions and restore the missing backlog items.
+2. Standardize evaluation metrics, source-disjoint panels, and uncertainty estimates.
+3. Correct and independently test soft-posterior composition while preserving legacy behavior.
+4. Re-evaluate existing checkpoints and candidate improvements before new training.
+5. Repair label provenance and construct learning-curve subsets by independent source.
+6. Run bounded learning and inference sanity checks.
+7. Test depot-aware inputs with a matched training control.
+8. Test the training objective and probability calibration.
+9. Test BatchNorm and batch ordering.
+10. Run a corrected, replicated learning curve only after the preceding issues are resolved.
+11. Complete the original Task 4 comparison and the missing R/C/RC cell breakdown.
+12. Reassess baseline-freeze and paper-reproduction gates before downstream work.
 
 The completed audits' source counts, solver-run counts and zero reported solver errors agree with
 their saved `metrics.json` files. The Task 3 aggregate checkpoint losses and Task 5 route-gap table

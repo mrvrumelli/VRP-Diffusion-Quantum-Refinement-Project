@@ -1,5 +1,7 @@
 # paper_cmd diffusion training — full-scale result — 2026-09-28
 
+**Correction, 2026-09-30 (R1):** Historical F1 remains as measured with the legacy sampler. Any stated confidence intervals apply to route gap, not generated F1. The filtered and unfiltered evaluations do not use identical panels; 1,352 of the filtered 1,500-panel sources are in unfiltered training. See the [review](autonomous_work_review_2026-09-30.md) and [execution log](corrective_execution_2026-09-30.md). Historical run values below are retained.
+
 Track B Task 10, rerun at full scale after the pilot's clean negative result
 ([`task10_paper_cmd_diffusion_pilot_2026-09-25.md`](task10_paper_cmd_diffusion_pilot_2026-09-25.md))
 was read as "not enough data" and used to justify the full ~59-hour, 50,580-instance labeling

@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-30",
+  "decision": "defer classical and paper freeze; promote no checkpoint",
+  "reason": "The repeated source-count curve failed its declared improvement rule. Diagnostic changes did not establish dependable route improvement. Development results do not establish independent test improvement.",
+  "selected_checkpoint": null,
+  "historical_comparators": {
+    "full": {
+      "path": "outputs/paper_cmd/diffusion_denoiser_paper_cmd_full_20260928T090607233005Z/checkpoints/best.pt",
+      "sha256": "d2b2e3613d68dc606558a001eda74f1e91a2154ac2088b1919d241feb6a1873e"
+    },
+    "pilot": {
+      "path": "outputs/paper_cmd/diffusion_denoiser_paper_cmd_pilot_20260925T003139960628Z/checkpoints/best.pt",
+      "sha256": "b3b83ee9d7457b0941e3c088532c728963302bcee388c28b88cc201e568ee262"
+    },
+    "unfiltered": {
+      "path": "outputs/paper_cmd/diffusion_denoiser_paper_cmd_unfiltered_20260928T122603886201Z/checkpoints/best.pt",
+      "sha256": "d3f451823d32d1f9c301b619c7b09bffd107f7f9116add0bfd9c83df1017558d"
+    },
+    "n20only": {
+      "path": "outputs/paper_cmd/diffusion_denoiser_paper_cmd_n20only_20260929T054533775177Z/checkpoints/best.pt",
+      "sha256": "14340362c3234b89f05d1417f884c54c02966148fa085aad1dd5554db16ba80a"
+    },
+    "champion_n20": {
+      "path": "outputs/train/diffusion_denoiser_s7799_stochastic_persize_n20_cuda_20260816T145222731562Z/checkpoints/best.pt",
+      "sha256": "6ff75ed0ae7c4d2981ab41440b9dd5787d83ab18ae9ad712987bbd9941f02b0c"
+    },
+    "champion_n50": {
+      "path": "outputs/train/diffusion_denoiser_s7799_stochastic_persize_n50_cuda_20260816T150806474465Z/checkpoints/best.pt",
+      "sha256": "b0a37f8e513248280586efa0f64f0a5c4108f94f592e8e5d3cedc6b20e425626"
+    },
+    "champion_n100": {
+      "path": "outputs/train/diffusion_denoiser_s7799_stochastic_persize_n100_cuda_20260816T152405895038Z/checkpoints/best.pt",
+      "sha256": "83356d0b4bc09ed56002c8da591ab529334e9f533088460fca2b7728b1d8e688"
+    },
+    "candidate_n20": {
+      "path": "outputs/train/diffusion_denoiser_s7799_stochastic_task5_curve_n20_1000_cuda_20260929T224438261794Z/checkpoints/best.pt",
+      "sha256": "7fad153ef1b61554caee13aac6b652173306f1e578ca7c5801555dff4037c5c7"
+    },
+    "candidate_n50": {
+      "path": "outputs/train/diffusion_denoiser_s7799_stochastic_task5_curve_n50_500_cuda_20260929T235853209424Z/checkpoints/best.pt",
+      "sha256": "611ff41124fb6c207f9eb3d9f971efed4ccc15890b148c8f24c9681dc95b3d34"
+    },
+    "candidate_n100": {
+      "path": "outputs/train/diffusion_denoiser_s7799_stochastic_task5_curve_n100_1000_cuda_20260930T021223658360Z/checkpoints/best.pt",
+      "sha256": "d447f534e2b0e01d6831ea3161c4f683f1de2674a35ba419120051930244b72f"
+    }
+  },
+  "data": {
+    "development_manifest": "outputs/corrective_confirmation_20260930/panel.json",
+    "reserved_test_manifest": "outputs/corrective_20260930/reserved_test.json",
+    "reserved_test_scored": false,
+    "reference_limitation": "strengthen original reserved labels before final route claims",
+    "single_reference_split_counts": {
+      "train": 50000,
+      "validation": 289,
+      "test": 291
+    },
+    "single_reference_seed": 50937,
+    "stability_filter": false,
+    "manifest_sha256": {
+      "outputs/corrective_confirmation_20260930/panel.json": "4ce513592c90141a836c42c2b586a8ec9651abd437de3266d870298f616604ba",
+      "outputs/corrective_20260930/reserved_test.json": "d1dca16b0440daee80bfc0978fca0999bfc46ddc89927fdc8d924a953e88c7e1",
+      "data/processed/corrective_20260930/single_hgs/test/training_label_manifest.json": "5f81b122183e19e9d62182a846935204e302f2b0ffe6a792c7b41717f6e4f8e3",
+      "data/processed/corrective_20260930/single_hgs/train/training_label_manifest.json": "b7beb5cf186643cc67906909e2396880cc041ccfba23f1b3c65e7db5061b0897",
+      "data/processed/corrective_20260930/single_hgs/val/training_label_manifest.json": "1f755173da55c70cf3289358044b726eb8461299442da55a96eda9727c34257b"
+    }
+  },
+  "evaluation": {
+    "sampler": "posterior_mixture_v2",
+    "inference_steps": 50,
+    "threshold": 0.5,
+    "batch_size": 1,
+    "precision": "float32",
+    "checkpoint_comparison_seed": 0,
+    "primary_route_metric": "mean_instance_gap_percent",
+    "input_frame_existing_checkpoints": "absolute",
+    "diagnostic_input_frame": "depot_relative; explicit opt-in, not promoted",
+    "policy_starts": [
+      1,
+      8,
+      16
+    ],
+    "policy_prior": "champion corrected 50-step, seed 0"
+  },
+  "paper_target": {
+    "source": "https://arxiv.org/pdf/2603.07568v1#page=13",
+    "reported_50_step_f1": 0.823,
+    "full_checkpoint_development_f1": {
+      "estimate": 0.4682434626239417,
+      "lower": 0.4517230968233825,
+      "upper": 0.48563373196363047,
+      "confidence_level": 0.95,
+      "num_resamples": 2000,
+      "num_observations": 72,
+      "seed": 0
+    },
+    "arithmetic_shortfall": 0.3547565373760583,
+    "shortfall_is_like_for_like": false,
+    "unresolved": [
+      "Figure 8 size mixture, F1 averaging and exact scored sampling protocol",
+      "author model inputs, especially depot representation",
+      "exact training objective and probability parameterization",
+      "label solver stopping/seed policy and unfiltered source distribution",
+      "normalization/training schedule and checkpoint-selection details"
+    ]
+  },
+  "classification": {
+    "reproduced": [
+      "legacy soft-posterior mismatch; corrected equation matches enumeration",
+      "source-count and label-provenance discrepancies",
+      "gap aggregation mismatch and contaminated historical comparison panel",
+      "depot information loss in absolute customer-only inputs",
+      "CVRPLIB unrestricted-fleet mismatch",
+      "tiny-source fit and oracle endpoint sanity"
+    ],
+    "supported": [
+      "F1 gains need not improve decoded routes",
+      "reduced mixed-size BatchNorm variants exhibit substantial seed/mode sensitivity",
+      "merged OOD checkpoints have worse route point estimates in all nine cells"
+    ],
+    "rejected_for_tested_protocol": [
+      "sampler correction alone recovers paper F1",
+      "more inference steps alone recover paper F1",
+      "fitted size-specific logit intercept improves full-checkpoint generation",
+      "five-epoch 500-to-1000-source N100 expansion passes the route-gain rule"
+    ],
+    "inconclusive": [
+      "depot conditioning improvement at paper scale",
+      "which remaining factor explains most of the F1 deficit",
+      "independent superiority of Task 5 / Task 6 validation-selected candidates",
+      "effects of substantially longer training or a verified variational objective"
+    ]
+  },
+  "curve_decision": {
+    "protocol": "docs/corrective_curve_protocol_2026-09-30.md",
+    "seed_results": {
+      "4331": {
+        "paired_gap_difference": {
+          "estimate": 9.219961334316565,
+          "lower": 5.594682140963418,
+          "upper": 12.84332417417306,
+          "confidence_level": 0.95,
+          "num_resamples": 10000,
+          "num_observations": 24,
+          "seed": 0
+        },
+        "passes": false
+      },
+      "4332": {
+        "paired_gap_difference": {
+          "estimate": 23.4805702298113,
+          "lower": 19.126625954405167,
+          "upper": 27.836222056195847,
+          "confidence_level": 0.95,
+          "num_resamples": 10000,
+          "num_observations": 24,
+          "seed": 0
+        },
+        "passes": false
+      }
+    },
+    "expand": false,
+    "action": "stop this bounded curve; no independently justified finalist; preserve reserved test"
+  },
+  "task5_development_evidence": {
+    "20": {
+      "f1": {
+        "estimate": -0.0005907775883655653,
+        "lower": -0.01557464105884886,
+        "upper": 0.014814840526436236,
+        "confidence_level": 0.95,
+        "num_resamples": 10000,
+        "num_observations": 24,
+        "seed": 0
+      },
+      "mean_instance_gap_percent": {
+        "estimate": -3.750043482518425,
+        "lower": -8.264704574614845,
+        "upper": 0.3938942021973553,
+        "confidence_level": 0.95,
+        "num_resamples": 10000,
+        "num_observations": 24,
+        "seed": 0
+      },
+      "ratio_total_gap_percent": {
+        "estimate": -3.558749197532336,
+        "lower": -7.967536282448414,
+        "upper": 0.4701162368225876,
+        "confidence_level": 0.95,
+        "num_resamples": 10000,
+        "num_observations": 24,
+        "seed": 0
+      }
+    },
+    "50": {
+      "f1": {
+        "estimate": -0.008969159273341742,
+        "lower": -0.01387249633334921,
+        "upper": -0.004255362827823489,
+        "confidence_level": 0.95,
+        "num_resamples": 10000,
+        "num_observations": 24,
+        "seed": 0
+      },
+      "mean_instance_gap_percent": {
+        "estimate": -4.538563431075609,
+        "lower": -7.414529926307752,
+        "upper": -1.9181817683393174,
+        "confidence_level": 0.95,
+        "num_resamples": 10000,
+        "num_observations": 24,
+        "seed": 0
+      },
+      "ratio_total_gap_percent": {
+        "estimate": -4.856309861194596,
+        "lower": -7.8449791034078205,
+        "upper": -2.070185053878203,
+        "confidence_level": 0.95,
+        "num_resamples": 10000,
+        "num_observations": 24,
+        "seed": 0
+      }
+    },
+    "100": {
+      "f1": {
+        "estimate": 0.026861513085945754,
+        "lower": 0.020268369767060236,
+        "upper": 0.03353588735897714,
+        "confidence_level": 0.95,
+        "num_resamples": 10000,
+        "num_observations": 24,
+        "seed": 0
+      },
+      "mean_instance_gap_percent": {
+        "estimate": -1.7959189649313636,
+        "lower": -4.761317913238828,
+        "upper": 1.1295258367802683,
+        "confidence_level": 0.95,
+        "num_resamples": 10000,
+        "num_observations": 24,
+        "seed": 0
+      },
+      "ratio_total_gap_percent": {
+        "estimate": -1.7418237174486215,
+        "lower": -4.737416377236285,
+        "upper": 1.270259125338487,
+        "confidence_level": 0.95,
+        "num_resamples": 10000,
+        "num_observations": 24,
+        "seed": 0
+      }
+    }
+  },
+  "independently_confirmed_new_winners": [],
+  "downstream_gates": {
+    "paper_tasks_11_to_14": "not launched; prerequisites remain unsatisfied",
+    "quantum_tasks_7_to_8": "not launched; classical freeze and D.1-D.3 still required",
+    "authorization_scope": "R1-R12 corrective execution; no automatic downstream promotion"
+  },
+  "bounded_next_hypothesis": "Before more training, resolve paper F1 aggregation and objective/conditioning ambiguities using author artifacts if available; then preregister one matched two-seed objective/conditioning comparison on the repaired single-HGS splits. Do not automatically expand labels or repeat the failed curve."
+}

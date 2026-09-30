@@ -1,5 +1,7 @@
 # Task 5 — audited-pool expansion audit — 2026-09-30
 
+**Correction, 2026-09-30 (R1):** The cause of 239 cache entries being recomputed is unresolved; 11 simultaneously active workers do not explain that count. Preserve cache-resume causality as unknown. See the [review](autonomous_work_review_2026-09-30.md) and [execution log](corrective_execution_2026-09-30.md). Historical run values below are retained.
+
 Track A Task 5 ([`autonomous_long_compute_guide_2026-09-24.md`](autonomous_long_compute_guide_2026-09-24.md)):
 expand the audited IID source pool so the 500/1,000/2,000-per-size learning curve becomes
 possible, then materialize it.

@@ -1,5 +1,13 @@
 # Compute-matched stochastic-reference probe
 
+**Freeze reassessment, 2026-09-30:** retain these checkpoints as historical comparators; do not
+promote a new classical baseline. Corrected 50-step inference and source-audited development
+comparisons are in [the corrective results](corrective_results_2026-09-30.md). The replicated
+five-epoch N100 source-count curve worsened at 1,000 sources in both seeds and triggered its
+stop rule. The N50 Task 5 candidate improves development route gap, but has no independent
+test confirmation. The [decision manifest](evidence/corrective_20260930/candidate_baseline.json)
+records the deferred freeze and downstream gates. Historical sampler scores below are retained.
+
 ## Design
 
 The probe preloads all 2,304 competitive candidate examples from

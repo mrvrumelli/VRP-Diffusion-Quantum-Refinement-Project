@@ -1,5 +1,7 @@
 # paper_cmd pilot label audit — 2026-09-24
 
+**Correction, 2026-09-30 (R1):** Two-seed stability-filtered audit labels do not satisfy the declared single-HGS, unfiltered label contract. Existing solver candidates can be reused with a predetermined seed and source-level split. See the [review](autonomous_work_review_2026-09-30.md) and [execution log](corrective_execution_2026-09-30.md). Historical run values below are retained.
+
 Track B Task 9 ([`autonomous_long_compute_guide_2026-09-24.md`](autonomous_long_compute_guide_2026-09-24.md)):
 label a pilot slice of the paper_cmd diffusion-training pool before committing to the full
 50,000-instance campaign the plan calls for, staged as its own gate rather than run blind.

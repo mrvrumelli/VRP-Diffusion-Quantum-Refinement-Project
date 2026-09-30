@@ -32,6 +32,7 @@ from vrp_diffusion_quantum.data.dataset import (
     size_homogeneous_chunks,
 )
 from vrp_diffusion_quantum.data.types import CVRPExample
+from vrp_diffusion_quantum.eval.comparison import cost_gaps
 from vrp_diffusion_quantum.inference.policy_support import (
     PriorProvider,
     batch_to_device,
@@ -206,6 +207,8 @@ def evaluate_policy(
     total_starts = 0.0
     feasible_sum = 0.0
     feasible_batches = 0
+    best_costs: list[float] = []
+    reference_costs: list[float] = []
 
     for chunk in size_homogeneous_chunks(list(examples), batch_size, shuffle=False):
         batch = _collate(chunk, device)
@@ -219,12 +222,14 @@ def evaluate_policy(
         grouped = rollout.cost.view(len(chunk), starts)
         total_cost += float(grouped.mean(dim=1).sum().item())
         total_best_cost += float(grouped.min(dim=1).values.sum().item())
+        best_costs.extend(grouped.min(dim=1).values.cpu().tolist())
+        reference_costs.extend(float(example.solution.cost) for example in chunk)
         total_reference += sum(float(example.solution.cost) for example in chunk)
         total_instances += len(chunk)
         total_starts += float(starts * len(chunk))
         if check_feasibility:
-            feasible_sum += _rollout_feasibility(batch, rollout, chunk, starts)
-            feasible_batches += 1
+            feasible_sum += _rollout_feasibility(batch, rollout, chunk, starts) * len(chunk)
+            feasible_batches += len(chunk)
 
     mean_cost = total_cost / total_instances
     best_cost = total_best_cost / total_instances
@@ -234,7 +239,8 @@ def evaluate_policy(
         "cost": mean_cost,
         "best_cost": best_cost,
         "reference_cost": reference_cost,
-        "gap_percent": gap,
+        "gap_percent": gap,  # Historical alias: ratio of total costs.
+        **cost_gaps(best_costs, reference_costs),
         "reward": -mean_cost,
         "feasible_rate": (feasible_sum / feasible_batches if feasible_batches else float("nan")),
         "num_instances": float(total_instances),

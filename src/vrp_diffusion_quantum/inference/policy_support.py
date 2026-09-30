@@ -255,10 +255,15 @@ def sample_constraint_matrix_batch(
     step_stride: int = 1,
     x0_clamp: float = 1e-3,
     transition_mode: Literal["stochastic", "deterministic"] = "stochastic",
-    sampler: Literal["skipped_posterior", "one_step_approx"] = "skipped_posterior",
+    sampler: Literal[
+        "skipped_posterior", "one_step_approx", "posterior_mixture_v2"
+    ] = "skipped_posterior",
     prior_positive_probability: float = 0.5,
 ) -> BatchMatrixPrediction:
     """Run the reverse chain for a padded batch and return tensors for the policy.
+
+    ``posterior_mixture_v2`` implements the learned mixture (eq. 9). The default
+    ``skipped_posterior`` preserves the legacy soft-prior normalization for old runs.
 
     Args:
         num_inference_steps: total number of denoising steps to run, spread evenly over the
@@ -272,7 +277,7 @@ def sample_constraint_matrix_batch(
         raise ValueError(f"num_inference_steps must be >= 1, got {num_inference_steps}")
     if transition_mode not in {"stochastic", "deterministic"}:
         raise ValueError(f"unsupported transition_mode: {transition_mode}")
-    if sampler not in {"skipped_posterior", "one_step_approx"}:
+    if sampler not in {"skipped_posterior", "one_step_approx", "posterior_mixture_v2"}:
         raise ValueError(f"unsupported sampler: {sampler}")
     model.eval()
     batch_size, n_customers, _ = coords.shape
@@ -321,7 +326,9 @@ def sample_constraint_matrix_batch(
             )
         else:
             target_t = timesteps[step_index + 1]
-            if sampler == "skipped_posterior":
+            if sampler == "posterior_mixture_v2":
+                post = schedule.p_reverse_between_prob(m_t, m0_prob, t=t_tensor, target_t=target_t)
+            elif sampler == "skipped_posterior":
                 post = schedule.q_posterior_between_prob(
                     m_t,
                     m0_prob,
@@ -360,7 +367,9 @@ def denoiser_prior(
     threshold: float = 0.5,
     seed: int = 0,
     use_probabilities: bool = True,
-    sampler: Literal["skipped_posterior", "one_step_approx"] = "skipped_posterior",
+    sampler: Literal[
+        "skipped_posterior", "one_step_approx", "posterior_mixture_v2"
+    ] = "skipped_posterior",
 ) -> PriorProvider:
     """Frozen diffusion model that supplies batched ``M_hat`` to the policy."""
     denoiser.eval()
@@ -374,6 +383,11 @@ def denoiser_prior(
         rows = torch.arange(batch.coords.shape[0], device=batch.coords.device)[:, None]
         customer_nodes = batch.customer_node_indices.clamp_min(0)
         coords = batch.coords[rows, customer_nodes] * batch.customer_mask[..., None]
+        if denoiser.coordinate_frame == "depot_relative":
+            depot = batch.coords[
+                torch.arange(len(batch.coords), device=batch.coords.device), batch.depot_index
+            ]
+            coords = (coords - depot.unsqueeze(1)) * batch.customer_mask[..., None]
         demands = batch.demands[rows, customer_nodes] * batch.customer_mask
         predicted = sample_constraint_matrix_batch(
             denoiser,

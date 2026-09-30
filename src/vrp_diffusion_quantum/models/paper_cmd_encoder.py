@@ -101,6 +101,14 @@ class PaperGlobalGATEncoder(nn.Module):
         self.checkpoint_payload: dict[str, Any] = {}
         if checkpoint is not None:
             self.checkpoint_payload = load_diffusion_gat_checkpoint(checkpoint, self.gat)
+            frame = ((self.checkpoint_payload.get("extra") or {}).get("model") or {}).get(
+                "coordinate_frame", "absolute"
+            )
+            if frame != "absolute":
+                raise ValueError(
+                    "paper_cmd global GAT requires absolute-coordinate weights; "
+                    "depot-relative GAT checkpoints are diagnostic denoiser variants"
+                )
             self.checkpoint_source = str(Path(checkpoint))
         self.freeze()
 

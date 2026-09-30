@@ -1,0 +1,145 @@
+"""Bounded, read-only audit of saved runs; writes only this audit's evidence JSON.
+
+Run from the repository root with .venv/Scripts/python.exe.
+No checkpoint, dataset, or production implementation is changed.
+"""
+
+from __future__ import annotations
+
+import csv
+import json
+from dataclasses import replace
+from pathlib import Path
+
+import numpy as np
+import torch
+
+from vrp_diffusion_quantum.data.dataset import load_example
+from vrp_diffusion_quantum.inference.policy_support import sample_constraint_matrix_batch
+from vrp_diffusion_quantum.inference.predict_matrix import (
+    example_to_model_inputs,
+    load_denoiser_checkpoint,
+)
+from vrp_diffusion_quantum.metrics.matrix_metrics import MatrixPrediction, compute_matrix_metrics
+from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
+
+
+ROOT = Path(__file__).resolve().parents[2]
+OUT = Path(__file__).resolve().parent
+
+
+class MixtureSchedule(BernoulliDiffusionSchedule):
+    """Eq. 9: mix the two normalized hard-x0 posteriors using predicted x0 weights."""
+
+    def q_posterior_between_prob(self, m_t, m_true, *, t, target_t):
+        zero = super().q_posterior_between_prob(
+            m_t, torch.zeros_like(m_true), t=t, target_t=target_t
+        )
+        one = super().q_posterior_between_prob(
+            m_t, torch.ones_like(m_true), t=t, target_t=target_t
+        )
+        return (1 - m_true) * zero + m_true * one
+
+
+def selected_entries(manifest, split, per_size=500, seed=0):
+    entries = sorted(manifest['splits'][split]['examples'], key=lambda x: x['file'])
+    rng = np.random.default_rng(seed)
+    selected = []
+    for size in (20, 50, 100):
+        bucket = [x for x in entries if x['n_customers'] == size]
+        indices = rng.choice(len(bucket), size=min(per_size, len(bucket)), replace=False)
+        selected.extend(bucket[int(i)] for i in indices)
+    return selected
+
+
+def main():
+    torch.set_num_threads(2)
+    evidence = {}
+    curve = []
+    for path in sorted((ROOT / 'outputs/train').glob('diffusion_denoiser_s7799_stochastic_task5_curve_*/summary.csv')):
+        rows = list(csv.DictReader(path.open()))
+        curve.append(dict(run=path.parent.name, epochs=len(rows),
+                          unique_sources=int(rows[0]['unique_train_sources']),
+                          optimizer_steps=int(rows[-1]['total_optimizer_steps'])))
+    evidence['task5_actual_training'] = curve
+
+    manifests = {}
+    for name in ('paper_cmd_full_50k_splits', 'paper_cmd_full_50k_unfiltered_splits',
+                 'paper_cmd_pilot_5k_splits'):
+        manifests[name] = json.loads((ROOT / 'data/processed' / name / 'split_manifest.json').read_text())
+    full = manifests['paper_cmd_full_50k_splits']
+    unfiltered = manifests['paper_cmd_full_50k_unfiltered_splits']
+    ids = lambda m, split: {x['instance_id'] for x in m['splits'][split]['examples']}
+    panels = {name: {x['instance_id'] for x in selected_entries(m, 'val')}
+              for name, m in manifests.items()}
+    evidence['panel_comparison'] = {
+        'full_and_unfiltered_val_intersection': len(ids(full, 'val') & ids(unfiltered, 'val')),
+        'full_val_in_unfiltered_train': len(ids(full, 'val') & ids(unfiltered, 'train')),
+        'actual_1500_panel_intersection': len(panels['paper_cmd_full_50k_splits'] & panels['paper_cmd_full_50k_unfiltered_splits']),
+        'actual_full_panel_in_unfiltered_train': len(panels['paper_cmd_full_50k_splits'] & ids(unfiltered, 'train')),
+    }
+
+    schedule = BernoulliDiffusionSchedule(num_timesteps=1000)
+    mixture = MixtureSchedule(num_timesteps=1000)
+    observed = torch.tensor([0., 1.])
+    predicted = torch.tensor([0.2, 0.2])
+    evidence['posterior_counterexamples'] = []
+    for t, s in ((20, 0), (100, 80), (0, -1)):
+        evidence['posterior_counterexamples'].append({
+            't': t, 's': s, 'observed': observed.tolist(), 'predicted_x0': predicted.tolist(),
+            'implemented': schedule.q_posterior_between_prob(observed, predicted, t=t, target_t=s).tolist(),
+            'eq9_mixture': mixture.q_posterior_between_prob(observed, predicted, t=t, target_t=s).tolist(),
+        })
+
+    entries = selected_entries(full, 'val', per_size=8, seed=81273)
+    examples = [load_example(ROOT / 'data/processed/paper_cmd_full_50k_splits/val' / e['file']) for e in entries]
+    first = examples[0]
+    coords = first.instance.coords.copy()
+    coords[first.instance.depot_index] = [0.987, 0.013]
+    moved = replace(first, instance=replace(first.instance, coords=coords))
+    evidence['depot_input_invariance'] = {
+        'changed_depot': True,
+        'all_five_model_input_tensors_identical': all(torch.equal(a, b) for a, b in zip(
+            example_to_model_inputs(first), example_to_model_inputs(moved), strict=True)),
+    }
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    evidence['probe_device'] = str(device)
+    evidence['probe_panel'] = [e['instance_id'] for e in entries]
+    evidence['probe_note'] = '24 diagnostic validation examples; not a new benchmark or a reproduction claim.'
+    evidence['probe_results'] = []
+    for name in ('full', 'pilot'):
+        run = next((ROOT / 'outputs/paper_cmd').glob(f'diffusion_denoiser_paper_cmd_{name}_*/checkpoints/best.pt'))
+        model, payload = load_denoiser_checkpoint(run, device=device)
+        for variant in (('current', 'eq9_mixture') if name == 'full' else ('current',)):
+            active_schedule = (mixture if variant == 'eq9_mixture' else schedule).to(device)
+            predictions = []
+            soft_predictions = []
+            for index, example in enumerate(examples):
+                c, d, q, target, mask = example_to_model_inputs(example, device=device)
+                sampled = sample_constraint_matrix_batch(
+                    model, active_schedule, coords=c, demands=d, capacity=q,
+                    customer_mask=mask, generator=torch.Generator().manual_seed(9387 + index),
+                    num_inference_steps=50,
+                )
+                predictions.append(MatrixPrediction.from_example(example, sampled.m_hat[0].cpu().numpy()))
+                soft_predictions.append(MatrixPrediction.from_example(example, sampled.m_prob[0].cpu().numpy()))
+            m = compute_matrix_metrics(predictions, threshold=0.5, adaptive_threshold=False)
+            soft = compute_matrix_metrics(soft_predictions)
+            result = {'checkpoint': str(run.relative_to(ROOT)), 'variant': variant,
+                      'epoch': payload.get('epoch'), 'f1': m.f1, 'precision': m.precision,
+                      'recall': m.recall, 'auc': soft.auc,
+                      'diagnostic_best_threshold_f1': soft.f1,
+                      'diagnostic_best_threshold': soft.threshold}
+            for size in (20, 50, 100):
+                per_size = [p for p, e in zip(predictions, examples, strict=True) if e.instance.n_customers == size]
+                result[f'f1_n{size}'] = compute_matrix_metrics(per_size, threshold=0.5, adaptive_threshold=False).f1
+            evidence['probe_results'].append(result)
+            print(json.dumps(result), flush=True)
+
+    (OUT / 'evidence.json').write_text(json.dumps(evidence, indent=2) + '\n')
+    print('Wrote', OUT / 'evidence.json', flush=True)
+
+
+if __name__ == '__main__':
+    main()

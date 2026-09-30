@@ -404,6 +404,13 @@ def evaluate_record(
         np.random.SeedSequence([seed, record.instance.dimension, run_index]).generate_state(1)[0]
     )
     problem = read_vrplib_problem(record.instance.path, round_func=round_func)
+    if record.instance.vehicles is not None:
+        vehicle_types = problem.vehicle_types()
+        if len(vehicle_types) != 1:
+            raise ValueError("declared CVRPLIB fleet cap requires one homogeneous vehicle type")
+        problem = problem.replace(
+            vehicle_types=[vehicle_types[0].replace(num_available=record.instance.vehicles)]
+        )
     result = solve_vrplib_problem(
         problem,
         _build_stop(max_iterations=max_iterations, time_limit=time_limit),
@@ -426,6 +433,9 @@ def evaluate_record(
         "dimension": record.instance.dimension,
         "capacity": record.instance.capacity,
         "declared_vehicles": record.instance.vehicles,
+        "fleet_mode": "at_most_declared"
+        if record.instance.vehicles is not None
+        else "file_default",
         "cost": cost,
         "reference_cost": reference_cost,
         "gap": gap,

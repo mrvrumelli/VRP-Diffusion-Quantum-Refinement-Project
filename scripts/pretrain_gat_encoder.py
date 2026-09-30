@@ -21,6 +21,7 @@ from vrp_diffusion_quantum.data.augment import (
     augment_example_paper_labeled,
 )
 from vrp_diffusion_quantum.data.dataset import collate_batch, load_dataset, size_homogeneous_chunks
+from vrp_diffusion_quantum.data.single_reference import validate_single_reference_dataset
 from vrp_diffusion_quantum.metrics.matrix_metrics import MatrixPrediction, compute_matrix_metrics
 from vrp_diffusion_quantum.models.gat_encoder import (
     GATConstraintPretrainer,
@@ -68,6 +69,8 @@ def main() -> None:
         )
     train_path = ROOT / train_path_value
     val_path = ROOT / val_path_value
+    if alignment.track == "paper_cmd":
+        validate_single_reference_dataset(train_path)
     train_examples = load_dataset(train_path)
     val_examples = load_dataset(val_path)
     if not train_examples:
@@ -255,7 +258,10 @@ def main() -> None:
                 try:
                     for chunk in chunks:
                         batch = collate_batch(chunk)
-                        coords, demands, capacity = customer_tensors_from_batch(batch)
+                        coords, demands, capacity = customer_tensors_from_batch(
+                            batch,
+                            coordinate_frame=str(model_cfg.get("coordinate_frame", "absolute")),
+                        )
                         coords = coords.to(device)
                         demands = demands.to(device)
                         capacity = capacity.to(device)
@@ -323,7 +329,10 @@ def main() -> None:
                         )
                     for chunk in val_chunks:
                         batch = collate_batch(chunk)
-                        coords, demands, capacity = customer_tensors_from_batch(batch)
+                        coords, demands, capacity = customer_tensors_from_batch(
+                            batch,
+                            coordinate_frame=str(model_cfg.get("coordinate_frame", "absolute")),
+                        )
                         coords = coords.to(device)
                         demands = demands.to(device)
                         capacity = capacity.to(device)

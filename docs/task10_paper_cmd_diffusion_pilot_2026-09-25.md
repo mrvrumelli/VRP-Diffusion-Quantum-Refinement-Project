@@ -1,5 +1,7 @@
 # paper_cmd diffusion training — pilot-scale result — 2026-09-25
 
+**Correction, 2026-09-30 (R1):** The data-shortage diagnosis is a hypothesis, not established causality. Generated F1 also depends on a confirmed soft-posterior composition error and missing depot inputs; calibration and normalization remain hypotheses. See the [review](autonomous_work_review_2026-09-30.md) and [execution log](corrective_execution_2026-09-30.md). Historical run values below are retained.
+
 Track B Task 10 ([`autonomous_long_compute_guide_2026-09-24.md`](autonomous_long_compute_guide_2026-09-24.md)):
 train the paper-config GAT + diffusion denoiser on Task 9's pilot labels and check the paper's
 qualitative gate — approximately F1 0.823 at 50 inference steps — before deciding whether the full
