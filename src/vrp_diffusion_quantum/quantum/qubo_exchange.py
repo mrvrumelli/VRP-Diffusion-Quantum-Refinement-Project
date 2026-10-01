@@ -110,8 +110,13 @@ def build_exchange_qubo(
     dispersion_weight: float = DEFAULT_DISPERSION_WEIGHT,
     penalty_weight: float | None = None,
     penalty_factor: float = DEFAULT_PENALTY_FACTOR,
+    extra_span: float = 0.0,
 ) -> ExchangeQUBO:
-    """Build the assignment QUBO with slack-encoded capacity penalties."""
+    """Build the assignment QUBO with slack-encoded capacity penalties.
+
+    ``extra_span`` is the range of any objective terms added later (for example diffusion
+    bias); the default penalty grows to cover it so infeasible states stay above feasible ones.
+    """
     m = subproblem.size
     if m < 1:
         raise ValueError("exchange subproblem must contain at least one movable customer")
@@ -180,7 +185,10 @@ def build_exchange_qubo(
     if penalty_weight is None:
         if penalty_factor <= 1.0:
             raise ValueError("penalty_factor must exceed 1 to keep infeasible states above")
+        if extra_span < 0.0:
+            raise ValueError("extra_span must be non-negative")
         span = float(np.abs(insertion[:, 0] - insertion[:, 1]).sum() + pair_weights.sum())
+        span += extra_span
         penalty_weight = penalty_factor * max(span, 1e-9)
     if penalty_weight <= 0.0:
         raise ValueError("penalty_weight must be positive")

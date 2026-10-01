@@ -63,8 +63,13 @@ def build_reorder_qubo(
     *,
     penalty_weight: float | None = None,
     penalty_factor: float = DEFAULT_PENALTY_FACTOR,
+    extra_edge_weight: float = 0.0,
 ) -> ReorderQUBO:
-    """Build the one-hot position-encoding QUBO for ``subproblem``."""
+    """Build the one-hot position-encoding QUBO for ``subproblem``.
+
+    ``extra_edge_weight`` is the largest additional cost any single transition may receive from
+    terms added later (for example diffusion bias); the default penalty grows to cover it.
+    """
     k = subproblem.size
     if k < 1:
         raise ValueError("reorder subproblem must contain at least one customer")
@@ -72,7 +77,9 @@ def build_reorder_qubo(
     if penalty_weight is None:
         if penalty_factor <= 0.0:
             raise ValueError("penalty_factor must be positive")
-        penalty_weight = penalty_factor * max(float(distances.max()), 1e-12)
+        if extra_edge_weight < 0.0:
+            raise ValueError("extra_edge_weight must be non-negative")
+        penalty_weight = penalty_factor * max(float(distances.max()) + extra_edge_weight, 1e-12)
     if penalty_weight <= 0.0:
         raise ValueError("penalty_weight must be positive")
 
