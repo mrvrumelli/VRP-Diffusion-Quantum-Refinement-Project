@@ -1,8 +1,8 @@
 # Classical baseline freeze proposal — 2026-09-30
 
-Task F9 of the [F1-gap follow-up list](autonomous_f1gap_followup_tasks_2026-09-30.md). This is a
-proposal, not a freeze: `baseline-v1.0` still has open criteria, listed at the end. Quantum and
-quantum-inspired refinement stays gated on that freeze, as the
+Task F9 of the [F1-gap follow-up list](autonomous_f1gap_followup_tasks_2026-09-30.md). It started
+as a proposal; the [freeze record](#freeze-record-2026-10-01) below closes it. Quantum and
+quantum-inspired refinement was gated on that freeze, as the
 [decision manifest](evidence/corrective_20260930/candidate_baseline.json) requires.
 
 All numbers are on the frozen 72-graph development panel (24 per size), which has been used for
@@ -17,7 +17,7 @@ gaps to the panel reference routes.
 | 50 | Policy, 16 starts | Per-size champion diffusion | `policy_reinforce_s7799_n50_heldout_cuda_20260828T082044076031Z` (fd254a13) |
 | 100 | Policy trained with 16 starts, 16 starts | Per-size champion diffusion | `policy_reinforce_s7799_n100_starts16_cuda_20260924T165104398879Z` (03dc96e6) |
 
-The N100 entry is the primary training seed (4331) of the 16-start policy, not the best of its
+The N100 entry is the primary run (training seed 42) of the 16-start policy, not the best of its
 three seeds on this panel. Choosing the panel-best seed would select on development data.
 
 ## Policy versus diffusion decoding
@@ -29,7 +29,7 @@ Same graphs, same cached champion prior. Intervals are 95% bootstrap intervals o
 | 20 | 9.19 [7.75, 10.63] | 21.33 | −12.1 [−17.6, −6.6] |
 | 50 | 21.51 [19.66, 23.40] | 29.61 | −8.1 [−12.9, −3.4] |
 | 100, original policy | 26.95 [25.40, 28.57] | 28.51 | −1.6 [−5.1, 2.0] |
-| 100, 16-start policy, seed 4331 | 24.73 | 28.51 | −3.8 [−7.2, −0.5] |
+| 100, 16-start policy, seed 42 (primary) | 24.73 | 28.51 | −3.8 [−7.2, −0.5] |
 | 100, 16-start policy, seed 4332 | 23.20 | 28.51 | −5.3 [−8.3, −2.2] |
 | 100, 16-start policy, seed 4333 | 25.08 | 28.51 | −3.4 [−6.6, −0.3] |
 
@@ -86,17 +86,69 @@ rule at N50 (paired change −2.3 pp [−4.0, −0.5], better in 3 of 3 seeds) a
 (`champ_n50_dep_s4331_20261001T082938994407Z`, sha256 prefix 5dc6a986), pending a retrain of the
 N50 policy against it; N20 and N100 keep the existing champions.
 
-## Open `baseline-v1.0` criteria
+**Policy retrain (task F12, 2026-10-01).** Six N50 policies were trained with the corrected
+sampler, three against the old champion prior and three against the depot-aware prior. The new
+prior's three-seed paired change was −0.39 pp [−1.48, +0.76], which fails the declared rule. The
+depot-aware prior helps diffusion-only decoding but not the policy pipeline, so the frozen N50 keeps
+the existing policy and its original champion prior. The F11 prior stays the best diffusion-only
+N50 prior.
 
-- **Commit and hashes.** The code used here is uncommitted in the working tree. A freeze needs a
-  commit and a manifest pairing that commit with the checkpoint hashes above.
-- **Independent evaluation.** The panel informed selection. The reserved test manifest
-  (`outputs/corrective_20260930/reserved_test.json`) is still unscored and should be scored once,
-  after the freeze, with stronger references as the decision manifest notes.
-- **End-to-end timing.** Timings above exclude prior generation except in the earlier 8-graph
-  end-to-end runs (about 1.1–1.5 s per graph). The freeze should report end-to-end time for all
-  24 graphs per size.
-- **Spatial out-of-distribution cells.** The R/C/RC cells for the policy are still outstanding
-  (corrective task R11).
-- **Seeds and configuration.** Each frozen artifact's config is in its run directory; the manifest
-  should copy them with hashes.
+## Freeze record (2026-10-01)
+
+The baseline in the table at the top is frozen as `baseline-v1.0`. The
+[freeze manifest](evidence/baseline_freeze_20261001/freeze_manifest.json) pairs commit `460b2efb5`
+with the sha256 of every checkpoint and config, copies the six training configs, and records the
+evaluation protocol and every result file below. `src/` and `configs/` match that commit. The
+evaluation entry point, `scripts/solve_with_baseline.py`, is hashed in the manifest but still
+uncommitted; committing it completes the freeze.
+
+Protocol: the prior is regenerated per graph (50-step `posterior_mixture_v2`, graph-ID seed), the
+policy decodes greedily from 16 starts, and the best start is kept. Timing is CUDA-synchronised
+prior plus policy time per graph on an RTX 3060 Ti, excluding model loading. Intervals are 95%
+bootstrap intervals over graphs. Every solution on every set below is feasible.
+
+| Set | Graphs | N20 gap % | N50 gap % | N100 gap % |
+|---|---:|---:|---:|---:|
+| Development panel (used for selection) | 72 | 9.19 [7.78, 10.71] | 21.51 [19.69, 23.36] | 24.73 [23.42, 26.05] |
+| Validation | 45 | 8.31 [6.76, 9.97] | 21.08 [19.38, 22.87] | 27.26 [25.41, 28.83] |
+| R/C/RC spatial OOD cells | 72 | 8.29 [6.31, 11.02] | 19.20 [17.41, 20.93] | 22.09 [19.79, 24.35] |
+| **Reserved test, scored once** | 96 | **8.56 [7.32, 9.86]** | **21.88 [20.63, 23.13]** | **27.20 [25.99, 28.42]** |
+
+The reserved test is scored against strengthened references: the best of the instance label and
+two seeded PyVRP runs (10, 20 and 40 s per size). The other sets use the instance labels. The
+reserved-test result is the baseline's independent test claim, and that set must not be reused for
+selection.
+
+End-to-end time per graph on the development panel, measured on an idle machine:
+
+| Size | Prior s | Policy s | Total s |
+|---|---:|---:|---:|
+| 20 | 0.70 | 0.08 | 0.78 |
+| 50 | 0.69 | 0.17 | 0.86 |
+| 100 | 0.75 | 0.31 | 1.06 |
+
+The 50-step prior dominates the runtime at every size.
+
+Spatial OOD cells, policy gap % per regime (8 graphs per cell), with diffusion-only champion
+decoding on the same graphs for comparison:
+
+| Regime | N20 policy / diffusion | N50 policy / diffusion | N100 policy / diffusion |
+|---|---:|---:|---:|
+| Random (R) | 8.23 / 17.01 | 22.54 / 27.54 | 26.67 / 32.76 |
+| Clustered (C) | 10.51 / 17.35 | 15.30 / 19.83 | 16.08 / 26.34 |
+| Mixed (RC) | 6.14 / 18.67 | 19.75 / 30.19 | 23.52 / 30.33 |
+
+The policy beats diffusion-only decoding in every cell. No regime is much worse than the
+development panel.
+Clustered graphs are the easiest for both methods.
+
+## Former open criteria
+
+- **Commit and hashes.** Done in the manifest, except that the evaluation script still needs a
+  commit.
+- **Independent evaluation.** Done: the reserved test was scored once, against strengthened
+  references.
+- **End-to-end timing.** Done for all 72 panel graphs.
+- **Spatial out-of-distribution cells.** Done (corrective task R11).
+- **Seeds and configuration.** Done: copies of the six configs and their hashes are in the
+  manifest folder.

@@ -1,0 +1,307 @@
+{
+ "schema_version": 1,
+ "name": "baseline-v1.0",
+ "date": "2026-10-01",
+ "decision": "freeze the per-size policy + champion-prior pipeline as the classical baseline",
+ "code": {
+  "branch": "phase6-quantum-refinement",
+  "commit": "460b2efb5067230f88264a3783fa015737160e3e",
+  "src_and_configs_match_commit": true,
+  "uncommitted_at_freeze": [
+   "M docs/autonomous_f1gap_followup_tasks_2026-09-30.md",
+   "?? scripts/build_neighborhood_sets.py",
+   "?? scripts/export_qubo_instances.py",
+   "?? scripts/run_qaoa_screening.py",
+   "?? scripts/run_refinement_experiment.py",
+   "?? scripts/solve_with_baseline.py",
+   "?? src/vrp_diffusion_quantum/quantum/refinement.py",
+   "?? tests/test_quantum_refinement.py"
+  ],
+  "uncommitted_note": "Only docs, Phase 6 scripts, the new quantum/refinement.py and its test are uncommitted; none is imported by the baseline pipeline. The evaluation entry point is scripts/solve_with_baseline.py, hashed below; commit it to complete the freeze.",
+  "evaluation_script": "scripts/solve_with_baseline.py",
+  "evaluation_script_sha256": "8a9aa200cc4632cd615f99c5f1608c3fbc9fedfa0e3b9a03bac66b040e517856",
+  "assignment_file": "outputs/baseline_freeze_20261001/frozen_assignment.json",
+  "assignment_sha256": "9cdf5086a4d7b1c55df60374f951685614ee136041c96c74a207d9bb0cd472a0"
+ },
+ "artifacts": {
+  "20": {
+   "policy": {
+    "run": "outputs/policy/policy_reinforce_s7799_n20_heldout_cuda_20260828T081136097007Z",
+    "checkpoint": "outputs/policy/policy_reinforce_s7799_n20_heldout_cuda_20260828T081136097007Z/checkpoints/best.pt",
+    "checkpoint_sha256": "6b2a840c897f4c8d55b368005c918bd4616ad030a5b9357f946efd034a308877",
+    "config": "outputs/policy/policy_reinforce_s7799_n20_heldout_cuda_20260828T081136097007Z/config.yaml",
+    "config_sha256": "12ae444e70bf7d0f1662cce6dc97a04d249417f55d8081d17fe935e9ba4bff9b",
+    "config_copy": "docs/evidence/baseline_freeze_20261001/configs/n20_policy_config.yaml",
+    "training_commit": "657219490bfe8850d450a7f6c007181455451df5",
+    "training_seed": 42,
+    "dataset_hash": "d5f3a2c1d8f92950bff71f955faa76d7bf6de839a8aa732ee968f9149cc72b87"
+   },
+   "prior": {
+    "run": "outputs/train/diffusion_denoiser_s7799_stochastic_persize_n20_cuda_20260816T145222731562Z",
+    "checkpoint": "outputs/train/diffusion_denoiser_s7799_stochastic_persize_n20_cuda_20260816T145222731562Z/checkpoints/best.pt",
+    "checkpoint_sha256": "6ff75ed0ae7c4d2981ab41440b9dd5787d83ab18ae9ad712987bbd9941f02b0c",
+    "config": "outputs/train/diffusion_denoiser_s7799_stochastic_persize_n20_cuda_20260816T145222731562Z/config.yaml",
+    "config_sha256": "368d8a47b7fe4bf4966c3b37b2b9dc5a8dddd05852532d2989ebce9633da7d53",
+    "config_copy": "docs/evidence/baseline_freeze_20261001/configs/n20_prior_config.yaml",
+    "training_commit": "d4872f9b2ef22551d30b10d392c9f1c69ada44a8",
+    "training_seed": 4331,
+    "dataset_hash": "d5f3a2c1d8f92950bff71f955faa76d7bf6de839a8aa732ee968f9149cc72b87"
+   }
+  },
+  "50": {
+   "policy": {
+    "run": "outputs/policy/policy_reinforce_s7799_n50_heldout_cuda_20260828T082044076031Z",
+    "checkpoint": "outputs/policy/policy_reinforce_s7799_n50_heldout_cuda_20260828T082044076031Z/checkpoints/best.pt",
+    "checkpoint_sha256": "fd254a1300b444b4f9eeee40dca02967a4feb5eefbfcc902fff75a0cedade233",
+    "config": "outputs/policy/policy_reinforce_s7799_n50_heldout_cuda_20260828T082044076031Z/config.yaml",
+    "config_sha256": "8ae721bc3ec7fe04e872344e095d69394389cddb1debd8dd24d200b9da754d68",
+    "config_copy": "docs/evidence/baseline_freeze_20261001/configs/n50_policy_config.yaml",
+    "training_commit": "657219490bfe8850d450a7f6c007181455451df5",
+    "training_seed": 42,
+    "dataset_hash": "5395e904b0d188f5e95114a31e1d3507040ab6df640bf5b8fa5d7cbde225775b"
+   },
+   "prior": {
+    "run": "outputs/train/diffusion_denoiser_s7799_stochastic_persize_n50_cuda_20260816T150806474465Z",
+    "checkpoint": "outputs/train/diffusion_denoiser_s7799_stochastic_persize_n50_cuda_20260816T150806474465Z/checkpoints/best.pt",
+    "checkpoint_sha256": "b0a37f8e513248280586efa0f64f0a5c4108f94f592e8e5d3cedc6b20e425626",
+    "config": "outputs/train/diffusion_denoiser_s7799_stochastic_persize_n50_cuda_20260816T150806474465Z/config.yaml",
+    "config_sha256": "b8d1692f379449939f6d6d3e2b15944e0921aea957b8ce8956287a4b65b2fca0",
+    "config_copy": "docs/evidence/baseline_freeze_20261001/configs/n50_prior_config.yaml",
+    "training_commit": "d4872f9b2ef22551d30b10d392c9f1c69ada44a8",
+    "training_seed": 4331,
+    "dataset_hash": "5395e904b0d188f5e95114a31e1d3507040ab6df640bf5b8fa5d7cbde225775b"
+   }
+  },
+  "100": {
+   "policy": {
+    "run": "outputs/policy/policy_reinforce_s7799_n100_starts16_cuda_20260924T165104398879Z",
+    "checkpoint": "outputs/policy/policy_reinforce_s7799_n100_starts16_cuda_20260924T165104398879Z/checkpoints/best.pt",
+    "checkpoint_sha256": "03dc96e6cd1fa0fa4704bcaa406548acb895f430002a952060998be1bd8333ce",
+    "config": "outputs/policy/policy_reinforce_s7799_n100_starts16_cuda_20260924T165104398879Z/config.yaml",
+    "config_sha256": "c7f13a2446ebe5a66390c89103394caa3effa28305fa8fdee788f5a703095d51",
+    "config_copy": "docs/evidence/baseline_freeze_20261001/configs/n100_policy_config.yaml",
+    "training_commit": "5d7d563b5d9ffb176dc7b8750174e7fc53d2310d",
+    "training_seed": 42,
+    "dataset_hash": "0116b5f34302a2c7f58ef2125878ab119962741943b0d420e1f5f3177d1aad17"
+   },
+   "prior": {
+    "run": "outputs/train/diffusion_denoiser_s7799_stochastic_persize_n100_cuda_20260816T152405895038Z",
+    "checkpoint": "outputs/train/diffusion_denoiser_s7799_stochastic_persize_n100_cuda_20260816T152405895038Z/checkpoints/best.pt",
+    "checkpoint_sha256": "83356d0b4bc09ed56002c8da591ab529334e9f533088460fca2b7728b1d8e688",
+    "config": "outputs/train/diffusion_denoiser_s7799_stochastic_persize_n100_cuda_20260816T152405895038Z/config.yaml",
+    "config_sha256": "acc5aa39d046cd55092fb8b459a3ead72a9184f332e0a20009eb09c58ead4d22",
+    "config_copy": "docs/evidence/baseline_freeze_20261001/configs/n100_prior_config.yaml",
+    "training_commit": "d4872f9b2ef22551d30b10d392c9f1c69ada44a8",
+    "training_seed": 4331,
+    "dataset_hash": "0116b5f34302a2c7f58ef2125878ab119962741943b0d420e1f5f3177d1aad17"
+   }
+  }
+ },
+ "protocol": {
+  "prior": "per-size denoiser, sampler posterior_mixture_v2, 50 inference steps, probabilities (not samples) fed to the policy",
+  "prior_seed": "first 4 bytes of sha256('<seed>:<instance_id>'), seed 0",
+  "policy_decoding": "greedy, 16 start nodes, best start by route cost",
+  "timing": "CUDA-synchronised wall clock per graph, prior + policy, model loading excluded, 2 untimed warm-up solves per size",
+  "device": "NVIDIA GeForce RTX 3060 Ti",
+  "gap": "100 * (cost - reference) / reference, averaged over graphs; intervals are 95% percentile bootstrap over graphs (10000 draws, seed 0)",
+  "run_script": "outputs/baseline_freeze_20261001/run_frozen.sh"
+ },
+ "results": {
+  "development_panel": {
+   "set": "72-graph development panel (used for selection)",
+   "examples_manifest": "outputs/baseline_freeze_20261001/panel_all.json",
+   "examples_manifest_sha256": "c6b51f53020343cbb2608eacaae3fa2d5dd0878996ec52f310a23fe5cc3fc71f",
+   "references": "instance labels",
+   "output": "outputs/baseline_freeze_20261001/frozen_panel",
+   "summary_sha256": "a9aa78c4f1762b0c8aa8987b43452933badd5093f2ede56453efc3fb89a9c380",
+   "instances": 72,
+   "all_feasible": true,
+   "by_size": {
+    "20": {
+     "instances": 24,
+     "feasible": 24,
+     "mean_gap_percent": 9.191814939977922,
+     "mean_prior_seconds": 0.7004422874936912,
+     "mean_policy_seconds": 0.08150308749948938,
+     "mean_total_seconds": 0.7819453749931805,
+     "gap_ci95_bootstrap": [
+      7.7756712493473135,
+      10.706241344413623
+     ]
+    },
+    "50": {
+     "instances": 24,
+     "feasible": 24,
+     "mean_gap_percent": 21.50563903573004,
+     "mean_prior_seconds": 0.6933917083370034,
+     "mean_policy_seconds": 0.17123788332780046,
+     "mean_total_seconds": 0.8646295916648038,
+     "gap_ci95_bootstrap": [
+      19.6866719877413,
+      23.363611472220786
+     ]
+    },
+    "100": {
+     "instances": 24,
+     "feasible": 24,
+     "mean_gap_percent": 24.734111764411782,
+     "mean_prior_seconds": 0.7508406791797219,
+     "mean_policy_seconds": 0.31129244998737704,
+     "mean_total_seconds": 1.0621331291670988,
+     "gap_ci95_bootstrap": [
+      23.4210671341514,
+      26.052383939357515
+     ]
+    }
+   }
+  },
+  "validation": {
+   "set": "validation graphs",
+   "examples_manifest": "outputs/baseline_freeze_20261001/validation_graphs.json",
+   "examples_manifest_sha256": "1f6ad1533747b34663a9802544b73ed3f8e0ce9287f8289f7372f0a4f2df33f4",
+   "references": "instance labels",
+   "output": "outputs/baseline_freeze_20261001/frozen_validation",
+   "summary_sha256": "7c0768c4fe4d1cc330cf8e95921c0c911acaa3c0063add1a66ef5a1c0516b0bb",
+   "instances": 45,
+   "all_feasible": true,
+   "by_size": {
+    "20": {
+     "instances": 16,
+     "feasible": 16,
+     "mean_gap_percent": 8.312920301972232,
+     "mean_prior_seconds": 0.7668480374850333,
+     "mean_policy_seconds": 0.08261681249859976,
+     "mean_total_seconds": 0.849464849983633,
+     "gap_ci95_bootstrap": [
+      6.760354957552373,
+      9.966554177235876
+     ]
+    },
+    "50": {
+     "instances": 16,
+     "feasible": 16,
+     "mean_gap_percent": 21.08352682639093,
+     "mean_prior_seconds": 0.7880924999917625,
+     "mean_policy_seconds": 0.17943268748786068,
+     "mean_total_seconds": 0.9675251874796231,
+     "gap_ci95_bootstrap": [
+      19.380378959565668,
+      22.871108999926346
+     ]
+    },
+    "100": {
+     "instances": 13,
+     "feasible": 13,
+     "mean_gap_percent": 27.256996644794494,
+     "mean_prior_seconds": 0.911627038471544,
+     "mean_policy_seconds": 0.3874925538413943,
+     "mean_total_seconds": 1.2991195923129384,
+     "gap_ci95_bootstrap": [
+      25.410011196710958,
+      28.82523758717289
+     ]
+    }
+   }
+  },
+  "ood_rc_cells": {
+   "set": "R/C/RC spatial OOD cells (8 graphs per regime and size)",
+   "examples_manifest": "outputs/baseline_freeze_20261001/ood_panel.json",
+   "examples_manifest_sha256": "bf72e10bc53e99453d16844e89124ed31354b8cf4d4004e6b7fc3587feaedf42",
+   "references": "instance labels",
+   "output": "outputs/baseline_freeze_20261001/frozen_ood",
+   "summary_sha256": "bdf36a1677552c6746afdb4452f074570b1723faddc4ffc0a8d09744d4c526e7",
+   "instances": 72,
+   "all_feasible": true,
+   "by_size": {
+    "20": {
+     "instances": 24,
+     "feasible": 24,
+     "mean_gap_percent": 8.294353588099286,
+     "mean_prior_seconds": 0.927305745834019,
+     "mean_policy_seconds": 0.11986235833804433,
+     "mean_total_seconds": 1.0471681041720633,
+     "gap_ci95_bootstrap": [
+      6.309101939694,
+      11.015673817357161
+     ]
+    },
+    "50": {
+     "instances": 24,
+     "feasible": 24,
+     "mean_gap_percent": 19.195458590826988,
+     "mean_prior_seconds": 0.9232257833209587,
+     "mean_policy_seconds": 0.2128935958414028,
+     "mean_total_seconds": 1.1361193791623616,
+     "gap_ci95_bootstrap": [
+      17.409673646622714,
+      20.92582132903801
+     ]
+    },
+    "100": {
+     "instances": 24,
+     "feasible": 24,
+     "mean_gap_percent": 22.091319526375674,
+     "mean_prior_seconds": 0.9373374749751141,
+     "mean_policy_seconds": 0.38353354585221194,
+     "mean_total_seconds": 1.320871020827326,
+     "gap_ci95_bootstrap": [
+      19.785353875357007,
+      24.353862868867406
+     ]
+    }
+   }
+  },
+  "reserved_test": {
+   "set": "reserved test, scored once after the freeze (--once)",
+   "examples_manifest": "outputs/corrective_20260930/reserved_test.json",
+   "examples_manifest_sha256": "d1dca16b0440daee80bfc0978fca0999bfc46ddc89927fdc8d924a953e88c7e1",
+   "references": "strengthened PyVRP references outputs/baseline_freeze_20261001/reserved_references.json (sha256 f3636257819b93ca73d9112aec6cbd082b7f65cd65b4ea6b7fb4972028bbbefc); best of instance label and two seeded PyVRP runs at 10/20/40 s",
+   "output": "outputs/baseline_freeze_20261001/reserved_test_scored",
+   "summary_sha256": "edcf47cda4bdab0056117c341efa7a9eb98a18b8a18202ffe4cb69b91b961487",
+   "instances": 96,
+   "all_feasible": true,
+   "by_size": {
+    "20": {
+     "instances": 32,
+     "feasible": 32,
+     "mean_gap_percent": 8.564321677802852,
+     "mean_prior_seconds": 0.8006168250067276,
+     "mean_policy_seconds": 0.08708837499580113,
+     "mean_total_seconds": 0.8877052000025287,
+     "gap_ci95_bootstrap": [
+      7.319112634086851,
+      9.861092863344997
+     ]
+    },
+    "50": {
+     "instances": 32,
+     "feasible": 32,
+     "mean_gap_percent": 21.87990235600735,
+     "mean_prior_seconds": 0.8079754125028558,
+     "mean_policy_seconds": 0.19337668437583488,
+     "mean_total_seconds": 1.0013520968786906,
+     "gap_ci95_bootstrap": [
+      20.631562125120865,
+      23.129902534287375
+     ]
+    },
+    "100": {
+     "instances": 32,
+     "feasible": 32,
+     "mean_gap_percent": 27.2021009315651,
+     "mean_prior_seconds": 0.9393650875026651,
+     "mean_policy_seconds": 0.43733122186677065,
+     "mean_total_seconds": 1.3766963093694358,
+     "gap_ci95_bootstrap": [
+      25.98582641035035,
+      28.419554693027372
+     ]
+    }
+   }
+  }
+ },
+ "decisions": [
+  "F11 adopted a depot-aware N50 prior for diffusion-only decoding; F12 found no gain for the policy pipeline, so the frozen N50 keeps the original champion prior and existing policy.",
+  "N100 uses the primary training seed of the 16-start policy, not the panel-best seed."
+ ]
+}

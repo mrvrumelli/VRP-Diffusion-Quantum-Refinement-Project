@@ -213,3 +213,29 @@ The new N50 prior is the primary-seed depot model from F10:
 `outputs/f1gap_diagnostics_20260930/champ/runs/champ_n50_dep_s4331_20261001T082938994407Z/checkpoints/best.pt`
 (sha256 `5dc6a986…ec9c8d`; 21.9% panel gap, F1 0.591), with its depot-relative GAT
 `champ_gat_dep_20261001T074144597419Z`. The N50 policy has not yet been retrained against it.
+
+**F12 — N50 policy against the new depot-aware prior (declared 2026-10-01, before any run)**
+
+- Two arms trained with the existing N50 policy recipe (`policy_reinforce_s7799_n50_heldout_cuda`)
+  but with the corrected prior sampler (`posterior_mixture_v2`, 50 steps) during training: the old
+  champion N50 prior (control) and the adopted depot-aware N50 prior. Seeds 42, 43 and 44.
+- Score every run, and the existing frozen N50 policy, identically: the 24 N50 panel graphs, 16
+  greedy starts, prior regenerated per graph with `posterior_mixture_v2` (50 steps, graph-ID seed).
+- Adopt the new-prior policy if (a) the per-graph paired gap change (new minus control, averaged
+  over the three seeds) has a 95% bootstrap interval entirely below zero, (b) the new arm has the
+  lower mean gap in at least two of three seeds, and (c) its three-seed mean gap is below the
+  existing frozen N50 policy's gap under the same protocol. If adopted, the frozen N50 policy is the
+  seed-42 new-prior run; otherwise the existing N50 policy and prior stay frozen.
+
+F12 result (2026-10-01): **keep the existing N50 policy and prior.**
+
+| Seed | Control (old prior) gap % | New-prior gap % |
+|---:|---:|---:|
+| 42 | 20.84 | 21.56 |
+| 43 | 21.74 | 20.70 |
+| 44 | 21.85 | 21.02 |
+
+Three-seed paired change −0.39 pp [−1.48, +0.76] fails (a); wins 2 of 3 (b holds); mean 21.09%
+versus the existing policy's 21.51% (c holds). The depot-aware prior improves diffusion-only
+decoding (F11) but not the policy pipeline, which compensates for prior quality. The frozen
+baseline therefore keeps the existing per-size policies with their original champion priors.
