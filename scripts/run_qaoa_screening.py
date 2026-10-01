@@ -72,7 +72,23 @@ def simulate(theta: np.ndarray, energies: np.ndarray, n: int, reps: int) -> np.n
     return np.abs(state) ** 2
 
 
-def run_qaoa(entry: dict, reps: int, restarts: int, shots: int, seed: int) -> dict:
+def interpolate(angles: np.ndarray) -> np.ndarray:
+    """INTERP (Zhou et al. 2020): one depth-p angle schedule to depth p + 1."""
+    p = angles.size
+    padded = np.concatenate([[0.0], angles, [0.0]])
+    return np.array(
+        [(i - 1) / p * padded[i - 1] + (p - i + 1) / p * padded[i] for i in range(1, p + 2)]
+    )
+
+
+def run_qaoa(
+    entry: dict,
+    reps: int,
+    restarts: int,
+    shots: int,
+    seed: int,
+    warm: np.ndarray | None = None,
+) -> dict:
     matrix = np.asarray(entry["matrix"], dtype=np.float64)
     offset = float(entry["offset"])
     n = matrix.shape[0]
@@ -97,8 +113,12 @@ def run_qaoa(entry: dict, reps: int, restarts: int, shots: int, seed: int) -> di
 
     best_theta, best_value, evaluations = probe, np.inf, 0
     started = time.perf_counter()
-    for _ in range(restarts):
+    for restart in range(restarts):
         initial = np.concatenate([rng.uniform(0, np.pi, reps), rng.uniform(0, np.pi / scale, reps)])
+        if warm is not None and restart == 0:
+            # Warm start: the previous depth's best angles, interpolated to one more layer.
+            previous = reps - 1
+            initial = np.concatenate([interpolate(warm[:previous]), interpolate(warm[previous:])])
         result = minimize(expectation, initial, method="COBYLA", options={"maxiter": 300})
         evaluations += int(result.nfev)
         if result.fun < best_value:
@@ -134,6 +154,8 @@ def run_qaoa(entry: dict, reps: int, restarts: int, shots: int, seed: int) -> di
         "qiskit_crosscheck_max_difference": max_difference,
         "ising_offset": float(ising_offset),
         "samples": samples[:50],
+        "theta": [float(v) for v in best_theta],
+        "warm_start": warm is not None,
     }
 
 
@@ -145,6 +167,11 @@ def main() -> None:
     parser.add_argument("--restarts", type=int, default=4)
     parser.add_argument("--shots", type=int, default=1024)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--warm-start", action="store_true", help="start depth p+1 from depth p's best angles"
+    )
+    parser.add_argument("--only-kind", choices=["reorder", "exchange"])
+    parser.add_argument("--min-qubits", type=int, default=0)
     args = parser.parse_args()
     payload = json.loads(args.input.read_text())
     results = []
@@ -153,10 +180,19 @@ def main() -> None:
         results = json.loads(args.output.read_text())["results"]
         done = {(row["id"], row["reps"]) for row in results}
     for entry in payload["qubos"]:
+        if args.only_kind and entry["kind"] != args.only_kind:
+            continue
+        if len(entry["labels"]) < args.min_qubits:
+            continue
         for reps in args.reps:
             if (entry["id"], reps) in done:
                 continue
-            row = run_qaoa(entry, reps, args.restarts, args.shots, args.seed)
+            warm = None
+            if args.warm_start and reps > 1:
+                previous = [r for r in results if r["id"] == entry["id"] and r["reps"] == reps - 1]
+                if previous and "theta" in previous[0]:
+                    warm = np.asarray(previous[0]["theta"])
+            row = run_qaoa(entry, reps, args.restarts, args.shots, args.seed, warm)
             results.append(row)
             print(
                 f"{entry['id']} p={reps} n={row['num_qubits']} "

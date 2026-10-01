@@ -99,8 +99,8 @@ The baseline in the table at the top is frozen as `baseline-v1.0`. The
 [freeze manifest](evidence/baseline_freeze_20261001/freeze_manifest.json) pairs commit `460b2efb5`
 with the sha256 of every checkpoint and config, copies the six training configs, and records the
 evaluation protocol and every result file below. `src/` and `configs/` match that commit. The
-evaluation entry point, `scripts/solve_with_baseline.py`, is hashed in the manifest but still
-uncommitted; committing it completes the freeze.
+evaluation entry point, `scripts/solve_with_baseline.py`, was committed in `aca6c0aec`,
+byte-identical to the hash in the manifest, which completes the freeze.
 
 Protocol: the prior is regenerated per graph (50-step `posterior_mixture_v2`, graph-ID seed), the
 policy decodes greedily from 16 starts, and the best start is kept. Timing is CUDA-synchronised
@@ -144,8 +144,8 @@ Clustered graphs are the easiest for both methods.
 
 ## Former open criteria
 
-- **Commit and hashes.** Done in the manifest, except that the evaluation script still needs a
-  commit.
+- **Commit and hashes.** Done: the manifest pairs commit `460b2efb5` with every hash, and the
+  evaluation script is in commit `aca6c0aec` with the recorded hash.
 - **Independent evaluation.** Done: the reserved test was scored once, against strengthened
   references.
 - **End-to-end timing.** Done for all 72 panel graphs.

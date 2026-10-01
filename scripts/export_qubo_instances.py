@@ -18,20 +18,25 @@ from typing import Any
 import numpy as np
 
 from vrp_diffusion_quantum.data.dataset import load_example
+from vrp_diffusion_quantum.data.types import CVRPInstance
 from vrp_diffusion_quantum.local_search.baselines import solve_exchange, solve_reorder
 from vrp_diffusion_quantum.quantum.neighborhoods import (
+    ExchangeSubproblem,
     Neighborhood,
+    ReorderSubproblem,
     evaluate_exchange,
     extract_exchange_subproblem,
     extract_reorder_subproblem,
 )
 from vrp_diffusion_quantum.quantum.qubo import solve_exact
 from vrp_diffusion_quantum.quantum.qubo_exchange import (
+    ExchangeQUBO,
     build_exchange_qubo,
     decode_exchange,
     repair_exchange,
 )
 from vrp_diffusion_quantum.quantum.qubo_reorder import (
+    ReorderQUBO,
     build_reorder_qubo,
     decode_reorder,
     repair_reorder,
@@ -96,6 +101,27 @@ def export(set_path: Path, output: Path, max_qubits: int) -> None:
     print(json.dumps({"exported": len(qubos), **dict(sorted(kinds.items()))}))
 
 
+def _score_sample(
+    instance: CVRPInstance,
+    sub: ReorderSubproblem | ExchangeSubproblem,
+    wrapper: ReorderQUBO | ExchangeQUBO,
+    x: list[int],
+) -> tuple[float, bool]:
+    """True cost after decoding (and repair if needed), and whether the raw sample was valid."""
+    if isinstance(wrapper, ReorderQUBO):
+        assert isinstance(sub, ReorderSubproblem)
+        decoded = decode_reorder(wrapper, x)
+        order = decoded if decoded is not None else repair_reorder(wrapper, x)
+        return float(sub.path_cost(order)), decoded is not None
+    assert isinstance(sub, ExchangeSubproblem)
+    raw = decode_exchange(wrapper, x)
+    assignment = repair_exchange(wrapper, raw)
+    cost = (
+        evaluate_exchange(instance, sub, assignment)[0] if assignment is not None else float("inf")
+    )
+    return float(cost), bool(sub.is_feasible(raw))
+
+
 def analyze(set_path: Path, qubo_path: Path, results_path: Path, output: Path) -> None:
     neighborhood_set = json.loads(set_path.read_text())
     records = {r["instance_id"]: r for r in neighborhood_set["instances"]}
@@ -105,20 +131,12 @@ def analyze(set_path: Path, qubo_path: Path, results_path: Path, output: Path) -
     for result in json.loads(results_path.read_text())["results"]:
         entry = entries[result["id"]]
         instance, sub, wrapper, optimum = _subproblem_and_qubo(records[entry["instance_id"]], entry)
-        best = result["samples"][0]  # lowest sampled energy
-        if entry["kind"] == "reorder":
-            decoded = decode_reorder(wrapper, best["x"])
-            order = decoded if decoded is not None else repair_reorder(wrapper, best["x"])
-            cost, valid = sub.path_cost(order), decoded is not None
-        else:
-            raw = decode_exchange(wrapper, best["x"])
-            assignment = repair_exchange(wrapper, raw)
-            valid = sub.is_feasible(raw)
-            cost = (
-                evaluate_exchange(instance, sub, assignment)[0]
-                if assignment is not None
-                else float("inf")
-            )
+        scored = [
+            (*_score_sample(instance, sub, wrapper, s["x"]), s["count"])
+            for s in result["samples"]  # stored lowest-energy samples, best first
+        ]
+        cost, valid, _ = scored[0]
+        stored = sum(count for _, _, count in scored)
         rows.append(
             {
                 "id": result["id"],
@@ -133,6 +151,16 @@ def analyze(set_path: Path, qubo_path: Path, results_path: Path, output: Path) -
                 "classical_optimum_cost": optimum,
                 "matches_classical_optimum": bool(cost <= optimum + 1e-9),
                 "exported_classical_optimum": exported[result["id"]]["classical_optimum_cost"],
+                # Same rule as annealing: decode/repair every stored sample, keep the best.
+                "best_of_samples_true_cost": min(c for c, _, _ in scored),
+                "best_of_samples_matches_classical_optimum": bool(
+                    min(c for c, _, _ in scored) <= optimum + 1e-9
+                ),
+                "stored_samples": len(scored),
+                "stored_shots": stored,
+                "stored_shots_valid_without_repair": float(
+                    sum(count for _, ok, count in scored if ok) / stored
+                ),
             }
         )
     summary = {}

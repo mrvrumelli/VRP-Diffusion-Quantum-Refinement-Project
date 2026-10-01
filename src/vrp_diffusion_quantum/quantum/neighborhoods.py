@@ -33,6 +33,7 @@ __all__ = [
     "Neighborhood",
     "NeighborhoodConfig",
     "NeighborhoodType",
+    "RandomPairs",
     "ReorderSubproblem",
     "apply_exchange",
     "apply_reorder",
@@ -43,14 +44,21 @@ __all__ = [
     "select_high_cost_routes",
     "select_low_confidence_edges",
     "select_neighborhoods",
+    "select_random_like",
     "select_two_route_exchanges",
     "select_uncertain_customers",
 ]
 
 NeighborhoodType = Literal[
-    "high_cost_route", "uncertain_m", "low_confidence_edges", "two_route_exchange"
+    "high_cost_route",
+    "uncertain_m",
+    "low_confidence_edges",
+    "two_route_exchange",
+    "random_segment",
+    "random_exchange",
 ]
 SubproblemKind = Literal["reorder", "exchange"]
+RandomPairs = Literal["any", "adjacent"]
 
 _ALL_TYPES: tuple[NeighborhoodType, ...] = (
     "high_cost_route",
@@ -382,6 +390,31 @@ def _nearest_first(
     return sorted(customers, key=distance)
 
 
+def _adjacent_route_pairs(
+    instance: CVRPInstance, routes: Sequence[Sequence[int]], cfg: NeighborhoodConfig
+) -> tuple[list[tuple[int, int]], dict[tuple[int, int], float]]:
+    """Each route's ``exchange_route_pairs_per_route`` nearest routes, by closest customer pair.
+
+    Returns the sorted distinct pairs and the gap of every pair of non-empty routes.
+    """
+    active = [index for index, route in enumerate(routes) if route]
+    if len(active) < 2:
+        return [], {}
+    xy = {i: np.stack([_customer_xy(instance, c) for c in routes[i]]) for i in active}
+    gaps: dict[tuple[int, int], float] = {}
+    for position, first in enumerate(active):
+        for second in active[position + 1 :]:
+            delta = xy[first][:, None, :] - xy[second][None, :, :]
+            gaps[(first, second)] = float(np.sqrt((delta**2).sum(axis=-1)).min())
+    pairs: set[tuple[int, int]] = set()
+    for route_index in active:
+        nearest = sorted((gap, pair) for pair, gap in gaps.items() if route_index in pair)[
+            : cfg.exchange_route_pairs_per_route
+        ]
+        pairs.update(pair for _, pair in nearest)
+    return sorted(pairs), gaps
+
+
 def select_two_route_exchanges(
     instance: CVRPInstance,
     routes: Sequence[Sequence[int]],
@@ -395,23 +428,12 @@ def select_two_route_exchanges(
     """
     cfg = config or NeighborhoodConfig()
     _validate_routes(instance, routes)
-    active = [index for index, route in enumerate(routes) if route]
-    if len(active) < 2:
-        return []
-    xy = {i: np.stack([_customer_xy(instance, c) for c in routes[i]]) for i in active}
-    gaps: dict[tuple[int, int], float] = {}
-    for position, first in enumerate(active):
-        for second in active[position + 1 :]:
-            delta = xy[first][:, None, :] - xy[second][None, :, :]
-            gaps[(first, second)] = float(np.sqrt((delta**2).sum(axis=-1)).min())
-    pairs: set[tuple[int, int]] = set()
-    for route_index in active:
-        nearest = sorted((gap, pair) for pair, gap in gaps.items() if route_index in pair)[
-            : cfg.exchange_route_pairs_per_route
-        ]
-        pairs.update(pair for _, pair in nearest)
+    pairs, gaps = _adjacent_route_pairs(instance, routes, cfg)
+    xy = {
+        i: np.stack([_customer_xy(instance, c) for c in routes[i]]) for pair in pairs for i in pair
+    }
     selected: list[Neighborhood] = []
-    for first, second in sorted(pairs):
+    for first, second in pairs:
         centroid = {first: xy[second].mean(axis=0), second: xy[first].mean(axis=0)}
         ranked = {
             route_index: _nearest_first(instance, routes[route_index], centroid[route_index])
@@ -465,6 +487,71 @@ def select_neighborhoods(
         else:
             selected += select_two_route_exchanges(instance, routes, config)
     logger.debug("selected %d neighborhoods", len(selected))
+    return selected
+
+
+def select_random_like(
+    instance: CVRPInstance,
+    routes: Sequence[Sequence[int]],
+    template: Sequence[Neighborhood],
+    rng: np.random.Generator,
+    *,
+    pairs: RandomPairs = "any",
+    config: NeighborhoodConfig | None = None,
+) -> list[Neighborhood]:
+    """Random neighborhoods matching ``template`` one for one in kind and size.
+
+    This is the control for guided selection: the same number of reorder and exchange
+    neighborhoods with the same sizes, placed at random. A reorder is a random segment of a random
+    route long enough to hold it. An exchange takes a random pair of routes, either any pair or
+    only the spatially adjacent pairs that :func:`select_two_route_exchanges` considers, and moves
+    random customers drawn from both routes. Template items that cannot be matched are skipped.
+    """
+    cfg = config or NeighborhoodConfig()
+    _validate_routes(instance, routes)
+    active = [index for index, route in enumerate(routes) if route]
+    if pairs == "adjacent":
+        candidate_pairs, _ = _adjacent_route_pairs(instance, routes, cfg)
+    elif pairs == "any":
+        candidate_pairs = [
+            (first, second) for k, first in enumerate(active) for second in active[k + 1 :]
+        ]
+    else:
+        raise ValueError(f"pairs must be 'any' or 'adjacent', got {pairs!r}")
+    selected: list[Neighborhood] = []
+    for item in template:
+        if item.kind == "reorder":
+            fitting = [index for index in active if len(routes[index]) >= item.size]
+            if item.size < 1 or not fitting:
+                continue
+            route_index = fitting[int(rng.integers(len(fitting)))]
+            route = routes[route_index]
+            start = int(rng.integers(len(route) - item.size + 1))
+            selected.append(
+                Neighborhood(
+                    neighborhood_type="random_segment",
+                    kind="reorder",
+                    route_indices=(route_index,),
+                    customers=tuple(route[start : start + item.size]),
+                    score=0.0,
+                    segment=(start, start + item.size),
+                )
+            )
+        else:
+            if not candidate_pairs:
+                continue
+            first, second = candidate_pairs[int(rng.integers(len(candidate_pairs)))]
+            pool = [*routes[first], *routes[second]]
+            chosen = rng.choice(len(pool), size=min(item.size, len(pool)), replace=False)
+            selected.append(
+                Neighborhood(
+                    neighborhood_type="random_exchange",
+                    kind="exchange",
+                    route_indices=(first, second),
+                    customers=tuple(int(pool[int(i)]) for i in chosen),
+                    score=0.0,
+                )
+            )
     return selected
 
 

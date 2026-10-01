@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Literal, Protocol
 
@@ -75,11 +75,18 @@ __all__ = [
     "AnnealingQUBOSolver",
     "ClassicalSolver",
     "ExactQUBOSolver",
+    "NeighborhoodSelector",
+    "QUBOSamplingSolver",
     "RefinementStep",
     "RefinementTrace",
     "SolverOutcome",
     "SubproblemSolver",
     "refine_solution",
+]
+
+# Custom neighborhood selection: (instance, current routes, prior or None) -> neighborhoods.
+NeighborhoodSelector = Callable[
+    [CVRPInstance, list[list[int]], npt.NDArray[np.float64] | None], list[Neighborhood]
 ]
 
 
@@ -291,8 +298,97 @@ def _best_exchange(
     return best[2], best[0], best[1], True, len(seen)
 
 
+class QUBOSamplingSolver:
+    """Shared decode path for solvers that sample states of the subproblem's QUBO.
+
+    Subclasses provide ``name``, ``bias`` and ``_sample``. Every sample is decoded, repaired if
+    needed, and scored on true cost, and the best candidate is returned, so all sampling solvers
+    are judged by the same rule. If ``_sample`` returns no samples, the subproblem is reported as
+    skipped: the current solution is returned unchanged and the solver name gets ``_skipped``.
+    """
+
+    bias: DiffusionBiasConfig
+
+    @property
+    def name(self) -> str:
+        raise NotImplementedError
+
+    def _sample(self, qubo: QUBO) -> list[QUBOSample]:
+        raise NotImplementedError
+
+    def solve_reorder(
+        self,
+        instance: CVRPInstance,
+        subproblem: ReorderSubproblem,
+        m_prob: npt.NDArray[np.float64] | None,
+    ) -> SolverOutcome:
+        started = time.perf_counter()
+        reorder = _reorder_qubo(subproblem, m_prob, self.bias)
+        samples = self._sample(reorder.qubo)
+        if not samples:
+            return SolverOutcome(
+                solver_name=f"{self.name}_skipped",
+                candidate_cost=subproblem.current_cost,
+                order=subproblem.customers,
+                runtime_seconds=time.perf_counter() - started,
+                qubo_num_variables=reorder.qubo.num_variables,
+                qubo_num_terms=reorder.qubo.num_terms,
+                penalty_weights=dict(reorder.qubo.penalty_weights),
+            )
+        order, cost, energy, _decoded_valid = _best_reorder(reorder, samples)
+        return SolverOutcome(
+            solver_name=self.name,
+            candidate_cost=cost,
+            order=order,
+            runtime_seconds=time.perf_counter() - started,
+            evaluations=len(samples),
+            num_samples=len(samples),
+            raw_energy=energy,
+            post_repair_feasible=True,
+            qubo_num_variables=reorder.qubo.num_variables,
+            qubo_num_terms=reorder.qubo.num_terms,
+            penalty_weights=dict(reorder.qubo.penalty_weights),
+        )
+
+    def solve_exchange(
+        self,
+        instance: CVRPInstance,
+        subproblem: ExchangeSubproblem,
+        m_prob: npt.NDArray[np.float64] | None,
+    ) -> SolverOutcome:
+        started = time.perf_counter()
+        exchange = _exchange_qubo(instance, subproblem, m_prob, self.bias)
+        samples = self._sample(exchange.qubo)
+        if not samples:
+            first, second = subproblem.members(subproblem.initial_assignment)
+            current = subproblem.initial_routes or (tuple(first), tuple(second))
+            return SolverOutcome(
+                solver_name=f"{self.name}_skipped",
+                candidate_cost=route_cost(instance, [list(route) for route in current if route]),
+                ordered_routes=current,
+                runtime_seconds=time.perf_counter() - started,
+                qubo_num_variables=exchange.qubo.num_variables,
+                qubo_num_terms=exchange.qubo.num_terms,
+                penalty_weights=dict(exchange.qubo.penalty_weights),
+            )
+        routes, cost, energy, feasible, evaluations = _best_exchange(instance, exchange, samples)
+        return SolverOutcome(
+            solver_name=self.name,
+            candidate_cost=cost,
+            ordered_routes=routes,
+            runtime_seconds=time.perf_counter() - started,
+            evaluations=evaluations,
+            num_samples=len(samples),
+            raw_energy=energy,
+            post_repair_feasible=feasible,
+            qubo_num_variables=exchange.qubo.num_variables,
+            qubo_num_terms=exchange.qubo.num_terms,
+            penalty_weights=dict(exchange.qubo.penalty_weights),
+        )
+
+
 @dataclass(frozen=True)
-class AnnealingQUBOSolver:
+class AnnealingQUBOSolver(QUBOSamplingSolver):
     """Simulated annealing on the reorder/exchange QUBOs (the quantum-inspired control).
 
     With ``time_budget_seconds`` set, reads run one at a time until the budget is spent (at least
@@ -324,54 +420,6 @@ class AnnealingQUBOSolver:
             )
             read += 1
         return samples
-
-    def solve_reorder(
-        self,
-        instance: CVRPInstance,
-        subproblem: ReorderSubproblem,
-        m_prob: npt.NDArray[np.float64] | None,
-    ) -> SolverOutcome:
-        started = time.perf_counter()
-        reorder = _reorder_qubo(subproblem, m_prob, self.bias)
-        samples = self._sample(reorder.qubo)
-        order, cost, energy, _decoded_valid = _best_reorder(reorder, samples)
-        return SolverOutcome(
-            solver_name=self.name,
-            candidate_cost=cost,
-            order=order,
-            runtime_seconds=time.perf_counter() - started,
-            evaluations=len(samples),
-            num_samples=len(samples),
-            raw_energy=energy,
-            post_repair_feasible=True,
-            qubo_num_variables=reorder.qubo.num_variables,
-            qubo_num_terms=reorder.qubo.num_terms,
-            penalty_weights=dict(reorder.qubo.penalty_weights),
-        )
-
-    def solve_exchange(
-        self,
-        instance: CVRPInstance,
-        subproblem: ExchangeSubproblem,
-        m_prob: npt.NDArray[np.float64] | None,
-    ) -> SolverOutcome:
-        started = time.perf_counter()
-        exchange = _exchange_qubo(instance, subproblem, m_prob, self.bias)
-        samples = self._sample(exchange.qubo)
-        routes, cost, energy, feasible, evaluations = _best_exchange(instance, exchange, samples)
-        return SolverOutcome(
-            solver_name=self.name,
-            candidate_cost=cost,
-            ordered_routes=routes,
-            runtime_seconds=time.perf_counter() - started,
-            evaluations=evaluations,
-            num_samples=len(samples),
-            raw_energy=energy,
-            post_repair_feasible=feasible,
-            qubo_num_variables=exchange.qubo.num_variables,
-            qubo_num_terms=exchange.qubo.num_terms,
-            penalty_weights=dict(exchange.qubo.penalty_weights),
-        )
 
 
 @dataclass(frozen=True)
@@ -516,12 +564,16 @@ def refine_solution(
     config: NeighborhoodConfig | None = None,
     types: Sequence[NeighborhoodType] | None = None,
     max_rounds: int = 3,
+    selector: NeighborhoodSelector | None = None,
 ) -> RefinementTrace:
     """Select, solve and accept improving neighborhoods until a round makes no change.
 
     ``types`` defaults to all four selectors when ``m_prob`` is given, otherwise to the two that
-    need no prediction. Neighborhoods made stale by an earlier acceptance in the same round are
-    skipped (and counted); empty routes are dropped between rounds.
+    need no prediction. ``selector``, if given, replaces the built-in selection: each round it
+    receives the instance, the current routes and the prior, and returns the neighborhoods to
+    try; ``config`` and ``types`` are then unused. Neighborhoods made stale by an earlier
+    acceptance in the same round are skipped (and counted); empty routes are dropped between
+    rounds.
     """
     if max_rounds < 1:
         raise ValueError("max_rounds must be >= 1")
@@ -543,8 +595,12 @@ def refine_solution(
     steps: list[RefinementStep] = []
     skipped = 0
     for round_index in range(max_rounds):
-        neighborhoods = select_neighborhoods(
-            instance, current, m_prob=matrix, config=config, types=chosen_types
+        neighborhoods = (
+            selector(instance, current, matrix)
+            if selector is not None
+            else select_neighborhoods(
+                instance, current, m_prob=matrix, config=config, types=chosen_types
+            )
         )
         improved = False
         for neighborhood in neighborhoods:

@@ -13,6 +13,7 @@ from vrp_diffusion_quantum.quantum.neighborhoods import (
     Neighborhood,
     extract_exchange_subproblem,
     extract_reorder_subproblem,
+    select_random_like,
 )
 from vrp_diffusion_quantum.quantum.qubo_bias import DiffusionBiasConfig
 from vrp_diffusion_quantum.quantum.refinement import (
@@ -156,3 +157,51 @@ def test_classical_restarts_never_do_worse_than_one_run() -> None:
     assert many_x.candidate_cost <= one_x.candidate_cost + 1e-12
     with pytest.raises(ValueError, match="restarts"):
         ClassicalSolver(restarts=0)
+
+
+def test_random_selector_matches_the_template_in_kind_and_size() -> None:
+    rng = np.random.default_rng(3)
+    instance = make_instance([tuple(p) for p in rng.random((12, 2))], demands=[1] * 12, capacity=6)
+    routes = [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11]]
+    template = [
+        Neighborhood("low_confidence_edges", "reorder", (0,), (1, 2, 3), 0.5, (1, 4)),
+        Neighborhood("uncertain_m", "exchange", (0, 1), (3, 4), 0.1),
+    ]
+    for pairs in ("any", "adjacent"):
+        chosen = select_random_like(
+            instance, routes, template, np.random.default_rng(0), pairs=pairs
+        )
+        assert [n.kind for n in chosen] == ["reorder", "exchange"]
+        assert [n.size for n in chosen] == [3, 2]
+        assert [n.neighborhood_type for n in chosen] == ["random_segment", "random_exchange"]
+        reorder, exchange = chosen
+        assert reorder.segment is not None
+        start, end = reorder.segment
+        assert tuple(routes[reorder.route_indices[0]][start:end]) == reorder.customers
+        first, second = exchange.route_indices
+        assert first != second
+        assert set(exchange.customers) <= set(routes[first]) | set(routes[second])
+        extract_reorder_subproblem(instance, routes, reorder)
+        extract_exchange_subproblem(instance, routes, exchange)
+    first_draw = select_random_like(instance, routes, template, np.random.default_rng(5))
+    assert first_draw == select_random_like(instance, routes, template, np.random.default_rng(5))
+    with pytest.raises(ValueError, match="pairs"):
+        select_random_like(instance, routes, template, rng, pairs="near")  # type: ignore[arg-type]
+
+
+def test_refine_solution_uses_a_custom_selector() -> None:
+    instance, routes = misplaced_instance()
+    seen: list[list[list[int]]] = []
+
+    def selector(
+        _: CVRPInstance, current: list[list[int]], __: np.ndarray | None
+    ) -> list[Neighborhood]:
+        seen.append([list(route) for route in current])
+        return [Neighborhood("random_exchange", "exchange", (0, 1), (4,), 0.0)]
+
+    trace = refine_solution(
+        instance, routes, ClassicalSolver("exact", "exhaustive"), selector=selector, max_rounds=3
+    )
+    assert len(seen) == 2  # an improving round, then a round without improvement
+    assert {step.neighborhood_type for step in trace.steps} == {"random_exchange"}
+    assert trace.improvement > 0 and 4 in trace.routes[0]

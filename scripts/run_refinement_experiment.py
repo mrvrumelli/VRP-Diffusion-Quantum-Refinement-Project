@@ -8,6 +8,7 @@ method on the identical subproblem. Methods:
 * ``classical_ls`` — one deterministic 2-opt or relocate/swap run from the current solution.
 * ``classical_ls_budget`` — random-restart local search until the time budget is spent (the
   first restart is the current solution).
+* ``sqa_qubo`` — simulated quantum annealing (path-integral Monte Carlo) under the same budget.
 * ``sa_qubo`` / ``sa_qubo_bias`` — simulated annealing on the QUBO under the same time budget,
   without and with the diffusion bias; every sample is decoded/repaired and judged on true cost.
 * ``exact_qubo`` — the QUBO's exact minimum where it has at most ``--exact-qubo-max`` variables:
@@ -42,6 +43,7 @@ METHODS = (
     "classical_ls_budget",
     "sa_qubo",
     "sa_qubo_bias",
+    "sqa_qubo",
     "exact_qubo",
 )
 
@@ -121,6 +123,11 @@ def _run_instance(
         sa, bias=DiffusionBiasConfig(enabled=True, alpha=float(options["alpha"]))
     )
     exact_qubo = ExactQUBOSolver()
+    from vrp_diffusion_quantum.quantum.annealing_solver import SimulatedQuantumAnnealingSolver
+
+    sqa = SimulatedQuantumAnnealingSolver(
+        num_sweeps=options["sweeps"], seed=options["seed"], time_budget_seconds=budget
+    )
     rows = []
     for entry in neighborhoods:
         neighborhood = Neighborhood(
@@ -183,7 +190,7 @@ def _run_instance(
             except ValueError:
                 continue  # fixed customers alone exceed capacity: not a valid subproblem
             solve = "solve_exchange"
-        for name, solver in (("sa_qubo", sa), ("sa_qubo_bias", sa_bias)):
+        for name, solver in (("sa_qubo", sa), ("sa_qubo_bias", sa_bias), ("sqa_qubo", sqa)):
             outcome = getattr(solver, solve)(instance, sub, m_prob)
             results[name] = {
                 "cost": outcome.candidate_cost if outcome.post_repair_feasible else float("inf"),

@@ -11,6 +11,16 @@ only feasible strict improvements. Solvers:
 * ``sa_qubo`` / ``sa_qubo_bias`` — simulated annealing on the QUBO with ``--reads`` reads (a fixed
   count, so results do not depend on machine load), without and with the diffusion bias.
 * ``sa_qubo_bias+classical`` — the biased annealing result, then polished by the classical loop.
+* ``sa_qubo+classical_restarts`` — the annealing result, then the restarted classical loop.
+* ``sqa_qubo`` — simulated quantum annealing (path-integral Monte Carlo) with ``--reads`` reads.
+* ``qaoa`` — QAOA in exact statevector simulation (``--qaoa-reps`` layers, ``--qaoa-shots``
+  shots); subproblems with more than ``--max-qubits`` QUBO variables are skipped (left
+  unchanged) and counted.
+* ``random_qubo`` — the matched control for QAOA: uniform random shots, same keep rule and limit.
+* ``qaoa+classical`` / ``qaoa+classical_restarts`` — the QAOA result, then a classical loop.
+
+``--once`` refuses to run when the output directory already holds rows; use it for a set that must
+be scored exactly once.
 
 Neighborhood size and count come from ``--max-reorder-size``, ``--max-exchange-size`` and
 ``--max-per-type`` (defaults: ``NeighborhoodConfig``). The loop stops after ``--rounds`` rounds or
@@ -46,6 +56,12 @@ CONFIGS: dict[str, tuple[str, ...]] = {
     "sa_qubo": ("sa_qubo",),
     "sa_qubo_bias": ("sa_qubo_bias",),
     "sa_qubo_bias+classical": ("sa_qubo_bias", "classical"),
+    "sa_qubo+classical_restarts": ("sa_qubo", "classical_restarts"),
+    "sqa_qubo": ("sqa_qubo",),
+    "qaoa": ("qaoa",),
+    "random_qubo": ("random_qubo",),
+    "qaoa+classical": ("qaoa", "classical"),
+    "qaoa+classical_restarts": ("qaoa", "classical_restarts"),
 }
 CONTRASTS = (
     ("sa_qubo", "classical"),
@@ -55,6 +71,14 @@ CONTRASTS = (
     ("classical_restarts", "classical"),
     ("sa_qubo_bias+classical", "classical"),
     ("sa_qubo_bias+classical", "classical_restarts"),
+    ("sa_qubo+classical_restarts", "classical_restarts"),
+    ("sqa_qubo", "sa_qubo"),
+    ("sqa_qubo", "classical_restarts"),
+    ("qaoa", "random_qubo"),
+    ("qaoa", "classical"),
+    ("qaoa", "sa_qubo"),
+    ("qaoa+classical", "classical"),
+    ("qaoa+classical_restarts", "classical_restarts"),
 )
 
 
@@ -66,6 +90,33 @@ def _solver(name: str, options: dict[str, Any]) -> SubproblemSolver:
         return ClassicalSolver()
     if name == "classical_restarts":
         return ClassicalSolver(restarts=options["classical_restarts"], seed=options["seed"])
+    if name == "sqa_qubo":
+        from vrp_diffusion_quantum.quantum.annealing_solver import SimulatedQuantumAnnealingSolver
+
+        return SimulatedQuantumAnnealingSolver(
+            num_reads=options["reads"],
+            num_sweeps=options["sweeps"],
+            trotter_slices=options.get("sqa_slices", 16),
+            seed=options["seed"],
+        )
+    if name in ("qaoa", "random_qubo"):
+        from vrp_diffusion_quantum.quantum.qaoa_solver import QAOASolver, RandomQUBOSampler
+
+        if name == "random_qubo":
+            return RandomQUBOSampler(
+                shots=options["qaoa_shots"],
+                keep=options["qaoa_keep"],
+                max_qubits=options["max_qubits"],
+                seed=options["seed"],
+            )
+        return QAOASolver(
+            reps=options["qaoa_reps"],
+            restarts=options["qaoa_restarts"],
+            shots=options["qaoa_shots"],
+            keep=options["qaoa_keep"],
+            max_qubits=options["max_qubits"],
+            seed=options["seed"],
+        )
     bias = DiffusionBiasConfig(enabled=name == "sa_qubo_bias", alpha=float(options["alpha"]))
     return AnnealingQUBOSolver(
         num_reads=options["reads"], num_sweeps=options["sweeps"], seed=options["seed"], bias=bias
@@ -151,6 +202,7 @@ def _run(task: tuple[Path, dict[str, Any]]) -> list[dict[str, Any]]:
                 "attempted_steps": len(steps),
                 "accepted_steps": sum(stage.accepted_steps for stage in traces),
                 "skipped_stale": sum(stage.skipped_stale for stage in traces),
+                "skipped_too_large": sum(s.solver_name.endswith("_skipped") for s in steps),
                 "rounds": [len(profile["cost_by_round"]) for profile in profiles],
                 "cost_by_round": [profile["cost_by_round"] for profile in profiles],
                 "solver_seconds_by_round": [
@@ -247,6 +299,12 @@ def main() -> None:
         "--classical-restarts", type=int, help="starting points for classical_restarts (--reads)"
     )
     parser.add_argument("--configs", nargs="+", choices=list(CONFIGS), default=list(CONFIGS))
+    parser.add_argument("--qaoa-reps", type=int, default=1)
+    parser.add_argument("--qaoa-restarts", type=int, default=4)
+    parser.add_argument("--qaoa-shots", type=int, default=1024)
+    parser.add_argument("--qaoa-keep", type=int, default=50)
+    parser.add_argument("--max-qubits", type=int, default=16)
+    parser.add_argument("--once", action="store_true", help="refuse to run twice on one output")
     args = parser.parse_args()
     for name in args.configs:
         prefix = CONFIGS[name][:-1]
@@ -271,9 +329,19 @@ def main() -> None:
         "configs": args.configs,
         "neighborhoods": neighborhoods,
     }
+    if any(name in ("qaoa", "random_qubo") or "qaoa" in name for name in args.configs):
+        options.update(
+            qaoa_reps=args.qaoa_reps,
+            qaoa_restarts=args.qaoa_restarts,
+            qaoa_shots=args.qaoa_shots,
+            qaoa_keep=args.qaoa_keep,
+            max_qubits=args.max_qubits,
+        )
     solutions = args.solutions if args.solutions.is_absolute() else ROOT / args.solutions
     records = [p for p in sorted(solutions.glob("*.json")) if p.name != "summary.json"]
     output = args.output if args.output.is_absolute() else ROOT / args.output
+    if args.once and output.exists() and any(output.glob("rows*.jsonl")):
+        raise SystemExit(f"{output} already holds results; --once forbids a second scoring")
     output.mkdir(parents=True, exist_ok=True)
     partial = output / "rows.partial.jsonl"
     options_file = output / "options.json"
