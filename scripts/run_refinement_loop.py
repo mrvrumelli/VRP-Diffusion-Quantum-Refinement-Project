@@ -5,6 +5,8 @@ Input is a directory written by ``solve_with_baseline.py``. For every instance a
 only feasible strict improvements. Solvers:
 
 * ``classical`` — 2-opt for reorders, relocate/swap for exchanges (one deterministic run each).
+* ``classical_exact`` — Held-Karp for reorders and exhaustive assignment search for exchanges:
+  the exact optimum of every subproblem (small limits only: at most 12 and 14 customers).
 * ``classical_restarts`` — the same local search from ``--classical-restarts`` starting points
   per subproblem (the current solution plus random ones). The default equals ``--reads``, which
   matches annealing's sample count; a smaller value can match its wall-clock time instead.
@@ -53,6 +55,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIGS: dict[str, tuple[str, ...]] = {
     "classical": ("classical",),
     "classical_restarts": ("classical_restarts",),
+    "classical_exact": ("classical_exact",),
     "sa_qubo": ("sa_qubo",),
     "sa_qubo_bias": ("sa_qubo_bias",),
     "sa_qubo_bias+classical": ("sa_qubo_bias", "classical"),
@@ -75,6 +78,10 @@ CONTRASTS = (
     ("sqa_qubo", "sa_qubo"),
     ("sqa_qubo", "classical_restarts"),
     ("qaoa", "random_qubo"),
+    ("qaoa", "classical_exact"),
+    ("qaoa", "classical_restarts"),
+    ("random_qubo", "classical_exact"),
+    ("classical_restarts", "classical_exact"),
     ("qaoa", "classical"),
     ("qaoa", "sa_qubo"),
     ("qaoa+classical", "classical"),
@@ -90,6 +97,8 @@ def _solver(name: str, options: dict[str, Any]) -> SubproblemSolver:
         return ClassicalSolver()
     if name == "classical_restarts":
         return ClassicalSolver(restarts=options["classical_restarts"], seed=options["seed"])
+    if name == "classical_exact":
+        return ClassicalSolver("exact", "exhaustive")
     if name == "sqa_qubo":
         from vrp_diffusion_quantum.quantum.annealing_solver import SimulatedQuantumAnnealingSolver
 

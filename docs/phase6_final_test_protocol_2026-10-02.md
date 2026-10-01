@@ -32,6 +32,7 @@ four selectors are used.
 | T7 | Uniform random QUBO sampling, same shots and decoding | 4 / 6 / 10 | Matched control for T6 |
 | T8 | Classical, 10 restarts | 4 / 6 / 10 | Classical baseline at QAOA's limits |
 | T9 | T6, then classical 10 restarts | 4 / 6 / 10 | Hybrid with the quantum operator |
+| T10 | Classical exact: Held-Karp reorders, exhaustive exchanges | 4 / 6 / 10 | The strongest classical baseline at QAOA's limits (amendment below) |
 
 ## Primary comparisons and decision rules
 
@@ -42,11 +43,19 @@ Paired per graph, 95% bootstrap intervals over graphs, each set reported separat
 2. **Quantum-inspired operator against classical search, equal limits.** T4 minus T2.
 3. **Does a QUBO stage add value after classical polishing (Q5)?** T5 minus T2. It adds value only
    if the interval lies entirely below zero.
-4. **Quantum operator.** T6 minus T7 (does QAOA beat random sampling?), T6 minus T8 (does it match
-   classical search?), and T9 minus T8 (does it add value before classical polish?).
+4. **Quantum operator.** T6 minus T7 (does QAOA beat random sampling?), T6 minus T10 (does it
+   match an exact classical solver on the same subproblems?), T6 minus T8 (does it match classical
+   local search?), and T9 minus T8 (does it add value before classical polish?).
 
 Secondary: gap by size, share of graphs improved, routes per solution, solver time per graph, and
 the share of subproblems skipped by T6 and T7 for exceeding 16 qubits.
+
+## Amendment, 2026-10-02, before any run on these sets
+
+T10 was added after the development panel showed that, at QAOA's small limits, uniform random
+QUBO sampling beats restarted local search: 6.19% against 6.66%. At 4 customers per reorder and
+6 per exchange, the sampling-and-decoding rule nearly enumerates each subproblem. The fair
+classical baseline there is an exact solver, not local search. No configuration above was changed.
 
 ## Commands
 
