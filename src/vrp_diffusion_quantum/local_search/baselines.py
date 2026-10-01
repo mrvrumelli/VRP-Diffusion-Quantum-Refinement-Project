@@ -168,16 +168,16 @@ def solve_reorder(
 ) -> ReorderSolution:
     """Reorder the subproblem's customers with a classical method."""
     started = time.perf_counter()
+    if method not in ("exact", "two_opt"):
+        raise ValueError(f"unknown reorder method {method!r}")
     if subproblem.size <= 1:
         order, evaluations = subproblem.customers, 0
     elif method == "exact":
         if subproblem.size > MAX_EXACT_REORDER:
             raise ValueError(f"exact reorder is limited to {MAX_EXACT_REORDER} customers")
         order, evaluations = _held_karp(subproblem)
-    elif method == "two_opt":
-        order, evaluations = _two_opt(subproblem, max_passes=max_passes)
     else:
-        raise ValueError(f"unknown reorder method {method!r}")
+        order, evaluations = _two_opt(subproblem, max_passes=max_passes)
     return ReorderSolution(
         method=method,
         order=tuple(order),
@@ -254,10 +254,16 @@ def solve_exchange(
 
     If no capacity-feasible assignment exists (or the method finds none), the initial assignment
     is returned with ``feasible`` reflecting whether it satisfies capacity.
+
+    ``cost_before`` measures the two supplied routes before any reordering. For manually built
+    subproblems without ``initial_routes``, it falls back to the reconstructed initial assignment.
+    Search still uses the same nearest-neighbour/2-opt assignment objective as QUBO evaluation.
     """
     started = time.perf_counter()
     evaluate = _ExchangeEvaluator(instance, subproblem)
     cost_before = evaluate(subproblem.initial_assignment)[0]
+    if subproblem.initial_routes is not None:
+        cost_before = route_cost(instance, [list(route) for route in subproblem.initial_routes])
     if method == "exhaustive":
         if subproblem.size > MAX_EXHAUSTIVE_EXCHANGE:
             raise ValueError(f"exhaustive exchange is limited to {MAX_EXHAUSTIVE_EXCHANGE}")

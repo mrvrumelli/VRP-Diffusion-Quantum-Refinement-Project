@@ -37,9 +37,15 @@ F1 definition, and the paper's validation split construction is unknown. Near-op
 partitions are not unique on unfiltered labels. The remaining difference cannot be attributed
 further without the authors' metric definition, validation protocol, or code.
 
-**Matrix F1 does not track route quality here.** Depot-aware priors with higher F1 decode to worse
-routes than the depot-blind per-size champions. The classical baseline proposal therefore keeps the
-champions (see [the freeze proposal](classical_baseline_freeze_proposal_2026-09-30.md)).
+**Route quality tracks recall, not pooled F1.** Pooled F1 is dominated by N100 pairs and hides
+per-size behaviour. Per size, the depot-blind per-size champions match or beat every depot-aware
+prior on F1 at N20 and N50 and decode better routes at every size. Across all priors, the route gap
+falls as recall rises: missing same-route pairs fragments routes into extra depot round trips,
+which the decoder cannot undo, while extra pairs are partly repaired by capacity splitting. F5's
+N20 prior has recall 0.34 and an 80% route gap. In matched comparisons on the same recipe and data,
+adding the depot improved routes as well as F1, so the depot is not the cause of F5's worse routes.
+The classical baseline proposal keeps the champions
+(see [the freeze proposal](classical_baseline_freeze_proposal_2026-09-30.md)).
 
 ## Evidence 1 — the depot-blind ceiling
 

@@ -27,6 +27,7 @@ the unbiased QUBOs are preserved.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -80,10 +81,19 @@ class DiffusionBiasConfig:
         return self.enabled and self.alpha > 0.0
 
 
-def _validate_pair_prob(pair_prob: npt.ArrayLike) -> npt.NDArray[np.float64]:
+def _validate_pair_prob(
+    pair_prob: npt.ArrayLike,
+    *,
+    n_customers: int | None = None,
+    customers: Sequence[int] = (),
+) -> npt.NDArray[np.float64]:
     matrix = np.asarray(pair_prob, dtype=np.float64)
     if matrix.ndim != 2 or matrix.shape[0] != matrix.shape[1]:
         raise ValueError("pair_prob must be a square matrix")
+    if n_customers is not None and matrix.shape != (n_customers, n_customers):
+        raise ValueError(f"pair_prob must have shape ({n_customers}, {n_customers})")
+    if any(customer < 0 or customer >= matrix.shape[0] for customer in customers):
+        raise ValueError("pair_prob shape does not cover the subproblem's customer indices")
     if not np.all(np.isfinite(matrix)) or np.any(matrix < 0.0) or np.any(matrix > 1.0):
         raise ValueError("pair_prob must contain probabilities in [0, 1]")
     return matrix
@@ -115,8 +125,12 @@ def reorder_bias_terms(
     builder = QUBOBuilder(reorder.qubo.labels)
     if not config.active:
         return builder.build()
-    matrix = _validate_pair_prob(pair_prob)
     subproblem = reorder.subproblem
+    involved = [*subproblem.customers]
+    involved.extend(
+        node for node in (subproblem.start_node, subproblem.end_node) if node is not None
+    )
+    matrix = _validate_pair_prob(pair_prob, n_customers=subproblem.n_customers, customers=involved)
     k = subproblem.size
     weight = config.alpha * _mean_positive(subproblem.distances)
     customers = subproblem.customers
@@ -179,8 +193,12 @@ def _exchange_bias_parts(
     exchange: ExchangeQUBO, pair_prob: npt.ArrayLike, config: DiffusionBiasConfig
 ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], float]:
     """Linear costs ``[m, 2]``, signed pair weights ``[m, m]`` and the weight scale."""
-    matrix = _validate_pair_prob(pair_prob)
     subproblem = exchange.subproblem
+    matrix = _validate_pair_prob(
+        pair_prob,
+        n_customers=subproblem.n_customers,
+        customers=[*subproblem.movable, *subproblem.fixed[0], *subproblem.fixed[1]],
+    )
     weight = config.alpha * _mean_positive(exchange.insertion_costs)
     affinity = _affinities(matrix, subproblem)
     linear = np.vectorize(lambda p: _cost(float(p), config.mode))(affinity) * weight
@@ -227,6 +245,8 @@ def build_biased_exchange_qubo(
     penalty_factor: float = EXCHANGE_PENALTY_FACTOR,
 ) -> ExchangeQUBO:
     """Exchange QUBO plus bias terms; identical to the unbiased QUBO when the bias is off."""
+    if config.active:
+        _validate_pair_prob(pair_prob, n_customers=instance.n_customers)
     base = build_exchange_qubo(
         instance, subproblem, dispersion_weight=dispersion_weight, penalty_factor=penalty_factor
     )

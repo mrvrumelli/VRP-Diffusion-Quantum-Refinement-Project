@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-01",
+  "base_commit": "31bd7b91a6c713e4f9918ed080c7384f77c50ffc",
+  "findings_resolved": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "passed": 217,
+  "failed": 0,
+  "skipped": 0,
+  "original_failing_acceptance_cases_now_passing": 23,
+  "new_boundary_cases": 24,
+  "tests_per_module": {
+    "tests.test_quantum_neighborhoods": 9,
+    "tests.test_qubo_reorder": 14,
+    "tests.test_qubo_exchange": 13,
+    "tests.test_qubo_bias": 10,
+    "tests.test_local_search_baselines": 20,
+    "tests.test_quantum_audit": 104,
+    "tests.test_quantum_acceptance": 47
+  },
+  "environment": {
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "numpy": "2.5.2",
+    "scipy": "1.18.0",
+    "pytest": "9.1.1",
+    "dimod": "0.12.22, isolated outputs/quantum_review_dependencies; actual backend tested"
+  },
+  "fixed_worktree_sha256": {
+    "src/vrp_diffusion_quantum/quantum/_validation.py": "c98059d85a29781985fd97277172ec495ecd031160a42d1b66780af451dd362e",
+    "src/vrp_diffusion_quantum/quantum/neighborhoods.py": "f36f012eec18fe36edb1507cd99876c1b113ab9ccb6a45bf559ae409dd9afa46",
+    "src/vrp_diffusion_quantum/quantum/qubo.py": "7cfd32f1d99c1a92d002035237b902ab3e61dcfdffeea68b331dd9a857d4872a",
+    "src/vrp_diffusion_quantum/quantum/qubo_reorder.py": "c24c92770c53f0d14583ee59a0061c0b7fc24f9318eddad3347eecfff635bbdc",
+    "src/vrp_diffusion_quantum/quantum/qubo_exchange.py": "a5b811a48d0df0df0352f439757d19dbcff8bf40bcd2cbc44e3c4f0671df8a58",
+    "src/vrp_diffusion_quantum/quantum/qubo_bias.py": "08633886fd97e8036e221ecbf3ac77330cbd679e469bf206ceb9cb2b77d2a17a",
+    "src/vrp_diffusion_quantum/local_search/baselines.py": "37bb7fad4f1aaaa31b42ea075c66d3f336dd47ff327dc4b1daf9743d553b5aaf",
+    "tests/test_quantum_audit.py": "b4b3e570ee2443acf16d70d83366a0f860c65b9f1aef398b6db7867a5e21b99f",
+    "tests/test_quantum_acceptance.py": "acc4b358241172a461acad55b25af71994be234712024a2275c892b4e68e3624",
+    "docs/quantum_scope.md": "59ece43d89d195d76cd83e0d87b8ae8f823a6b49c7e5d6875f1ffbcf32fa00a7",
+    "docs/quantum_implementation_review_2026-10-01.md": "9e75e88797115c584f4ef2ade44fa3c4724794361ccfa89b7acca664c8dd427d"
+  },
+  "coverage": {
+    "covered_lines": 1012,
+    "num_statements": 1060,
+    "percent_covered": 92.91666666666667,
+    "percent_covered_display": "93",
+    "missing_lines": 48,
+    "excluded_lines": 2,
+    "percent_statements_covered": 95.47169811320755,
+    "percent_statements_covered_display": "95",
+    "num_branches": 380,
+    "num_partial_branches": 54,
+    "covered_branches": 326,
+    "missing_branches": 54,
+    "percent_branches_covered": 85.78947368421052,
+    "percent_branches_covered_display": "86"
+  },
+  "checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "11 files already formatted",
+    "mypy": "strict; 9 source files; --follow-imports=silent"
+  },
+  "behavior_notes": [
+    "Invalid binary states raise ValueError before casting; valid binary samples are unchanged.",
+    "Exact reorder repair uses full path cost after maximum agreement; invalid samples are bounded at 12 customers.",
+    "Extracted exchange subproblems preserve immutable initial routes; manually built subproblems without this metadata retain a documented reconstructed-cost fallback.",
+    "Original audit artifacts remain unchanged; regression coverage is now in tests/."
+  ],
+  "evidence": "targeted.xml and coverage.json",
+  "execution": "Final pytest run used the approved elevated tool context solely to read the previously installed isolated dimod dependency."
+}

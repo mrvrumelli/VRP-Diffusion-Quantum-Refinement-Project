@@ -140,3 +140,76 @@ reconstruction assumptions, and prepare the classical baseline freeze that gates
 - [x] Write an artifact and hash manifest, and list every `baseline-v1.0` criterion that remains
   open. See [the freeze proposal](classical_baseline_freeze_proposal_2026-09-30.md). The freeze
   itself still needs a commit of this work, which is the owner's decision.
+
+**F10 — Depot-aware champion recipe (added 2026-10-01 at the owner's request)**
+
+Goal: test whether the depot improves the *baseline* prior, using the per-size champion recipe
+(per-size data, stochastic audited references, LayerNorm, distance edges, route-gap checkpoint
+selection) instead of the paper recipe. Declared before any result:
+
+- Two arms differing only in `coordinate_frame` (absolute control versus `depot_relative`), each
+  with its own freshly pretrained GAT from the champion GAT recipe; sizes 20 / 50 / 100; training
+  seeds 4331 and 4332; everything else identical to the 2026-08-16 champion configs.
+- Score each selected checkpoint on its size's 24 panel graphs: 50 steps, `posterior_mixture_v2`,
+  graph-ID-derived sampling seeds, decoded mean route gap, plus F1 and recall.
+- Adopt the depot arm as the new prior for a size only if its paired route-gap improvement over the
+  control has a 95% bootstrap interval excluding zero for both training seeds, and its mean gap
+  also beats the existing champion's. A new prior would still require retraining that size's policy.
+
+- [x] Run the 12 trainings and score them (`outputs/f1gap_diagnostics_20260930/champ/run_champ.sh`).
+  The seed-4331 controls reproduce the existing champions exactly (F1 and gap at every size).
+- [x] Apply the rule per size and record the result here and in the freeze proposal.
+
+| Size | Seed | Control gap % | Depot gap % | Paired change (pp), 95% CI | Rule |
+|---|---:|---:|---:|---:|---|
+| 20 | 4331 | 21.3 | 18.9 | −2.4 [−8.3, +3.1] | no |
+| 20 | 4332 | 23.2 | 14.4 | −8.8 [−12.3, −5.4] | pass |
+| 50 | 4331 | 29.6 | 21.9 | −7.7 [−11.1, −4.2] | pass |
+| 50 | 4332 | 26.3 | 25.9 | −0.5 [−4.3, +3.6] | no |
+| 100 | 4331 | 28.5 | 25.0 | −3.6 [−6.7, −0.3] | pass |
+| 100 | 4332 | 29.1 | 28.7 | −0.4 [−4.4, +3.9] | no |
+
+**Decision: no size meets the declared rule, so the existing champions remain the prior.** Every
+size passes for one seed only. The depot arm nonetheless lowers the gap in all six size–seed
+pairs and raises F1 in all six. A post-hoc, seed-averaged paired comparison (exploratory, not
+the adoption rule) gives −5.6 pp [−9.5, −2.1] at N20, −4.1 pp [−7.0, −1.1] at N50 and −2.0 pp
+[−5.1, +1.2] at N100. Seed variance of the champion recipe (checkpoint selection by route gap on
+five validation graphs per epoch) is as large as the effect. A confirmation with three more seeds
+at N20 and N50, declared in advance, is the cheapest way to settle adoption (about 1.5 hours).
+
+**F11 — Confirmation of the depot-aware champion recipe at N20 and N50 (declared 2026-10-01,
+before any run)**
+
+- New training seeds 4333, 4334 and 4335; both arms (absolute control, depot-relative); sizes 20
+  and 50; the same GATs and configs as F10 otherwise. Seeds 4331 and 4332 are not reused, because
+  they motivated this test.
+- Score as in F10 (24 panel graphs per size, 50 steps, graph-ID-derived sampling seeds).
+- Adopt the depot-aware recipe for a size only if (a) the per-graph paired route-gap change
+  (depot minus control), averaged over the three new seeds, has a 95% bootstrap interval entirely
+  below zero; (b) the depot arm has the lower mean gap in at least two of the three new seeds; and
+  (c) its three-seed mean gap is below the existing champion's.
+- If adopted, the new prior for that size is the primary-seed (4331) depot model from F10, matching
+  the freeze proposal's convention of not selecting seeds on the development panel. Its policy must
+  then be retrained against the new prior.
+
+- [x] Run the 12 trainings and score them (`outputs/f1gap_diagnostics_20260930/champ/run_confirm.sh`).
+- [x] Apply the rule and record the result (`analyze_confirm.py`, 2026-10-01).
+
+| Size | Seed | Control gap % | Depot gap % |
+|---|---:|---:|---:|
+| 20 | 4333 | 18.9 | 17.7 |
+| 20 | 4334 | 16.9 | 24.0 |
+| 20 | 4335 | 26.4 | 18.0 |
+| 50 | 4333 | 22.6 | 21.5 |
+| 50 | 4334 | 27.7 | 23.6 |
+| 50 | 4335 | 24.5 | 22.9 |
+
+| Size | Three-seed paired change (pp), 95% CI | Depot wins | Depot mean vs champion | Decision |
+|---|---:|---:|---:|---|
+| 20 | −0.84 [−4.78, +2.82] | 2 / 3 | 19.9 vs 21.3 | Keep champion (fails a) |
+| 50 | −2.28 [−3.99, −0.53] | 3 / 3 | 22.7 vs 29.6 | **Adopt** |
+
+The new N50 prior is the primary-seed depot model from F10:
+`outputs/f1gap_diagnostics_20260930/champ/runs/champ_n50_dep_s4331_20261001T082938994407Z/checkpoints/best.pt`
+(sha256 `5dc6a986…ec9c8d`; 21.9% panel gap, F1 0.591), with its depot-relative GAT
+`champ_gat_dep_20261001T074144597419Z`. The N50 policy has not yet been retrained against it.

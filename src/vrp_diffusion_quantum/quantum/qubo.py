@@ -20,6 +20,8 @@ from dataclasses import dataclass, field
 import numpy as np
 import numpy.typing as npt
 
+from vrp_diffusion_quantum.quantum._validation import binary_vector
+
 logger = logging.getLogger(__name__)
 
 __all__ = [
@@ -103,16 +105,14 @@ class QUBO:
         except ImportError as error:  # pragma: no cover - depends on optional extra
             raise ImportError("to_bqm requires `pip install -e .[quantum]`") from error
         linear, quadratic, offset = self.to_dicts()
+        # A constant objective still has decision variables that a sampler must return.
+        for label in self.labels:
+            linear.setdefault(label, 0.0)
         bqm: object = dimod.BinaryQuadraticModel(linear, quadratic, offset, dimod.BINARY)
         return bqm
 
     def _binary(self, x: npt.ArrayLike) -> npt.NDArray[np.float64]:
-        vector = np.asarray(x, dtype=np.float64)
-        if vector.shape != (self.num_variables,):
-            raise ValueError(f"x must have shape ({self.num_variables},)")
-        if not np.all((vector == 0.0) | (vector == 1.0)):
-            raise ValueError("x must be binary")
-        return vector
+        return binary_vector(x, self.num_variables, name="x")
 
 
 class QUBOBuilder:
@@ -206,6 +206,8 @@ def solve_simulated_annealing(
     if num_reads < 1 or num_sweeps < 1:
         raise ValueError("num_reads and num_sweeps must be >= 1")
     n = qubo.num_variables
+    if n == 0:
+        return [QUBOSample(x=(), energy=qubo.offset) for _ in range(num_reads)]
     rng = np.random.default_rng(seed)
     linear = np.diag(qubo.matrix).copy()
     coupling = qubo.matrix + qubo.matrix.T

@@ -21,13 +21,13 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
-import numpy.typing as npt
-from scipy.optimize import linear_sum_assignment
 
+from vrp_diffusion_quantum.quantum._validation import binary_vector
 from vrp_diffusion_quantum.quantum.neighborhoods import ReorderSubproblem
 from vrp_diffusion_quantum.quantum.qubo import QUBO, QUBOBuilder
 
 __all__ = [
+    "MAX_EXACT_REPAIR_SIZE",
     "ReorderQUBO",
     "build_reorder_qubo",
     "decode_reorder",
@@ -36,6 +36,7 @@ __all__ = [
 ]
 
 DEFAULT_PENALTY_FACTOR = 2.0
+MAX_EXACT_REPAIR_SIZE = 12
 
 
 @dataclass(frozen=True)
@@ -119,9 +120,12 @@ def encode_reorder(reorder: ReorderQUBO, order: Sequence[int]) -> tuple[int, ...
 
 
 def decode_reorder(reorder: ReorderQUBO, x: Sequence[int]) -> tuple[int, ...] | None:
-    """Visiting order encoded by ``x``, or ``None`` if ``x`` is not a permutation matrix."""
+    """Decode a binary permutation matrix, or return ``None`` for invalid one-hot constraints.
+
+    Malformed shapes and nonbinary states raise ``ValueError`` before any integer conversion.
+    """
     k = reorder.size
-    grid = np.asarray(x, dtype=np.int64).reshape(k, k)
+    grid = binary_vector(x, k * k).reshape(k, k)
     if not (np.all(grid.sum(axis=0) == 1) and np.all(grid.sum(axis=1) == 1)):
         return None
     positions = grid.argmax(axis=1)
@@ -132,21 +136,53 @@ def decode_reorder(reorder: ReorderQUBO, x: Sequence[int]) -> tuple[int, ...] | 
 def repair_reorder(reorder: ReorderQUBO, x: Sequence[int]) -> tuple[int, ...]:
     """Nearest valid permutation to ``x``: maximise agreement, break ties by path cost.
 
-    Solves an assignment problem whose score is the number of agreeing bits, with a small
-    distance-based tie-breaker so that equally consistent permutations prefer cheaper positions.
+    A subset dynamic program first maximises the number of selected one-bits, then minimises
+    the full path cost, including both endpoints. For a binary input, this also minimises Hamming
+    distance to the sample. Invalid states are limited to ``MAX_EXACT_REPAIR_SIZE`` customers
+    (time O(k² 2^k), memory O(k 2^k)); valid permutations are returned directly at any size.
     """
     decoded = decode_reorder(reorder, x)
     if decoded is not None:
         return decoded
     k = reorder.size
-    grid = np.asarray(x, dtype=np.float64).reshape(k, k)
+    if k > MAX_EXACT_REPAIR_SIZE:
+        raise ValueError(f"exact reorder repair is limited to {MAX_EXACT_REPAIR_SIZE} customers")
+    grid = binary_vector(x, k * k).reshape(k, k)
     distances = reorder.subproblem.distances
-    scale = max(float(distances.max()), 1e-12)
-    endpoint_cost = np.zeros((k, k))
-    endpoint_cost[:, 0] += distances[0, 1 : k + 1]
-    endpoint_cost[:, k - 1] += distances[1 : k + 1, k + 1]
-    cost: npt.NDArray[np.float64] = -grid + 1e-3 * endpoint_cost / scale
-    rows, cols = linear_sum_assignment(cost)
-    position_of = dict(zip(rows.tolist(), cols.tolist(), strict=True))
+    full = (1 << k) - 1
+    agreements = np.full((1 << k, k), -1, dtype=np.int64)
+    costs = np.full((1 << k, k), np.inf)
+    parents = np.full((1 << k, k), -1, dtype=np.int64)
+    for last in range(k):
+        agreements[1 << last, last] = int(grid[last, 0])
+        costs[1 << last, last] = distances[0, last + 1]
+    for mask in range(1, full):
+        position = mask.bit_count()
+        for last in range(k):
+            if agreements[mask, last] < 0:
+                continue
+            for nxt in range(k):
+                if mask & (1 << nxt):
+                    continue
+                target = mask | (1 << nxt)
+                agreement = agreements[mask, last] + int(grid[nxt, position])
+                cost = costs[mask, last] + distances[last + 1, nxt + 1]
+                if agreement > agreements[target, nxt] or (
+                    agreement == agreements[target, nxt] and cost < costs[target, nxt]
+                ):
+                    agreements[target, nxt] = agreement
+                    costs[target, nxt] = cost
+                    parents[target, nxt] = last
+    last = min(
+        range(k),
+        key=lambda i: (-agreements[full, i], costs[full, i] + distances[i + 1, k + 1], i),
+    )
+    indices: list[int] = []
+    mask = full
+    while last >= 0:
+        indices.append(last)
+        previous = int(parents[mask, last])
+        mask ^= 1 << last
+        last = previous
     customers = reorder.subproblem.customers
-    return tuple(customers[i] for i in sorted(range(k), key=lambda i: position_of[i]))
+    return tuple(customers[i] for i in reversed(indices))

@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-01",
+  "reviewed_commit": "31bd7b91a6c713e4f9918ed080c7384f77c50ffc",
+  "source_modified_by_audit": false,
+  "scope": "Q1.1-Q1.6; local source review, independently run existing suites, independent formula/boundary/integration checks, and failing acceptance reproductions",
+  "environment": {
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "numpy": "2.5.2",
+    "scipy": "1.18.0",
+    "pytest": "9.1.1",
+    "dimod": "0.12.22 (isolated --no-deps target; exercised in approved elevated context)"
+  },
+  "source_sha256": {
+    "docs/quantum_scope.md": "d0219b30ee702bd89684aadfe94e9f6fda13bb2b0fb6aab338fafc42282789da",
+    "src/vrp_diffusion_quantum/quantum/neighborhoods.py": "1e62d308b6d0022b5a850ab4348dd686758f92d20b5f3916a95c3d490b9d1e94",
+    "src/vrp_diffusion_quantum/quantum/qubo.py": "b46bdfb122d86f4a6b19b4c853c0a2cf3d466927d8b2e2d861b8109ac8b64c9b",
+    "src/vrp_diffusion_quantum/quantum/qubo_reorder.py": "83a5daa2924ad32e1c4e82e7a3e859eff35b7bab27ce3f3fade2ff503ab4d0cb",
+    "src/vrp_diffusion_quantum/quantum/qubo_exchange.py": "90dc3829e88f8c15d04f42586052e01f44ccd5c3ffb77d800de84d3535a2a73a",
+    "src/vrp_diffusion_quantum/quantum/qubo_bias.py": "16d8d6c56a5d319691c19ce1fa43d2d52060e3bee053c44aead5d2387480aa0d",
+    "src/vrp_diffusion_quantum/local_search/baselines.py": "f9694e295e46ba464e2ec6f8f1eac1fec032b2015288f9cc27cc96da12144054"
+  },
+  "independent_existing_suite_runs": {
+    "q12_existing": {
+      "total": 9,
+      "failed": 0
+    },
+    "q13_existing": {
+      "total": 14,
+      "failed": 0
+    },
+    "q14_existing": {
+      "total": 13,
+      "failed": 0
+    },
+    "q15_existing": {
+      "total": 10,
+      "failed": 0
+    },
+    "q16_existing": {
+      "total": 20,
+      "failed": 0
+    }
+  },
+  "final_targeted_run": {
+    "passed": 169,
+    "failed": 22,
+    "deselected": 2,
+    "evidence": "final_targeted.xml"
+  },
+  "separate_real_dimod_run": {
+    "passed": 1,
+    "failed": 1,
+    "deselected": 117,
+    "command_filter": "-k bqm",
+    "passing_test": "test_q13_bqm_nonzero_energy_round_trip",
+    "failing_test": "test_q13_bqm_retains_zero_coefficient_variables",
+    "observed": "set(bqm.variables) == set(); expected {y[c=2]}",
+    "timing": "Executed before adding eight integration cases; results returned by exec_command and recorded here."
+  },
+  "distinct_total": {
+    "passed": 170,
+    "failed": 23,
+    "cases": 193,
+    "grouped_findings": 11
+  },
+  "coverage_excludes_separate_dimod_run": {
+    "covered_lines": 936,
+    "num_statements": 993,
+    "percent_covered": 91.43501126972201,
+    "percent_covered_display": "91",
+    "missing_lines": 57,
+    "excluded_lines": 2,
+    "percent_statements_covered": 94.25981873111782,
+    "percent_statements_covered_display": "94",
+    "num_branches": 338,
+    "num_partial_branches": 57,
+    "covered_branches": 281,
+    "missing_branches": 57,
+    "percent_branches_covered": 83.13609467455622,
+    "percent_branches_covered_display": "83"
+  },
+  "documentation_review": {
+    "required_sections_present": true,
+    "three_team_decisions_present": true,
+    "local_markdown_links_resolve": true,
+    "freeze_proposal_still_open": true
+  },
+  "lint_and_format": "Passed for reviewed source and new audit files",
+  "note": "Failures include API robustness and documented-contract expectations. See report for trigger conditions and interpretation, especially ExchangeSolution.cost_before."
+}

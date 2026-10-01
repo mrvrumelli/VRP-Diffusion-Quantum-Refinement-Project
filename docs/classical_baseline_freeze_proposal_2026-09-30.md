@@ -50,24 +50,41 @@ refinement, which is what the quantum stage targets.
 
 ## Why the prior is not changed
 
-The F1-gap probes produced depot-aware joint priors with higher matrix F1 than the original
-`paper_cmd` checkpoint, but their decoded routes are worse than the per-size champions:
+The F1-gap probes produced depot-aware joint priors that improve on the original `paper_cmd`
+checkpoint, but none beats the per-size champions. Per size, at 50 steps with graph-ID seeding:
 
-| Prior, diffusion decoding at 50 steps | N20 gap % | N50 gap % | N100 gap % |
+| Prior | N20 F1 / recall / gap % | N50 F1 / recall / gap % | N100 F1 / recall / gap % |
 |---|---:|---:|---:|
-| Per-size champions (current prior) | 21.33 | 29.61 | 28.51 |
-| Per-size Task 5 candidates | 17.57 | 25.07 | 26.72 |
-| Depot-aware joint, distance edges (F2) | 42.40 | 37.65 | 39.63 |
-| Depot-aware joint, trainable GAT | 24.88 | 38.46 | 45.12 |
+| Original `paper_cmd`, no depot | 0.542 / 0.53 / 45.7 | 0.529 / 0.60 / 35.3 | 0.442 / 0.58 / 48.1 |
+| Per-size champions (current prior) | 0.623 / 0.69 / 21.3 | 0.584 / 0.69 / 29.6 | 0.518 / 0.76 / 28.5 |
+| Per-size Task 5 candidates | 0.622 / — / 17.6 | 0.576 / — / 25.1 | 0.545 / — / 26.7 |
+| Depot-aware, distance edges (F2) | 0.547 / 0.49 / 42.4 | 0.566 / 0.57 / 37.7 | 0.507 / 0.62 / 39.6 |
+| Depot-aware, trainable GAT | 0.598 / 0.60 / 24.9 | 0.575 / 0.59 / 38.5 | 0.504 / 0.63 / 45.1 |
+| F5, corrected paper reconstruction at full scale | 0.456 / 0.34 / 79.9 | 0.555 / 0.53 / 50.6 | 0.530 / 0.61 / 42.8 |
 
-F1 gains need not improve decoded routes, as the corrective work already found. The Task 5
+Two points follow. First, per size the champions match or beat the depot-aware priors on F1 at N20
+and N50 as well as on routes; pooled F1 hid this because N100 pairs dominate it. Second, the route
+gap tracks recall more closely than F1. Missed same-route pairs fragment routes into extra depot
+round trips, while extra pairs are partly repaired by the decoder's capacity splitting. F5's N20
+prior misses two thirds of same-route pairs and decodes to an 80% gap.
+
+Adding the depot is not what worsened F5's routes: on the same recipe and data, the depot-aware
+probes improve pooled route gap over the original checkpoint (36–40% versus 43%). The Task 5
 candidates decode better than the champions but failed their declared promotion rule, so the
 champions remain the prior. Changing the prior would also require retraining the policies.
 
-The full-length corrected paper reconstruction (task F5, 50 epochs on 50,000 unfiltered labels)
-confirms this. Its prior has the highest matrix F1 of any checkpoint here (0.531 at 50 steps), yet
-it decodes to the worst routes: 79.9% / 50.6% / 42.8% mean gap at N20 / N50 / N100. It is not a
-candidate prior for the classical baseline.
+**Depot-aware champion recipe (task F10, 2026-10-01).** Retraining the champion recipe with
+depot-relative input, matched against a control rerun that reproduces the champions exactly, lowered
+the route gap in all six size–seed pairs but met the declared two-seed rule at no size. Seed-averaged
+(post hoc) changes are −5.6 pp at N20, −4.1 pp at N50 and −2.0 pp at N100 (the last not separable
+from zero). The proposal therefore keeps the existing champions, and lists a pre-declared
+three-seed confirmation at N20 and N50 as the step that could promote a depot-aware prior.
+
+**Confirmation (task F11, 2026-10-01).** On three new seeds the depot-aware recipe met the declared
+rule at N50 (paired change −2.3 pp [−4.0, −0.5], better in 3 of 3 seeds) and failed it at N20
+(−0.8 pp [−4.8, +2.8]). The proposed N50 prior is therefore the primary-seed depot-aware model
+(`champ_n50_dep_s4331_20261001T082938994407Z`, sha256 prefix 5dc6a986), pending a retrain of the
+N50 policy against it; N20 and N100 keep the existing champions.
 
 ## Open `baseline-v1.0` criteria
 

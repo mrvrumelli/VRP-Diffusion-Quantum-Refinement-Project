@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="22" skipped="0" tests="22" time="1.626" timestamp="2026-10-01T15:31:26.658815+03:00" hostname="YU-KI-NON2"><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q12_apply_reorder_rejects_stale_routes" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:48: in test_q12_apply_reorder_rejects_stale_routes
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q12_apply_exchange_rejects_moving_fixed_customers" time="0.002"><failure message="Failed: DID NOT RAISE ValueError">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:58: in test_q12_apply_exchange_rejects_moving_fixed_customers
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q12_low_confidence_windows_obey_documented_overlap_rule" time="0.001"><failure message="AssertionError: assert False&#10; +  where False = &lt;built-in method isdisjoint of set object at 0x0000013D0B13B4C0&gt;((1, 2, 3))&#10; +    where &lt;built-in method isdisjoint of set object at 0x0000013D0B13B4C0&gt; = {0, 1, 2}.isdisjoint&#10; +      where {0, 1, 2} = set((0, 1, 2))&#10; +        where (0, 1, 2) = Neighborhood(neighborhood_type='low_confidence_edges', kind='reorder', route_indices=(0,), customers=(0, 1, 2), score=0.4, segment=(0, 3)).customers&#10; +    and   (1, 2, 3) = Neighborhood(neighborhood_type='low_confidence_edges', kind='reorder', route_indices=(0,), customers=(1, 2, 3), score=0.4, segment=(1, 4)).customers">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:68: in test_q12_low_confidence_windows_obey_documented_overlap_rule
+    assert set(first.customers).isdisjoint(second.customers)
+E   AssertionError: assert False
+E    +  where False = &lt;built-in method isdisjoint of set object at 0x0000013D0B13B4C0&gt;((1, 2, 3))
+E    +    where &lt;built-in method isdisjoint of set object at 0x0000013D0B13B4C0&gt; = {0, 1, 2}.isdisjoint
+E    +      where {0, 1, 2} = set((0, 1, 2))
+E    +        where (0, 1, 2) = Neighborhood(neighborhood_type='low_confidence_edges', kind='reorder', route_indices=(0,), customers=(0, 1, 2), score=0.4, segment=(0, 3)).customers
+E    +    and   (1, 2, 3) = Neighborhood(neighborhood_type='low_confidence_edges', kind='reorder', route_indices=(0,), customers=(1, 2, 3), score=0.4, segment=(1, 4)).customers</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q12_feasibility_rejects_nonbinary_assignments[assignment0]" time="0.001"><failure message="AssertionError: invalid assignment (2,) was marked feasible&#10;assert not True">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:80: in test_q12_feasibility_rejects_nonbinary_assignments
+    assert not feasible, f"invalid assignment {assignment} was marked feasible"
+E   AssertionError: invalid assignment (2,) was marked feasible
+E   assert not True</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q12_feasibility_rejects_nonbinary_assignments[assignment1]" time="0.001"><failure message="AssertionError: invalid assignment (-1,) was marked feasible&#10;assert not True">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:80: in test_q12_feasibility_rejects_nonbinary_assignments
+    assert not feasible, f"invalid assignment {assignment} was marked feasible"
+E   AssertionError: invalid assignment (-1,) was marked feasible
+E   assert not True</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q12_feasibility_rejects_nonbinary_assignments[assignment2]" time="0.001"><failure message="AssertionError: invalid assignment (0.5,) was marked feasible&#10;assert not True">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:80: in test_q12_feasibility_rejects_nonbinary_assignments
+    assert not feasible, f"invalid assignment {assignment} was marked feasible"
+E   AssertionError: invalid assignment (0.5,) was marked feasible
+E   assert not True</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q13_decode_reorder_rejects_nonbinary_states[state0]" time="0.001"><failure message="assert (1, 2) is None">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:91: in test_q13_decode_reorder_rejects_nonbinary_states
+    assert decoded is None
+E   assert (1, 2) is None</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q13_decode_reorder_rejects_nonbinary_states[state1]" time="0.001"><failure message="assert (1, 2) is None">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:91: in test_q13_decode_reorder_rejects_nonbinary_states
+    assert decoded is None
+E   assert (1, 2) is None</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q13_repair_uses_documented_true_path_cost_tiebreak" time="0.001"><failure message="assert 18.705481427033433 == 17.890199721526233 ± 1.8e-05&#10;  &#10;  comparison failed&#10;  Obtained: 18.705481427033433&#10;  Expected: 17.890199721526233 ± 1.8e-05">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:102: in test_q13_repair_uses_documented_true_path_cost_tiebreak
+    assert sub.path_cost(repaired) == pytest.approx(optimum)
+E   assert 18.705481427033433 == 17.890199721526233 ± 1.8e-05
+E     
+E     comparison failed
+E     Obtained: 18.705481427033433
+E     Expected: 17.890199721526233 ± 1.8e-05</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q13_annealing_supports_valid_constant_qubo" time="0.001"><failure message="ValueError: zero-size array to reduction operation maximum which has no identity">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:108: in test_q13_annealing_supports_valid_constant_qubo
+    samples = solve_simulated_annealing(builder.build(), num_reads=2, num_sweeps=2)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\vrp_diffusion_quantum\quantum\qubo.py:214: in solve_simulated_annealing
+    scale = float(np.abs(qubo.matrix).max()) or 1.0
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\numpy\_core\_methods.py:41: in _amax
+    return umr_maximum(a, axis, None, out, keepdims, initial, where)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ValueError: zero-size array to reduction operation maximum which has no identity</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q14_decode_and_repair_reject_invalid_bits[-1-decode]" time="0.004"><failure message="Failed: DID NOT RAISE ValueError">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:121: in test_q14_decode_and_repair_reject_invalid_bits
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q14_decode_and_repair_reject_invalid_bits[-1-repair]" time="0.003"><failure message="Failed: DID NOT RAISE ValueError">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:121: in test_q14_decode_and_repair_reject_invalid_bits
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q14_decode_and_repair_reject_invalid_bits[2-decode]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:121: in test_q14_decode_and_repair_reject_invalid_bits
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q14_decode_and_repair_reject_invalid_bits[2-repair]" time="0.004"><failure message="Failed: DID NOT RAISE ValueError">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:121: in test_q14_decode_and_repair_reject_invalid_bits
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q14_decode_and_repair_reject_invalid_bits[0.5-decode]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:121: in test_q14_decode_and_repair_reject_invalid_bits
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q14_decode_and_repair_reject_invalid_bits[0.5-repair]" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:121: in test_q14_decode_and_repair_reject_invalid_bits
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q14_exact_slack_rejects_materially_fractional_large_demands" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:130: in test_q14_exact_slack_rejects_materially_fractional_large_demands
+    with pytest.raises(ValueError, match="integral"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q15_exchange_prior_shape_matches_instance[5]" time="0.001"><failure message="IndexError: index 5 is out of bounds for axis 0 with size 5">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:138: in test_q15_exchange_prior_shape_matches_instance
+    build_biased_exchange_qubo(obj, sub, np.full((dimension, dimension), 0.5),
+src\vrp_diffusion_quantum\quantum\qubo_bias.py:235: in build_biased_exchange_qubo
+    linear, pairs, _ = _exchange_bias_parts(base, pair_prob, config)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\vrp_diffusion_quantum\quantum\qubo_bias.py:185: in _exchange_bias_parts
+    affinity = _affinities(matrix, subproblem)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\vrp_diffusion_quantum\quantum\qubo_bias.py:171: in _affinities
+    float(matrix[customer, list(fixed)].mean()) if fixed else 0.5
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   IndexError: index 5 is out of bounds for axis 0 with size 5</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q15_exchange_prior_shape_matches_instance[7]" time="0.002"><failure message="Failed: DID NOT RAISE ValueError">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:137: in test_q15_exchange_prior_shape_matches_instance
+    with pytest.raises(ValueError, match="shape|size"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q16_exchange_reports_actual_supplied_starting_cost[exhaustive]" time="0.002"><failure message="assert 10.0 == 12.0 ± 1.2e-05&#10;  &#10;  comparison failed&#10;  Obtained: 10.0&#10;  Expected: 12.0 ± 1.2e-05">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:149: in test_q16_exchange_reports_actual_supplied_starting_cost
+    assert result.cost_before == pytest.approx(route_cost(obj, routes))
+E   assert 10.0 == 12.0 ± 1.2e-05
+E     
+E     comparison failed
+E     Obtained: 10.0
+E     Expected: 12.0 ± 1.2e-05</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q16_exchange_reports_actual_supplied_starting_cost[relocate_swap]" time="0.002"><failure message="assert 10.0 == 12.0 ± 1.2e-05&#10;  &#10;  comparison failed&#10;  Obtained: 10.0&#10;  Expected: 12.0 ± 1.2e-05">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:149: in test_q16_exchange_reports_actual_supplied_starting_cost
+    assert result.cost_before == pytest.approx(route_cost(obj, routes))
+E   assert 10.0 == 12.0 ± 1.2e-05
+E     
+E     comparison failed
+E     Obtained: 10.0
+E     Expected: 12.0 ± 1.2e-05</failure></testcase><testcase classname="docs.evidence.quantum_review_20261001.test_quantum_regressions" name="test_q16_singleton_rejects_unknown_solver_name" time="0.001"><failure message="Failed: DID NOT RAISE ValueError">docs\evidence\quantum_review_20261001\test_quantum_regressions.py:154: in test_q16_singleton_rejects_unknown_solver_name
+    with pytest.raises(ValueError, match="unknown"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase></testsuite></testsuites>

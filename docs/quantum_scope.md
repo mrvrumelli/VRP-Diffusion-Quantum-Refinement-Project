@@ -50,12 +50,21 @@ Neighborhood types that feed them (`neighborhoods.py`):
 
 These limits are configuration defaults, not claims about any device.
 
+Reorder repair maximises agreement with a binary sample, then exactly minimises true path cost
+among equally agreeing permutations. Its subset dynamic program is limited to 12 customers for
+invalid samples; valid permutations pass through at any size. This covers the heuristic limit
+above while bounding the repair's exponential time and memory.
+
 ## Comparison protocol
 
 - Every quantum or quantum-inspired run is paired with classical solvers on the **identical**
   subproblem, from the identical initial solution (`local_search/baselines.py`). The classical
   references are an exact solver where feasible (dynamic programming or enumeration) and a
   standard local search (2-opt; relocate and swap).
+- Extracted exchange subproblems retain the supplied route ordering. Classical `cost_before`
+  measures those routes before nearest-neighbour/2-opt reconstruction, so reported improvement
+  includes any ordering polish. Manually constructed subproblems without the original routes use
+  a documented reconstructed-cost fallback; use extracted subproblems for matched comparisons.
 - Simulated annealing on the same QUBO is the quantum-inspired control. It separates the effect of
   the formulation from the effect of the quantum solver.
 - Budgets are matched and stated explicitly: wall-clock time, number of samples or shots, and
@@ -92,6 +101,9 @@ Not allowed:
   re-evaluated with true route cost before acceptance.
 - Diffusion-biased terms (`qubo_bias.py`) are optional, off by default, and weighted by a single
   configurable `alpha`.
+- State decoding and repair require one-dimensional binary vectors of the exact expected length.
+  Active diffusion priors must have the full instance's customer-only matrix shape. Applying a
+  solved subproblem rejects stale inputs and preserves fixed route membership and endpoints.
 
 ## Logging
 

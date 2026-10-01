@@ -23,6 +23,7 @@ import numpy.typing as npt
 
 from vrp_diffusion_quantum.data.types import CVRPInstance
 from vrp_diffusion_quantum.eval.routing import order_route_nearest_neighbor_two_opt
+from vrp_diffusion_quantum.quantum._validation import binary_vector
 from vrp_diffusion_quantum.utils.feasibility import route_cost
 
 logger = logging.getLogger(__name__)
@@ -120,6 +121,7 @@ class ReorderSubproblem:
     start_node: int | None
     end_node: int | None
     distances: npt.NDArray[np.float64]
+    n_customers: int | None = None
 
     @property
     def size(self) -> int:
@@ -145,6 +147,8 @@ class ExchangeSubproblem:
     ``assignment[i] == 1`` places ``movable[i]`` in ``route_indices[0]`` and ``0`` in
     ``route_indices[1]``. Fixed customers keep their route. True costs are evaluated by
     :func:`evaluate_exchange`, which orders each resulting route by nearest neighbour plus 2-opt.
+    Extracted subproblems retain ``initial_routes`` for the actual starting cost and stale-input
+    checks, and ``n_customers`` for validating full-instance probability matrices.
     """
 
     route_indices: tuple[int, int]
@@ -154,6 +158,8 @@ class ExchangeSubproblem:
     demands: npt.NDArray[np.float64]
     fixed_loads: tuple[float, float]
     capacity: float
+    initial_routes: tuple[tuple[int, ...], tuple[int, ...]] | None = None
+    n_customers: int | None = None
 
     @property
     def size(self) -> int:
@@ -161,18 +167,15 @@ class ExchangeSubproblem:
 
     def members(self, assignment: Sequence[int]) -> tuple[list[int], list[int]]:
         """Unordered customers of both routes under ``assignment``."""
-        if len(assignment) != self.size or any(value not in (0, 1) for value in assignment):
-            raise ValueError("assignment must be a 0/1 sequence with one entry per movable")
-        first = list(self.fixed[0]) + [
-            c for c, a in zip(self.movable, assignment, strict=True) if a
-        ]
+        chosen = binary_vector(assignment, self.size, name="assignment")
+        first = list(self.fixed[0]) + [c for c, a in zip(self.movable, chosen, strict=True) if a]
         second = list(self.fixed[1]) + [
-            c for c, a in zip(self.movable, assignment, strict=True) if not a
+            c for c, a in zip(self.movable, chosen, strict=True) if not a
         ]
         return first, second
 
     def loads(self, assignment: Sequence[int]) -> tuple[float, float]:
-        chosen = np.asarray(assignment, dtype=np.float64)
+        chosen = binary_vector(assignment, self.size, name="assignment")
         moved = float(self.demands @ chosen)
         total = float(self.demands.sum())
         return self.fixed_loads[0] + moved, self.fixed_loads[1] + (total - moved)
@@ -342,7 +345,7 @@ def select_low_confidence_edges(
     for index, route in enumerate(routes):
         if len(route) < 2:
             continue
-        taken: set[tuple[int, int]] = set()
+        taken: set[int] = set()
         edges = sorted(
             (float(matrix[route[pos - 1], route[pos]]), pos) for pos in range(1, len(route))
         )
@@ -350,10 +353,10 @@ def select_low_confidence_edges(
             if confidence >= cfg.low_confidence_threshold:
                 break
             window = _segment_window(len(route), pos, cfg.max_reorder_size)
-            if window in taken:
-                continue
-            taken.add(window)
             start, end = window
+            if any(position in taken for position in range(start, end)):
+                continue
+            taken.update(range(start, end))
             selected.append(
                 Neighborhood(
                     neighborhood_type="low_confidence_edges",
@@ -494,18 +497,27 @@ def extract_reorder_subproblem(
         start_node=start_node,
         end_node=end_node,
         distances=distances,
+        n_customers=instance.n_customers,
     )
 
 
 def apply_reorder(
     routes: Sequence[Sequence[int]], subproblem: ReorderSubproblem, order: Sequence[int]
 ) -> list[list[int]]:
-    """Return new routes with the segment replaced by ``order``."""
+    """Replace the segment, rejecting changes to its original customers or fixed endpoints."""
     if sorted(order) != sorted(subproblem.customers):
         raise ValueError("order must be a permutation of the subproblem customers")
     updated = [list(route) for route in routes]
     start, end = subproblem.segment
+    if not 0 <= subproblem.route_index < len(updated):
+        raise ValueError("subproblem route no longer exists; reselect it")
     route = updated[subproblem.route_index]
+    if not 0 <= start < end <= len(route) or tuple(route[start:end]) != subproblem.customers:
+        raise ValueError("subproblem no longer matches the route; reselect it")
+    start_node = route[start - 1] if start > 0 else None
+    end_node = route[end] if end < len(route) else None
+    if (start_node, end_node) != (subproblem.start_node, subproblem.end_node):
+        raise ValueError("subproblem endpoints have changed; reselect it")
     updated[subproblem.route_index] = route[:start] + list(order) + route[end:]
     return updated
 
@@ -545,6 +557,8 @@ def extract_exchange_subproblem(
         demands=np.asarray([customer_demands[c] for c in movable], dtype=np.float64),
         fixed_loads=fixed_loads,
         capacity=float(instance.capacity),
+        initial_routes=(tuple(members[0]), tuple(members[1])),
+        n_customers=instance.n_customers,
     )
 
 
@@ -569,12 +583,30 @@ def apply_exchange(
     ordered_first: Sequence[int],
     ordered_second: Sequence[int],
 ) -> list[list[int]]:
-    """Return new routes with both exchange routes replaced (an emptied route is kept empty)."""
+    """Replace both routes, preserving fixed memberships and rejecting stale input routes.
+
+    An emptied route is kept empty. Capacity is checked by the refinement acceptance step.
+    """
     expected = sorted([*subproblem.fixed[0], *subproblem.fixed[1], *subproblem.movable])
     if sorted([*ordered_first, *ordered_second]) != expected:
         raise ValueError("new routes must contain exactly the subproblem's customers")
+    if not set(subproblem.fixed[0]).issubset(ordered_first) or not set(
+        subproblem.fixed[1]
+    ).issubset(ordered_second):
+        raise ValueError("fixed customers must stay in their original routes")
     updated = [list(route) for route in routes]
     first, second = subproblem.route_indices
+    if first == second or any(index < 0 or index >= len(updated) for index in (first, second)):
+        raise ValueError("subproblem routes no longer exist or are not distinct; reselect it")
+    if subproblem.initial_routes is not None:
+        if (tuple(updated[first]), tuple(updated[second])) != subproblem.initial_routes:
+            raise ValueError("subproblem no longer matches the routes; reselect it")
+    else:
+        initial_first, initial_second = subproblem.members(subproblem.initial_assignment)
+        if sorted(updated[first]) != sorted(initial_first) or sorted(updated[second]) != sorted(
+            initial_second
+        ):
+            raise ValueError("subproblem no longer matches the routes; reselect it")
     updated[first] = list(ordered_first)
     updated[second] = list(ordered_second)
     return updated

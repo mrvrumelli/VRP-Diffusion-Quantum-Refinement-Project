@@ -32,6 +32,7 @@ import numpy as np
 import numpy.typing as npt
 
 from vrp_diffusion_quantum.data.types import CVRPInstance
+from vrp_diffusion_quantum.quantum._validation import binary_vector
 from vrp_diffusion_quantum.quantum.neighborhoods import ExchangeSubproblem
 from vrp_diffusion_quantum.quantum.qubo import QUBO, QUBOBuilder
 
@@ -82,7 +83,7 @@ def bounded_slack_coefficients(upper: int) -> list[int]:
 
 
 def _integral(value: float, name: str) -> int:
-    if not math.isclose(value, round(value), abs_tol=1e-9):
+    if not math.isclose(value, round(value), rel_tol=0.0, abs_tol=1e-9):
         raise ValueError(f"{name} must be integral for exact slack encoding, got {value}")
     return round(value)
 
@@ -215,9 +216,8 @@ def build_exchange_qubo(
 
 def decode_exchange(exchange: ExchangeQUBO, x: Sequence[int]) -> tuple[int, ...]:
     """Assignment part of a QUBO state (slack bits are dropped)."""
-    if len(x) != exchange.qubo.num_variables:
-        raise ValueError("state length does not match the QUBO")
-    return tuple(int(value) for value in x[: exchange.size])
+    vector = binary_vector(x, exchange.qubo.num_variables)
+    return tuple(int(value) for value in vector[: exchange.size])
 
 
 def repair_exchange(exchange: ExchangeQUBO, assignment: Sequence[int]) -> tuple[int, ...] | None:
@@ -227,7 +227,7 @@ def repair_exchange(exchange: ExchangeQUBO, assignment: Sequence[int]) -> tuple[
     route increases the surrogate least and still fits the other route.
     """
     subproblem = exchange.subproblem
-    current = [int(value) for value in assignment]
+    current = [int(value) for value in binary_vector(assignment, exchange.size, name="assignment")]
     for _ in range(exchange.size):
         if subproblem.is_feasible(current):
             return tuple(current)
