@@ -19,6 +19,9 @@ model:
   gat_num_layers: 5
   gat_num_heads: 8
   dropout: 0.0
+  # The GAT encodes the instance graph including the depot (ledger gat_input_includes_depot).
+  coordinate_frame: depot_relative
+  depot_node: true
 training:
   # The paper gives the diffusion epoch count but not a separate GAT epoch count. Keep this
   # explicit as a reconstruction assumption until clarified by the authors.

@@ -41,7 +41,10 @@ from vrp_diffusion_quantum.metrics.matrix_metrics import (
     compute_matrix_metrics,
 )
 from vrp_diffusion_quantum.models.constraint_denoiser import ConstraintDenoiser
-from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
+from vrp_diffusion_quantum.models.diffusion import (
+    BernoulliDiffusionSchedule,
+    schedule_from_config,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +142,8 @@ def load_denoiser_checkpoint(
         freeze_node_encoder=bool(model_cfg.get("freeze_node_encoder", False)),
         normalization=str(model_cfg.get("normalization", "layer_norm")),  # type: ignore[arg-type]
         edge_input_features=str(model_cfg.get("edge_input_features", "noisy_matrix_distance")),  # type: ignore[arg-type]
+        edge_residual=bool(model_cfg.get("edge_residual", False)),
+        gat_depot_node=bool(model_cfg.get("gat_depot_node", False)),
     )
     from vrp_diffusion_quantum.models.gat_encoder import compat_layernorm_state_dict
 
@@ -644,11 +649,7 @@ def main() -> None:
 
     model, payload = load_denoiser_checkpoint(ckpt, device=device)
     schedule_cfg = (payload.get("extra") or {}).get("schedule") or {}
-    schedule = BernoulliDiffusionSchedule(
-        num_timesteps=int(schedule_cfg.get("num_timesteps", 700)),
-        beta_start=float(schedule_cfg.get("beta_start", 1e-4)),
-        beta_end=float(schedule_cfg.get("beta_end", 2e-2)),
-    ).to(device)
+    schedule = schedule_from_config(schedule_cfg).to(device)
 
     pool = load_examples_by_size(val_dir, list(args.sizes))
     if not pool:

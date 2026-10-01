@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import pytest
 import torch
 
 from vrp_diffusion_quantum.data.dataset import collate_batch, make_example
@@ -113,3 +114,92 @@ def test_denoiser_with_gat_and_pretrained_load(tmp_path: Path) -> None:
     logits = model(coords, demands, capacity, m_t, t, customer_mask=batch.customer_mask)
     assert logits.shape == (1, 5, 5)
     assert torch.isfinite(logits).all()
+
+
+def test_depot_node_returns_customer_embeddings_and_respects_padding() -> None:
+    torch.manual_seed(0)
+    enc = NodeGATEncoder(hidden_dim=16, num_layers=2, num_heads=4, depot_node=True)
+    assert enc.input_proj.in_features == 5
+    batch = collate_batch([_example(6, seed=0), _example(4, seed=1)])
+    coords, demands, capacity = customer_tensors_from_batch(
+        batch, coordinate_frame="depot_relative"
+    )
+    feats = build_customer_node_features(coords, demands, capacity)
+    out = enc(feats, batch.customer_mask, customer_coords=coords)
+    assert out.shape == (2, 6, 16)
+    assert torch.allclose(out[1, 4:], torch.zeros(2, 16))
+
+    # Padding must not change real-customer embeddings.
+    alone = collate_batch([_example(4, seed=1)])
+    c1, d1, cap1 = customer_tensors_from_batch(alone, coordinate_frame="depot_relative")
+    out_alone = enc(
+        build_customer_node_features(c1, d1, cap1), alone.customer_mask, customer_coords=c1
+    )
+    assert torch.allclose(out[1, :4], out_alone[0], atol=1e-5)
+
+
+def test_depot_node_sees_the_depot_through_attention() -> None:
+    torch.manual_seed(1)
+    enc = NodeGATEncoder(hidden_dim=16, num_layers=2, num_heads=4, depot_node=True)
+    coords = torch.rand(1, 5, 2) - 0.5
+    feats = build_customer_node_features(coords, torch.ones(1, 5), torch.tensor([5.0]))
+    mask = torch.ones(1, 5)
+    moved = coords + torch.tensor([0.3, -0.2])  # same layout, depot now elsewhere relative to it
+    moved_feats = build_customer_node_features(moved, torch.ones(1, 5), torch.tensor([5.0]))
+    out = enc(feats, mask, customer_coords=coords)
+    out_moved = enc(moved_feats, mask, customer_coords=moved)
+    assert not torch.allclose(out, out_moved)
+
+    with pytest.raises(ValueError, match="customer_coords"):
+        enc(feats, mask)
+
+
+def test_denoiser_depot_node_requires_depot_relative_frame_and_matching_gat(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(ValueError, match="depot_relative"):
+        ConstraintDenoiser(node_encoder_type="gat", gat_depot_node=True)
+
+    torch.manual_seed(0)
+    enc = NodeGATEncoder(hidden_dim=16, num_layers=2, num_heads=4, depot_node=True)
+    path = tmp_path / "gat_depot.pt"
+    save_gat_encoder_checkpoint(
+        path, enc, extra={"model": {"coordinate_frame": "depot_relative", "depot_node": True}}
+    )
+    model = ConstraintDenoiser(
+        hidden_dim=16,
+        num_layers=1,
+        time_embed_dim=16,
+        node_encoder_type="gat",
+        gat_num_layers=2,
+        gat_num_heads=4,
+        coordinate_frame="depot_relative",
+        gat_depot_node=True,
+    )
+    model.load_gat_pretrained(path)
+    batch = collate_batch([_example(5, seed=0)])
+    coords, demands, capacity = customer_tensors_from_batch(
+        batch, coordinate_frame="depot_relative"
+    )
+    logits = model(
+        coords,
+        demands,
+        capacity,
+        batch.constraint_matrix,
+        torch.zeros(1, dtype=torch.long),
+        customer_mask=batch.customer_mask,
+    )
+    assert logits.shape == (1, 5, 5)
+    assert torch.isfinite(logits).all()
+
+    no_depot = ConstraintDenoiser(
+        hidden_dim=16,
+        num_layers=1,
+        time_embed_dim=16,
+        node_encoder_type="gat",
+        gat_num_layers=2,
+        gat_num_heads=4,
+        coordinate_frame="depot_relative",
+    )
+    with pytest.raises((ValueError, RuntimeError)):
+        no_depot.load_gat_pretrained(path)

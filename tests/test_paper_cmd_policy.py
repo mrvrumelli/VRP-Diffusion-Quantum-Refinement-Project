@@ -12,8 +12,13 @@ from vrp_diffusion_quantum.data.dataset import CVRPBatch, collate_batch, make_ex
 from vrp_diffusion_quantum.data.types import CVRPExample, CVRPInstance, LabeledSolution
 from vrp_diffusion_quantum.inference.solve_instance import load_policy_checkpoint
 from vrp_diffusion_quantum.models.decoder import CVRPPolicy, PolicyEncoding
-from vrp_diffusion_quantum.models.gat_encoder import NodeGATEncoder, save_gat_encoder_checkpoint
+from vrp_diffusion_quantum.models.gat_encoder import (
+    NodeGATEncoder,
+    build_customer_node_features,
+    save_gat_encoder_checkpoint,
+)
 from vrp_diffusion_quantum.models.paper_cmd_encoder import load_diffusion_gat_checkpoint
+from vrp_diffusion_quantum.train.train_diffusion import customer_tensors_from_batch
 from vrp_diffusion_quantum.train.train_policy import (
     build_policy_from_config,
     constraint_matrix_prior,
@@ -99,7 +104,7 @@ def test_paper_policy_rejects_depot_relative_pretrained_features(tmp_path: Path)
     payload = torch.load(checkpoint, weights_only=False)
     payload["extra"]["model"] = {"coordinate_frame": "depot_relative"}
     torch.save(payload, checkpoint)
-    with pytest.raises(ValueError, match="requires absolute-coordinate weights"):
+    with pytest.raises(ValueError, match="depot-relative depot-node weights"):
         build_policy_from_config(_model_config(checkpoint))
 
 
@@ -277,3 +282,87 @@ def test_paper_ablation_modes_decode_feasibly(
     assert rollout.actions.shape[0] == len(batch.metadata) * 2
     if not bool(overrides.get("use_local_pointer", True)):
         assert encoding.local_adjacency is None
+
+
+def _depot_node_gat_checkpoint(path: Path) -> tuple[Path, NodeGATEncoder]:
+    torch.manual_seed(72)
+    gat = NodeGATEncoder(hidden_dim=16, num_layers=1, num_heads=4, depot_node=True)
+    return (
+        save_gat_encoder_checkpoint(
+            path,
+            gat,
+            extra={
+                "model": {"coordinate_frame": "depot_relative", "depot_node": True},
+                "alignment": {
+                    "track": "paper_cmd",
+                    "contract_version": 1,
+                    "paper_id": "arxiv:2603.07568v1",
+                    "claim": "unit-test paper reconstruction",
+                },
+            },
+        ),
+        gat,
+    )
+
+
+def test_depot_node_gat_gives_policy_the_same_customer_embeddings_as_diffusion(
+    tmp_path: Path,
+) -> None:
+    gat_path, gat = _depot_node_gat_checkpoint(tmp_path / "depot_gat.pt")
+    config = _model_config(gat_path)
+    policy = build_policy_from_config(config)
+    assert config["global_gat_depot_node"] is True
+    batch = collate_batch([_example(11), _example(12, n_customers=4)])
+
+    with torch.no_grad():
+        coords, demands, capacity = customer_tensors_from_batch(
+            batch, coordinate_frame="depot_relative"
+        )
+        diffusion_view = gat(
+            build_customer_node_features(coords, demands, capacity),
+            batch.customer_mask,
+            customer_coords=coords,
+        )
+        policy_view = policy.global_encoder(
+            batch.coords, batch.demands, batch.capacity, batch.depot_index, batch.node_mask
+        ).node_embeddings
+    rows = torch.arange(len(batch.coords))[:, None]
+    customers = policy_view[rows, batch.customer_node_indices.clamp_min(0)]
+    customers = customers * batch.customer_mask.unsqueeze(-1)
+    assert torch.allclose(customers, diffusion_view, atol=1e-5)
+
+
+def test_depot_node_policy_restores_without_the_gat_file(tmp_path: Path) -> None:
+    gat_path, gat = _depot_node_gat_checkpoint(tmp_path / "depot_gat.pt")
+    config = _model_config(gat_path)
+    policy = build_policy_from_config(config)
+    checkpoint = save_policy_checkpoint(
+        tmp_path / "policy.pt",
+        policy=policy,
+        optimizer=torch.optim.Adam(policy.parameters(), lr=1e-3),
+        epoch=0,
+        row={"val_best_cost": 1.0},
+        best_metric_name="val_best_cost",
+        best_metric_value=1.0,
+        extra={
+            "model": config,
+            "alignment": {
+                "track": "paper_cmd",
+                "contract_version": 1,
+                "paper_id": "arxiv:2603.07568v1",
+                "claim": "unit-test paper reconstruction",
+            },
+        },
+    )
+    gat_path.unlink()
+    loaded, _ = load_policy_checkpoint(checkpoint)
+    assert loaded.paper_global_gat.depot_node
+    expected = gat.state_dict()
+    reloaded = loaded.paper_global_gat.state_dict()
+    assert all(torch.equal(expected[key], reloaded[key]) for key in expected)
+
+
+def test_explicit_depot_node_flag_must_match_the_gat_checkpoint(tmp_path: Path) -> None:
+    gat_path, _ = _depot_node_gat_checkpoint(tmp_path / "depot_gat.pt")
+    with pytest.raises(ValueError, match="does not match"):
+        build_policy_from_config(_model_config(gat_path, global_gat_depot_node=False))

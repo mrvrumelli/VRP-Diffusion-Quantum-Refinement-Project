@@ -159,6 +159,44 @@ details:
     value: Patience, monitored metric, validation split, and minimum delta are not specified.
     source: Table I says early stop only
     reconstruction_choice: Patience 10; GAT monitors validation AUC, diffusion sample F1, and policy validation best cost.
+  - id: gat_input_includes_depot
+    classification: explicitly_stated
+    value: >-
+      The GAT encodes the instance graph G = (V, A), whose node set V comprises the depot and the
+      N customers. A customer-only GAT input discards the depot and is not paper-compatible.
+      Correction recorded 2026-09-30; the earlier reconstruction encoded customers only.
+    source: Section III-A defines G; Section IV-B.2 states h0 = GAT(G); Section IV-C.1 reuses it
+    evidence: docs/f1_gap_root_cause_2026-09-30.md
+  - id: diffusion_gat_fine_tuning
+    classification: ambiguous_awaiting_author_clarification
+    value: >-
+      The paper freezes the pretrained GAT inside the policy, but only says h0 is extracted from a
+      pretrained GAT for the diffusion denoiser. Whether it is fine-tuned during diffusion training
+      is not stated.
+    source: Section IV-B.2 and Section IV-C.1
+    reconstruction_choice: >-
+      Frozen in paper_cmd contract version 1. A 12-epoch diagnostic with the depot-relative GAT
+      fine-tuned raised 50-step development F1 from 0.513 to 0.522, below the adoption rule; see
+      docs/f1_gap_root_cause_2026-09-30.md.
+  - id: transition_noise_convention
+    classification: ambiguous_awaiting_author_clarification
+    value: >-
+      The printed Q_t flips a bit with probability beta_t, whereas the DIFUSCO implementation whose
+      gated denoiser the paper follows uses Q_t = (1 - beta_t) I + (beta_t / 2) 11^T.
+    source: Section IV-B.2 equation 8 context versus Sun and Yang (2023) reference code
+    reconstruction_choice: >-
+      Printed convention (schedule.flip_convention paper); the DIFUSCO convention is available as
+      schedule.flip_convention difusco for diagnostics.
+  - id: figure8_f1_definition
+    classification: ambiguous_awaiting_author_clarification
+    value: >-
+      Figure 8 and Figure 6 report F1 on validation sets without stating the averaging (positive
+      class, macro or weighted; pooled or per instance), whether the diagonal is included, the
+      size mix, or how the validation split relates to augmented training instances.
+    source: Section V-B.3 Figure 6 caption and Section V-B.4 Figure 8
+    reconstruction_choice: >-
+      Pooled off-diagonal positive-class F1 at threshold 0.5, reported with equal-size averaging,
+      accuracy and AUC alongside.
 author_questions:
   - id: exact_seeds
     status: open
@@ -181,3 +219,14 @@ author_questions:
   - id: per_size_training
     status: open
     question: Are GAT, diffusion, and policy models trained jointly across sizes or separately for N=20, N=50, and N=100?
+  - id: diffusion_gat_fine_tuning
+    status: open
+    question: Is the pretrained GAT frozen or fine-tuned while training the diffusion denoiser?
+  - id: transition_noise_convention
+    status: open
+    question: Does the implementation flip bits with probability beta_t as printed, or beta_t / 2 as in DIFUSCO?
+  - id: figure8_f1_definition
+    status: open
+    question: >-
+      How is the Figure 8 F1 computed (averaging, diagonal, size mix), and is the validation split
+      disjoint from augmented copies of training instances?

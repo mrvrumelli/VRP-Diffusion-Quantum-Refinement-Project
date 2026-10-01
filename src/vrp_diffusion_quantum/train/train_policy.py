@@ -48,7 +48,7 @@ from vrp_diffusion_quantum.models.decoder import (
     actions_to_routes,
     nstart_count,
 )
-from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
+from vrp_diffusion_quantum.models.diffusion import schedule_from_config
 from vrp_diffusion_quantum.utils.alignment import (
     require_artifact_alignment,
     validate_alignment_config,
@@ -575,8 +575,15 @@ def build_policy_from_config(
         savings_epsilon=float(model_cfg.get("savings_epsilon", 1e-2)),
         global_gat_checkpoint=checkpoint_path,
         allow_uninitialized_global_gat=not require_pretrained_global,
+        global_gat_depot_node=(
+            None
+            if model_cfg.get("global_gat_depot_node") is None
+            else bool(model_cfg["global_gat_depot_node"])
+        ),
     )
     if architecture == "paper_cmd":
+        # Persist the resolved GAT input mode so a saved policy config restores the same shape.
+        model_cfg["global_gat_depot_node"] = bool(policy.global_encoder.depot_node)
         if require_pretrained_global:
             require_artifact_alignment(
                 policy.paper_global_gat_checkpoint_payload,
@@ -613,11 +620,7 @@ def _build_prior(config: dict[str, Any], device: torch.device) -> PriorProvider 
             artifact_name="prior.checkpoint",
         )
     schedule_cfg = (payload.get("extra") or {}).get("schedule") or {}
-    schedule = BernoulliDiffusionSchedule(
-        num_timesteps=int(schedule_cfg.get("num_timesteps", 700)),
-        beta_start=float(schedule_cfg.get("beta_start", 1e-4)),
-        beta_end=float(schedule_cfg.get("beta_end", 2e-2)),
-    ).to(device)
+    schedule = schedule_from_config(schedule_cfg).to(device)
     return denoiser_prior(
         denoiser,
         schedule,

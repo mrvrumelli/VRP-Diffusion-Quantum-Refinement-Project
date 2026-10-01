@@ -65,8 +65,11 @@ def _normalize_features(norm: nn.LayerNorm | nn.BatchNorm1d, features: Tensor) -
 class _AnisotropicLayer(nn.Module):
     """One anisotropic gated MP layer (CMD eqs. 10-13)."""
 
-    def __init__(self, hidden_dim: int, *, normalization: NormalizationType) -> None:
+    def __init__(
+        self, hidden_dim: int, *, normalization: NormalizationType, edge_residual: bool = False
+    ) -> None:
         super().__init__()
+        self.edge_residual = edge_residual
         self.source_node = nn.Linear(hidden_dim, hidden_dim)
         self.target_node = nn.Linear(hidden_dim, hidden_dim)
         self.edge = nn.Linear(hidden_dim, hidden_dim)
@@ -109,6 +112,9 @@ class _AnisotropicLayer(nn.Module):
         node_new = node_embed + torch.relu(node_update)
 
         node_new = node_new * node_mask[..., None]
+        if self.edge_residual:
+            # DIFUSCO-style residual edge stream; the gate above still uses the new edge state.
+            edge_new = edge_embed + edge_new
         edge_new = edge_new * pair_mask[..., None]
         return node_new, edge_new
 
@@ -135,6 +141,8 @@ class ConstraintDenoiser(nn.Module):
         normalization: NormalizationType = "layer_norm",
         edge_input_features: EdgeInputFeatures = "noisy_matrix_distance",
         coordinate_frame: str = "absolute",
+        edge_residual: bool = False,
+        gat_depot_node: bool = False,
     ) -> None:
         super().__init__()
         if num_layers < 1:
@@ -154,6 +162,12 @@ class ConstraintDenoiser(nn.Module):
             )
         if coordinate_frame not in {"absolute", "depot_relative"}:
             raise ValueError("unsupported coordinate_frame")
+        if gat_depot_node and (node_encoder_type != "gat" or coordinate_frame != "depot_relative"):
+            raise ValueError(
+                "gat_depot_node requires node_encoder_type='gat' and "
+                "coordinate_frame='depot_relative' (the depot node sits at the origin)"
+            )
+        self.gat_depot_node = gat_depot_node
         self.coordinate_frame = coordinate_frame
         self.hidden_dim = hidden_dim
         self.node_encoder_type: NodeEncoderType = node_encoder_type
@@ -162,6 +176,7 @@ class ConstraintDenoiser(nn.Module):
         self.freeze_node_encoder = freeze_node_encoder
         self.normalization: NormalizationType = normalization
         self.edge_input_features: EdgeInputFeatures = edge_input_features
+        self.edge_residual = edge_residual
 
         if node_encoder_type == "linear":
             self.node_encoder: nn.Module = nn.Linear(NODE_FEATURE_DIM, hidden_dim)
@@ -172,6 +187,7 @@ class ConstraintDenoiser(nn.Module):
                 num_layers=gat_num_layers,
                 num_heads=gat_num_heads,
                 dropout=gat_dropout,
+                depot_node=gat_depot_node,
             )
         edge_feature_dim = 1 if edge_input_features == "noisy_matrix" else _EDGE_FEATURE_DIM
         self.edge_encoder = nn.Linear(edge_feature_dim, hidden_dim)
@@ -182,7 +198,8 @@ class ConstraintDenoiser(nn.Module):
         )
         self.time_embed_dim = time_embed_dim
         self.layers = nn.ModuleList(
-            _AnisotropicLayer(hidden_dim, normalization=normalization) for _ in range(num_layers)
+            _AnisotropicLayer(hidden_dim, normalization=normalization, edge_residual=edge_residual)
+            for _ in range(num_layers)
         )
         self.output_head = nn.Linear(hidden_dim, 1)
         if freeze_node_encoder:
@@ -200,11 +217,13 @@ class ConstraintDenoiser(nn.Module):
             raise ValueError("load_gat_pretrained requires node_encoder_type='gat'")
         assert isinstance(self.node_encoder, NodeGATEncoder)
         payload = load_gat_encoder_checkpoint(path, self.node_encoder, strict=strict)
-        frame = ((payload.get("extra") or {}).get("model") or {}).get(
-            "coordinate_frame", "absolute"
-        )
+        gat_model_cfg = (payload.get("extra") or {}).get("model") or {}
+        frame = gat_model_cfg.get("coordinate_frame", "absolute")
         if frame != self.coordinate_frame:
             raise ValueError("GAT and denoiser coordinate frames must match")
+        depot_node = bool(gat_model_cfg.get("depot_node", False))
+        if depot_node != self.gat_depot_node:
+            raise ValueError("GAT checkpoint depot_node must match the denoiser's gat_depot_node")
         return payload
 
     def forward(

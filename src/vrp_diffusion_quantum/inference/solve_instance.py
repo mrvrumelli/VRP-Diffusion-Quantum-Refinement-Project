@@ -592,7 +592,7 @@ def main() -> None:
         load_denoiser_checkpoint,
         select_examples_by_size,
     )
-    from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
+    from vrp_diffusion_quantum.models.diffusion import schedule_from_config
     from vrp_diffusion_quantum.utils.experiment import ExperimentTracker
     from vrp_diffusion_quantum.utils.runtime import resolve_device, seed_everything
 
@@ -616,11 +616,7 @@ def main() -> None:
         )
         denoiser, payload = load_denoiser_checkpoint(denoiser_path, device=device)
         schedule_cfg = (payload.get("extra") or {}).get("schedule") or {}
-        schedule = BernoulliDiffusionSchedule(
-            num_timesteps=int(schedule_cfg.get("num_timesteps", 700)),
-            beta_start=float(schedule_cfg.get("beta_start", 1e-4)),
-            beta_end=float(schedule_cfg.get("beta_end", 2e-2)),
-        ).to(device)
+        schedule = schedule_from_config(schedule_cfg).to(device)
         prior = denoiser_prior(
             denoiser,
             schedule,

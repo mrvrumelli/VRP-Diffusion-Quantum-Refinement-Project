@@ -726,6 +726,7 @@ class CVRPPolicy(nn.Module):
         savings_epsilon: float = 1e-2,
         global_gat_checkpoint: str | Path | None = None,
         allow_uninitialized_global_gat: bool = False,
+        global_gat_depot_node: bool | None = None,
     ) -> None:
         super().__init__()
         if architecture not in ("ours_robust", "paper_cmd"):
@@ -755,6 +756,7 @@ class CVRPPolicy(nn.Module):
                 num_heads=global_num_heads,
                 dropout=dropout,
                 checkpoint=global_gat_checkpoint,
+                depot_node=global_gat_depot_node,
             )
             self.local_encoder: LocalMaskedEncoder | PaperMaskedGATEncoder | None = (
                 PaperMaskedGATEncoder(

@@ -49,7 +49,10 @@ from vrp_diffusion_quantum.metrics.matrix_metrics import (
     compute_matrix_metrics,
 )
 from vrp_diffusion_quantum.models.constraint_denoiser import ConstraintDenoiser
-from vrp_diffusion_quantum.models.diffusion import BernoulliDiffusionSchedule
+from vrp_diffusion_quantum.models.diffusion import (
+    BernoulliDiffusionSchedule,
+    schedule_from_config,
+)
 from vrp_diffusion_quantum.utils.alignment import (
     require_artifact_alignment,
     validate_alignment_config,
@@ -1090,6 +1093,8 @@ def main() -> None:
         freeze_node_encoder=bool(model_cfg.get("freeze_node_encoder", False)),
         normalization=str(model_cfg.get("normalization", "layer_norm")),  # type: ignore[arg-type]
         edge_input_features=str(model_cfg.get("edge_input_features", "noisy_matrix_distance")),  # type: ignore[arg-type]
+        edge_residual=bool(model_cfg.get("edge_residual", False)),
+        gat_depot_node=bool(model_cfg.get("gat_depot_node", False)),
     )
     gat_ckpt = model_cfg.get("gat_checkpoint")
     if gat_ckpt:
@@ -1108,11 +1113,7 @@ def main() -> None:
             "model.node_encoder_type='gat' with freeze_node_encoder=true requires "
             "model.gat_checkpoint (run configs/train/gat_pretrain.yaml first)"
         )
-    schedule = BernoulliDiffusionSchedule(
-        num_timesteps=int(schedule_cfg.get("num_timesteps", 700)),
-        beta_start=float(schedule_cfg.get("beta_start", 1e-4)),
-        beta_end=float(schedule_cfg.get("beta_end", 2e-2)),
-    )
+    schedule = schedule_from_config(schedule_cfg)
     device = resolve_device(train_cfg.get("device", "auto"))
     best_metric = str(ckpt_cfg.get("best_metric", "val_auc"))
     minimize_best = bool(ckpt_cfg.get("minimize", False))

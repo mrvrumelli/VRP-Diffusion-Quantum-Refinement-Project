@@ -25,6 +25,8 @@ model:
   # Required for a new run: GAT-only pretraining checkpoint or full diffusion checkpoint.
   # A saved policy checkpoint embeds these frozen weights and is self-contained.
   global_gat_checkpoint: null
+  # The checkpoint must be a depot-node GAT (ledger gat_input_includes_depot).
+  global_gat_depot_node: true
   embedding_dim: 128
   global_num_layers: 5
   global_num_heads: 8
@@ -49,7 +51,7 @@ prior:
   source: denoiser
   checkpoint: null
   num_inference_steps: 50
-  sampler: skipped_posterior
+  sampler: posterior_mixture_v2
   threshold: 0.5
   use_probabilities: true
 training:

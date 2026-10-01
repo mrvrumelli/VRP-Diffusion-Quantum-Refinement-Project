@@ -29,6 +29,9 @@ model:
   freeze_node_encoder: true
   normalization: batch_norm
   edge_input_features: noisy_matrix
+  # Requires a depot-node GAT checkpoint (ledger gat_input_includes_depot).
+  coordinate_frame: depot_relative
+  gat_depot_node: true
 schedule:
   num_timesteps: 1000
   beta_start: 0.0001
@@ -56,6 +59,6 @@ sample_eval:
   per_size: 8
   sizes: [20, 50, 100]
   num_inference_steps: 50
-  sampler: skipped_posterior
+  sampler: posterior_mixture_v2
 mlflow:
   enabled: true

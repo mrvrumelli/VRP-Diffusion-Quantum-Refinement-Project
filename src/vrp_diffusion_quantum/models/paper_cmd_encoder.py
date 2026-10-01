@@ -67,6 +67,14 @@ def load_diffusion_gat_checkpoint(
     return dict(payload) if isinstance(payload, Mapping) else {}
 
 
+def gat_checkpoint_input_mode(payload: Mapping[str, Any]) -> tuple[str, bool]:
+    """Return ``(coordinate_frame, depot_node)`` for a GAT-only or denoiser checkpoint."""
+    model_cfg = (payload.get("extra") or {}).get("model") or {}
+    frame = str(model_cfg.get("coordinate_frame", "absolute"))
+    depot_node = bool(model_cfg.get("depot_node", model_cfg.get("gat_depot_node", False)))
+    return frame, depot_node
+
+
 def _full_node_features(coords: Tensor, demands: Tensor, capacity: Tensor) -> Tensor:
     """Use the diffusion GAT's exact feature order for full depot/customer tensors."""
     return build_customer_node_features(coords, demands.to(coords.dtype), capacity.to(coords.dtype))
@@ -78,7 +86,13 @@ def _masked_mean(node_embeddings: Tensor, node_mask: Tensor) -> Tensor:
 
 
 class PaperGlobalGATEncoder(nn.Module):
-    """Frozen copy of the diffusion model's pretrained node GAT."""
+    """Frozen copy of the diffusion model's pretrained node GAT.
+
+    Two weight families are accepted: legacy customer-only GATs in absolute coordinates, and
+    depot-node GATs in the depot-relative frame (the paper's GAT over the full instance graph).
+    For the latter the real depot node is marked and all coordinates are shifted so the depot is
+    at the origin, which reproduces exactly the input the diffusion denoiser gave the same GAT.
+    """
 
     def __init__(
         self,
@@ -88,29 +102,46 @@ class PaperGlobalGATEncoder(nn.Module):
         num_heads: int,
         dropout: float,
         checkpoint: str | Path | None,
+        depot_node: bool | None = None,
     ) -> None:
         super().__init__()
+        payload: dict[str, Any] = {}
+        resolved_depot_node = bool(depot_node)
+        if checkpoint is not None:
+            raw = torch.load(Path(checkpoint), map_location="cpu", weights_only=False)
+            payload = dict(raw) if isinstance(raw, Mapping) else {}
+            frame, checkpoint_depot_node = gat_checkpoint_input_mode(payload)
+            if (frame, checkpoint_depot_node) not in {
+                ("absolute", False),
+                ("depot_relative", True),
+            }:
+                raise ValueError(
+                    "paper_cmd global GAT requires absolute customer-only weights or "
+                    f"depot-relative depot-node weights, got frame={frame!r} "
+                    f"depot_node={checkpoint_depot_node}"
+                )
+            if depot_node is not None and bool(depot_node) != checkpoint_depot_node:
+                raise ValueError("global_gat_depot_node does not match the GAT checkpoint")
+            resolved_depot_node = checkpoint_depot_node
         self.gat = NodeGATEncoder(
             in_dim=NODE_FEATURE_DIM,
             hidden_dim=embedding_dim,
             num_layers=num_layers,
             num_heads=num_heads,
             dropout=dropout,
+            depot_node=resolved_depot_node,
         )
         self.checkpoint_source: str | None = None
-        self.checkpoint_payload: dict[str, Any] = {}
+        self.checkpoint_payload: dict[str, Any] = payload
         if checkpoint is not None:
-            self.checkpoint_payload = load_diffusion_gat_checkpoint(checkpoint, self.gat)
-            frame = ((self.checkpoint_payload.get("extra") or {}).get("model") or {}).get(
-                "coordinate_frame", "absolute"
-            )
-            if frame != "absolute":
-                raise ValueError(
-                    "paper_cmd global GAT requires absolute-coordinate weights; "
-                    "depot-relative GAT checkpoints are diagnostic denoiser variants"
-                )
+            state = compat_layernorm_state_dict(_extract_gat_state(payload))
+            self.gat.load_state_dict(state, strict=True)
             self.checkpoint_source = str(Path(checkpoint))
         self.freeze()
+
+    @property
+    def depot_node(self) -> bool:
+        return self.gat.depot_node
 
     def freeze(self) -> None:
         """Keep the pretrained encoder immutable and deterministic during policy training."""
@@ -138,8 +169,21 @@ class PaperGlobalGATEncoder(nn.Module):
     ) -> GlobalEncoderOutput:
         _validate_inputs(coords, demands, capacity, depot_index, node_mask)
         mask = node_mask.to(device=coords.device, dtype=torch.bool)
-        features = _full_node_features(coords, demands, capacity)
-        node_embeddings = self.gat(features, mask, customer_coords=coords)
+        if self.gat.depot_node:
+            rows = torch.arange(coords.shape[0], device=coords.device)
+            depot_index = depot_index.to(device=coords.device, dtype=torch.long)
+            relative = (coords - coords[rows, depot_index].unsqueeze(1)) * mask.unsqueeze(-1)
+            indicator = torch.zeros(mask.shape, dtype=coords.dtype, device=coords.device)
+            indicator[rows, depot_index] = 1.0
+            node_embeddings = self.gat(
+                _full_node_features(relative, demands, capacity),
+                mask,
+                customer_coords=relative,
+                depot_indicator=indicator,
+            )
+        else:
+            features = _full_node_features(coords, demands, capacity)
+            node_embeddings = self.gat(features, mask, customer_coords=coords)
         node_embeddings = node_embeddings * mask.unsqueeze(-1)
         return GlobalEncoderOutput(
             node_embeddings=node_embeddings,

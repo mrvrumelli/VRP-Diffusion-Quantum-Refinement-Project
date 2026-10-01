@@ -137,7 +137,13 @@ class _GATLayer(nn.Module):
 
 
 class NodeGATEncoder(nn.Module):
-    """Five-layer (default) GAT producing node embeddings ``h^0`` for the CMD denoiser."""
+    """Five-layer (default) GAT producing node embeddings ``h^0`` for the CMD denoiser.
+
+    With ``depot_node=True`` the encoder expects depot-relative customer coordinates and adds the
+    depot itself as an extra graph node at the origin, marked by an indicator feature. Attention
+    and distance biases then include the depot, and only customer embeddings are returned, so
+    callers are unchanged.
+    """
 
     def __init__(
         self,
@@ -148,8 +154,10 @@ class NodeGATEncoder(nn.Module):
         num_heads: int = 4,
         dropout: float = 0.0,
         use_distance_bias: bool = True,
+        depot_node: bool = False,
     ) -> None:
         super().__init__()
+        self.depot_node = depot_node
         if num_layers < 1:
             raise ValueError(f"num_layers must be >= 1, got {num_layers}")
         if hidden_dim % num_heads != 0:
@@ -158,7 +166,7 @@ class NodeGATEncoder(nn.Module):
             )
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
-        self.input_proj = nn.Linear(in_dim, hidden_dim)
+        self.input_proj = nn.Linear(in_dim + (1 if depot_node else 0), hidden_dim)
         self.layers = nn.ModuleList(
             [
                 _GATLayer(
@@ -182,6 +190,36 @@ class NodeGATEncoder(nn.Module):
         *,
         customer_coords: Tensor | None = None,  # [B, N, 2] for distance bias
         adjacency_mask: Tensor | None = None,  # [B, N, N] for a masked local GAT
+        depot_indicator: Tensor | None = None,  # [B, N] marks a depot already among the nodes
+    ) -> Tensor:
+        if depot_indicator is not None:
+            # Full-graph use (the policy): the depot is already a node, at the origin of the
+            # depot-relative frame. Mark it and return every node's embedding.
+            if not self.depot_node:
+                raise ValueError("depot_indicator requires a depot_node encoder")
+            if customer_coords is None:
+                raise ValueError("depot_node encoders require depot-relative coordinates")
+            node_features = torch.cat(
+                [node_features, depot_indicator.to(node_features.dtype).unsqueeze(-1)], dim=-1
+            )
+            return self._encode(node_features, node_mask, customer_coords, adjacency_mask)
+        if self.depot_node:
+            if adjacency_mask is not None:
+                raise ValueError("depot_node encoders do not support a local adjacency mask")
+            if customer_coords is None:
+                raise ValueError("depot_node encoders require depot-relative customer_coords")
+            node_features, node_mask, customer_coords = _prepend_origin_depot(
+                node_features, node_mask, customer_coords
+            )
+            return self._encode(node_features, node_mask, customer_coords, None)[:, 1:]
+        return self._encode(node_features, node_mask, customer_coords, adjacency_mask)
+
+    def _encode(
+        self,
+        node_features: Tensor,
+        node_mask: Tensor,
+        customer_coords: Tensor | None,
+        adjacency_mask: Tensor | None,
     ) -> Tensor:
         mask = node_mask.to(dtype=node_features.dtype)
         h: Tensor = self.input_proj(node_features) * mask.unsqueeze(-1)
@@ -196,6 +234,21 @@ class NodeGATEncoder(nn.Module):
         return h
 
 
+def _prepend_origin_depot(
+    node_features: Tensor, node_mask: Tensor, customer_coords: Tensor
+) -> tuple[Tensor, Tensor, Tensor]:
+    """Add a depot node at the origin with zero demand and a depot indicator column."""
+    batch = node_features.shape[0]
+    indicator = node_features.new_zeros(*node_features.shape[:-1], 1)
+    customers = torch.cat([node_features, indicator], dim=-1)
+    depot = node_features.new_zeros(batch, 1, node_features.shape[-1] + 1)
+    depot[..., -1] = 1.0
+    features = torch.cat([depot, customers], dim=1)
+    mask = torch.cat([node_mask.new_ones(batch, 1), node_mask], dim=1)
+    coords = torch.cat([customer_coords.new_zeros(batch, 1, 2), customer_coords], dim=1)
+    return features, mask, coords
+
+
 class GATConstraintPretrainer(nn.Module):
     """GAT encoder + symmetric pair head for supervised pretraining on ``m_true``."""
 
@@ -206,6 +259,7 @@ class GATConstraintPretrainer(nn.Module):
         gat_num_layers: int = 5,
         gat_num_heads: int = 4,
         dropout: float = 0.0,
+        depot_node: bool = False,
     ) -> None:
         super().__init__()
         self.encoder = NodeGATEncoder(
@@ -213,6 +267,7 @@ class GATConstraintPretrainer(nn.Module):
             num_layers=gat_num_layers,
             num_heads=gat_num_heads,
             dropout=dropout,
+            depot_node=depot_node,
         )
         self.pair_mlp = nn.Sequential(
             nn.Linear(hidden_dim * 3 + 1, hidden_dim),

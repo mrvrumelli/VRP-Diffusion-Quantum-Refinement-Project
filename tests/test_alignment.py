@@ -96,6 +96,34 @@ def test_paper_cmd_rejects_silent_hyperparameter_drift() -> None:
         validate_alignment_config(drifted, component="diffusion")
 
 
+@pytest.mark.parametrize(
+    ("relative_path", "component", "key"),
+    [
+        ("configs/train/gat_pretrain_paper_cmd.yaml", "gat_pretrain", "depot_node"),
+        ("configs/train/diffusion_denoiser_paper_cmd.yaml", "diffusion", "gat_depot_node"),
+        ("configs/policy/policy_reinforce_paper_cmd.yaml", "policy", "global_gat_depot_node"),
+    ],
+)
+def test_paper_cmd_rejects_customer_only_gat_inputs(
+    relative_path: str, component: str, key: str
+) -> None:
+    config = yaml.safe_load((ROOT / relative_path).read_text())
+    customer_only = deepcopy(config)
+    customer_only["model"][key] = False
+
+    with pytest.raises(ValueError, match=key):
+        validate_alignment_config(customer_only, component=component)  # type: ignore[arg-type]
+
+
+def test_paper_cmd_policy_requires_the_corrected_reverse_sampler() -> None:
+    config = yaml.safe_load((ROOT / "configs/policy/policy_reinforce_paper_cmd.yaml").read_text())
+    legacy = deepcopy(config)
+    legacy["prior"]["sampler"] = "skipped_posterior"
+
+    with pytest.raises(ValueError, match=r"prior\.sampler"):
+        validate_alignment_config(legacy, component="policy")
+
+
 def test_paper_cmd_rejects_robust_dataset_policy() -> None:
     path = ROOT / "configs/train/diffusion_denoiser_paper_cmd.yaml"
     config = yaml.safe_load(path.read_text())

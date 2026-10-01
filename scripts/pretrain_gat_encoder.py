@@ -87,7 +87,12 @@ def main() -> None:
         gat_num_layers=int(model_cfg.get("gat_num_layers", 5)),
         gat_num_heads=int(model_cfg.get("gat_num_heads", 4)),
         dropout=float(model_cfg.get("dropout", 0.0)),
+        depot_node=bool(model_cfg.get("depot_node", False)),
     ).to(device)
+    if bool(model_cfg.get("depot_node", False)) and (
+        str(model_cfg.get("coordinate_frame", "absolute")) != "depot_relative"
+    ):
+        raise ValueError("model.depot_node requires model.coordinate_frame='depot_relative'")
 
     augmentation = bool(train_cfg.get("augmentation", False))
     online_augmentation = bool(train_cfg.get("online_augmentation", False)) and not augmentation

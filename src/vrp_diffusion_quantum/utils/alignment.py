@@ -54,6 +54,10 @@ _PAPER_REQUIREMENTS: dict[AlignmentComponent, dict[str, object]] = {
         "model.hidden_dim": 128,
         "model.gat_num_layers": 5,
         "model.gat_num_heads": 8,
+        # The GAT encodes G = (V, A) with the depot in V (Section III-A; ledger
+        # gat_input_includes_depot). Customer-only inputs are not paper-compatible.
+        "model.coordinate_frame": "depot_relative",
+        "model.depot_node": True,
         "training.batch_size": 64,
         "training.learning_rate": 1e-4,
         "training.augmentation": False,
@@ -72,6 +76,8 @@ _PAPER_REQUIREMENTS: dict[AlignmentComponent, dict[str, object]] = {
         "model.freeze_node_encoder": True,
         "model.normalization": "batch_norm",
         "model.edge_input_features": "noisy_matrix",
+        "model.coordinate_frame": "depot_relative",
+        "model.gat_depot_node": True,
         "schedule.num_timesteps": 1000,
         "schedule.beta_start": 1e-4,
         "schedule.beta_end": 2e-2,
@@ -89,6 +95,7 @@ _PAPER_REQUIREMENTS: dict[AlignmentComponent, dict[str, object]] = {
         "dataset.provenance_track": "paper_cmd",
         "dataset.label_policy": "unlabeled_pomo_distribution",
         "model.architecture": "paper_cmd",
+        "model.global_gat_depot_node": True,
         "model.embedding_dim": 128,
         "model.global_num_layers": 5,
         "model.global_num_heads": 8,
@@ -106,7 +113,8 @@ _PAPER_REQUIREMENTS: dict[AlignmentComponent, dict[str, object]] = {
         "model.use_context_perception": True,
         "prior.source": "denoiser",
         "prior.num_inference_steps": 50,
-        "prior.sampler": "skipped_posterior",
+        # Equation 9 learned reverse mixture; skipped_posterior is the defective legacy sampler.
+        "prior.sampler": "posterior_mixture_v2",
         "training.epochs": 100,
         "training.learning_rate": 1e-4,
         "training.weight_decay": 1e-6,

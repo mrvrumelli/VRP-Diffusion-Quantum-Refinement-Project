@@ -10,6 +10,23 @@ evidence and ambiguity register is `configs/alignment/cmd_paper_evidence.yaml`. 
 reproduction-relevant paper detail must be added to that register with exactly one classification
 before it changes a `paper_cmd` experiment.
 
+## Amendment, 2026-09-30
+
+Version 1 is amended in place, because a version bump would orphan every existing `paper_cmd`
+checkpoint. Checkpoints trained before this date remain loadable, but new `paper_cmd` runs must
+satisfy the amended requirements below.
+
+- **Depot-aware GAT.** The paper applies the GAT to `G = (V, A)`, whose node set includes the
+  depot (ledger `gat_input_includes_depot`). GAT pretraining now requires
+  `coordinate_frame: depot_relative` and `depot_node: true`; diffusion requires
+  `gat_depot_node: true`; the policy requires `global_gat_depot_node: true`. The earlier
+  customer-only reconstruction capped development F1 (see
+  [root-cause report](f1_gap_root_cause_2026-09-30.md)).
+- **Corrected reverse sampler.** The policy prior must use `posterior_mixture_v2`, the equation 9
+  learned mixture. `skipped_posterior` is the defective legacy sampler.
+- **Labels.** The single-HGS label rule is unchanged. `paper_cmd` training must use a
+  manifest-backed unfiltered single-HGS dataset; the stability-filtered full split is not eligible.
+
 ## Track boundary
 
 | Concern | `paper_cmd` | `ours_robust` |

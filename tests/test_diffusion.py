@@ -314,3 +314,65 @@ def test_mixture_clean_endpoint_and_legacy_counterexample() -> None:
     corrected = schedule.p_reverse_between_prob(observed, prediction, t=20, target_t=0)
     assert legacy.tolist() == pytest.approx([0.0015445, 0.975865], abs=2e-6)
     assert corrected.tolist() == pytest.approx([0.1968176, 0.212728], abs=2e-6)
+
+
+def test_paper_flip_convention_is_the_unchanged_default() -> None:
+    default = BernoulliDiffusionSchedule(num_timesteps=50)
+    explicit = BernoulliDiffusionSchedule(num_timesteps=50, flip_convention="paper")
+    for name, buffer in default.named_buffers():
+        assert torch.equal(buffer, dict(explicit.named_buffers())[name])
+    assert torch.equal(default.flip_probs, default.betas)
+
+
+@pytest.mark.parametrize("clean", [0.0, 1.0])
+@pytest.mark.parametrize("observed", [0.0, 1.0])
+def test_difusco_convention_matches_brute_force_half_beta_chain(
+    clean: float, observed: float
+) -> None:
+    schedule = BernoulliDiffusionSchedule(
+        num_timesteps=5, beta_start=0.05, beta_end=0.25, flip_convention="difusco"
+    )
+    assert torch.allclose(schedule.flip_probs, 0.5 * schedule.betas)
+    for t in range(5):
+        expected_flip = _binary_transition_probability(0, 1, schedule.flip_probs[: t + 1])
+        assert schedule.q_bar_flip[t].item() == pytest.approx(expected_flip, abs=1e-6)
+
+    target_t, current_t = 1, 4
+    actual = schedule.q_posterior_between_prob(
+        torch.tensor([observed]), torch.tensor([clean]), t=current_t, target_t=target_t
+    ).item()
+    weights = [
+        _binary_transition_probability(int(clean), state, schedule.flip_probs[: target_t + 1])
+        * _binary_transition_probability(
+            state, int(observed), schedule.flip_probs[target_t + 1 : current_t + 1]
+        )
+        for state in (0, 1)
+    ]
+    assert actual == pytest.approx(weights[1] / sum(weights), abs=1e-6)
+
+
+def test_difusco_convention_keeps_more_signal_and_still_reaches_max_entropy() -> None:
+    paper = BernoulliDiffusionSchedule(num_timesteps=1000)
+    difusco = BernoulliDiffusionSchedule(num_timesteps=1000, flip_convention="difusco")
+    assert torch.all(difusco.q_bar_flip <= paper.q_bar_flip + 1e-7)
+    assert difusco.q_bar_flip[300] < paper.q_bar_flip[300]
+    assert difusco.q_bar_flip[-1].item() == pytest.approx(0.5, abs=1e-3)
+
+
+def test_schedule_from_config_defaults_and_flip_convention() -> None:
+    from vrp_diffusion_quantum.models.diffusion import NUM_TIMESTEPS, schedule_from_config
+
+    legacy = schedule_from_config({})
+    assert legacy.num_timesteps == NUM_TIMESTEPS
+    assert legacy.flip_convention == "paper"
+    assert torch.equal(legacy.q_bar_flip, BernoulliDiffusionSchedule().q_bar_flip)
+    assert schedule_from_config(None).num_timesteps == NUM_TIMESTEPS
+
+    configured = schedule_from_config(
+        {"num_timesteps": 20, "beta_start": 0.001, "beta_end": 0.05, "flip_convention": "difusco"}
+    )
+    reference = BernoulliDiffusionSchedule(20, 0.001, 0.05, flip_convention="difusco")
+    assert torch.equal(configured.q_bar_flip, reference.q_bar_flip)
+
+    with pytest.raises(ValueError, match="flip_convention"):
+        schedule_from_config({"flip_convention": "gaussian"})

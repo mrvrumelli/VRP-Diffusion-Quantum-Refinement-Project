@@ -223,3 +223,28 @@ def test_backward_populates_gradients() -> None:
     grads = [p.grad for p in model.parameters() if p.grad is not None]
     assert grads, "expected at least one populated gradient"
     assert all(torch.all(torch.isfinite(g)) for g in grads)
+
+
+def test_edge_residual_is_opt_in_and_shares_parameters() -> None:
+    batch = collate_batch([_example(20, seed=7), _example(20, seed=8)])
+    coords, demands, capacity = _customer_tensors(batch)
+    m_t = _noise(batch, t=300, seed=7)
+    t = torch.tensor([300, 300])
+
+    torch.manual_seed(11)
+    plain = ConstraintDenoiser(hidden_dim=16, num_layers=2, time_embed_dim=16)
+    torch.manual_seed(11)
+    residual = ConstraintDenoiser(
+        hidden_dim=16, num_layers=2, time_embed_dim=16, edge_residual=True
+    )
+
+    # Same parameters, so older checkpoints load into either variant unchanged.
+    assert plain.state_dict().keys() == residual.state_dict().keys()
+    residual.load_state_dict(plain.state_dict())
+    out_plain = plain(coords, demands, capacity, m_t, t, customer_mask=batch.customer_mask)
+    out_residual = residual(coords, demands, capacity, m_t, t, customer_mask=batch.customer_mask)
+
+    assert not plain.edge_residual
+    assert torch.all(torch.isfinite(out_residual))
+    assert torch.allclose(out_residual, out_residual.transpose(-1, -2), atol=1e-6)
+    assert not torch.allclose(out_plain, out_residual)

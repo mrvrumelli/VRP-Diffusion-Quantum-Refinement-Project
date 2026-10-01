@@ -8,6 +8,8 @@ diagonal; pass ``customer_mask`` for padded batches.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any, Literal
 
 import torch
 from torch import Tensor, nn
@@ -19,12 +21,19 @@ __all__ = [
     "BETA_START",
     "NUM_TIMESTEPS",
     "BernoulliDiffusionSchedule",
+    "FlipConvention",
     "linear_beta_schedule",
+    "schedule_from_config",
 ]
 
 BETA_START: float = 1e-4
 BETA_END: float = 2e-2
 NUM_TIMESTEPS: int = 700  # matches configs/train/diffusion_denoiser.yaml
+
+# ``paper``: per-step flip probability ``beta_t`` (the paper's printed ``Q_t``).
+# ``difusco``: ``Q_t = (1 - beta_t) I + (beta_t / 2) 11^T``, i.e. flip probability ``beta_t / 2``,
+# as in the DIFUSCO reference implementation the paper's denoiser follows.
+FlipConvention = Literal["paper", "difusco"]
 
 
 def linear_beta_schedule(
@@ -41,6 +50,24 @@ def linear_beta_schedule(
             f"beta_start={beta_start}, beta_end={beta_end}"
         )
     return torch.linspace(beta_start, beta_end, num_timesteps, dtype=torch.float64)
+
+
+def schedule_from_config(
+    config: Mapping[str, Any] | None,
+    *,
+    default_num_timesteps: int = NUM_TIMESTEPS,
+) -> BernoulliDiffusionSchedule:
+    """Build a schedule from a ``schedule`` config block or checkpoint ``extra.schedule``.
+
+    Missing keys keep the historical defaults, so older checkpoints load unchanged.
+    """
+    cfg = config or {}
+    return BernoulliDiffusionSchedule(
+        num_timesteps=int(cfg.get("num_timesteps", default_num_timesteps)),
+        beta_start=float(cfg.get("beta_start", BETA_START)),
+        beta_end=float(cfg.get("beta_end", BETA_END)),
+        flip_convention=str(cfg.get("flip_convention", "paper")),  # type: ignore[arg-type]
+    )
 
 
 def _extract(values: Tensor, t: Tensor | int, broadcast_to: Tensor) -> Tensor:
@@ -60,6 +87,7 @@ class BernoulliDiffusionSchedule(nn.Module):
     """
 
     betas: Tensor
+    flip_probs: Tensor
     q_bar_flip: Tensor
     q_bar_flip_prev: Tensor
     log_signal_bar_with_clean: Tensor
@@ -69,13 +97,21 @@ class BernoulliDiffusionSchedule(nn.Module):
         num_timesteps: int = NUM_TIMESTEPS,
         beta_start: float = BETA_START,
         beta_end: float = BETA_END,
+        *,
+        flip_convention: FlipConvention = "paper",
     ) -> None:
         super().__init__()
+        if flip_convention not in ("paper", "difusco"):
+            raise ValueError(
+                f"flip_convention must be 'paper' or 'difusco', got {flip_convention!r}"
+            )
         self.num_timesteps = num_timesteps
+        self.flip_convention: FlipConvention = flip_convention
 
         betas = linear_beta_schedule(num_timesteps, beta_start, beta_end)
-        # signal = 1 - 2β; cumprod → cumulative flip prob via q_bar_flip = (1 - signal_bar) / 2
-        signal = 1.0 - 2.0 * betas
+        flip_probs = betas if flip_convention == "paper" else 0.5 * betas
+        # signal = 1 - 2·flip; cumprod → cumulative flip prob via q_bar_flip = (1 - signal_bar) / 2
+        signal = 1.0 - 2.0 * flip_probs
         signal_bar = torch.cumprod(signal, dim=0)
         q_bar_flip = 0.5 * (1.0 - signal_bar)
         signal_bar_prev = torch.cat([signal_bar.new_ones(1), signal_bar[:-1]])
@@ -84,6 +120,7 @@ class BernoulliDiffusionSchedule(nn.Module):
         log_signal_bar_with_clean = torch.cat([log_signal_bar.new_zeros(1), log_signal_bar])
 
         self.register_buffer("betas", betas.to(torch.float32))
+        self.register_buffer("flip_probs", flip_probs.to(torch.float32))
         self.register_buffer("q_bar_flip", q_bar_flip.to(torch.float32))
         self.register_buffer("q_bar_flip_prev", q_bar_flip_prev.to(torch.float32))
         self.register_buffer(
