@@ -1,0 +1,46 @@
+seed: 11
+penalty_scale: 2.0
+alpha: 1.0
+beta: 0.0
+min_slack_bits: 1
+# y[i] is 1 when customer i is on route A. sa and sb are slack, low bit first.
+sizes:
+  m: "len(demands)"
+  slack_bits: >
+    max(min_slack_bits,
+        slack_bits(capacity, fixed_load_a),
+        slack_bits(capacity, fixed_load_b))
+bits:
+  y: [m]
+  sa: [slack_bits]
+  sb: [slack_bits]
+definitions:
+  reward: |
+    abs(alpha) * sum(i, m, max(abs(compatibility_a[i]), abs(compatibility_b[i])))
+    + abs(beta) * sum(i, m, sum(j, m, where(i < j, abs(pair_prior[i, j]), 0)))
+  lambda_capacity: "penalty_scale * max(reward, 1)"
+equation: |
+  lambda_capacity * (
+    (fixed_load_a + sum(i, m, demands[i] * y[i])
+      + sum(b, slack_bits, (2 ** b) * sa[b]) - capacity) ** 2
+    + (fixed_load_b + sum(i, m, demands[i] * (1 - y[i]))
+      + sum(b, slack_bits, (2 ** b) * sb[b]) - capacity) ** 2
+  )
+  - alpha * sum(i, m,
+      compatibility_a[i] * y[i] + compatibility_b[i] * (1 - y[i]))
+  - beta * sum(i, m, sum(j, m, where(i < j,
+      pair_prior[i, j] * (y[i] * y[j] + (1 - y[i]) * (1 - y[j])), 0)))
+qaoa:
+  depth: 1
+  shots: 16
+  maxiter: 30
+  restarts: 2
+  # noiseless is the statevector. Set noise to depolarizing and raise
+  # noise_probability to run that same circuit with gate noise.
+  noise: noiseless
+  noise_probability: 0.0
+annealing:
+  num_samples: 8
+  num_sweeps: 80
+  initial_temperature: 2.0
+  final_temperature: 0.01

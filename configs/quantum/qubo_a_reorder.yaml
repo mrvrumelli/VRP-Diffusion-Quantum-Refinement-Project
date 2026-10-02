@@ -1,0 +1,36 @@
+seed: 11
+penalty_scale: 2.0
+# x[i, p] is 1 when segment customer i stands in slot p.
+# Slot 0 follows predecessor. Slot k - 1 precedes successor.
+sizes:
+  k: "len(segment)"
+bits:
+  x: [k, k]
+definitions:
+  span: |
+    sum(i, k, abs(distance[predecessor, segment[i]]) + abs(distance[segment[i], successor]))
+    + sum(p, k - 1, sum(i, k, sum(j, k,
+        where(i != j, abs(distance[segment[i], segment[j]]), 0))))
+  lambda_customer: "penalty_scale * max(span, 1)"
+  lambda_position: "lambda_customer"
+equation: |
+  lambda_customer * sum(i, k, (1 - sum(p, k, x[i, p])) ** 2)
+  + lambda_position * sum(p, k, (1 - sum(i, k, x[i, p])) ** 2)
+  + sum(i, k, distance[predecessor, segment[i]] * x[i, 0])
+  + sum(i, k, distance[segment[i], successor] * x[i, k - 1])
+  + sum(p, k - 1, sum(i, k, sum(j, k,
+      where(i != j, distance[segment[i], segment[j]] * x[i, p] * x[j, p + 1], 0))))
+qaoa:
+  depth: 1
+  shots: 16
+  maxiter: 30
+  restarts: 2
+  # noiseless is the statevector. Set noise to depolarizing and raise
+  # noise_probability to run that same circuit with gate noise.
+  noise: noiseless
+  noise_probability: 0.0
+annealing:
+  num_samples: 8
+  num_sweeps: 60
+  initial_temperature: 1.5
+  final_temperature: 0.01

@@ -96,3 +96,10 @@ warn_unused_configs = true
 [[tool.mypy.overrides]]
 module = ["networkx.*", "scipy.*", "sklearn.*", "streamlit.*"]
 ignore_missing_imports = true
+
+# Qiskit and Aer are installed but ship no py.typed marker. follow_imports skips
+# their bodies; our own annotations stay under strict mode.
+[[tool.mypy.overrides]]
+module = ["qiskit", "qiskit.*", "qiskit_aer", "qiskit_aer.*"]
+ignore_missing_imports = true
+follow_imports = "skip"
