@@ -1,0 +1,432 @@
+{
+ "solutions": "outputs\\baseline_freeze_20261001\\frozen_panel",
+ "options": {
+  "solvers": [
+   "classical",
+   "sa_qubo"
+  ],
+  "seeds": [
+   0,
+   1,
+   2
+  ],
+  "rounds": 30,
+  "reads": 32,
+  "sweeps": 100,
+  "classical_restarts": 10,
+  "seed": 0,
+  "diffusion_types": [
+   "low_confidence_edges"
+  ],
+  "groups": [
+   "random_any",
+   "random_adjacent"
+  ]
+ },
+ "by_size": {
+  "20": {
+   "instances": 24,
+   "classical": {
+    "diffusion": {
+     "runs": 24,
+     "gap_after": 8.800233603775474,
+     "mean_rounds": 1.2083333333333333,
+     "attempted_per_run": 1.875,
+     "improvement_frequency": 0.15555555555555556,
+     "mean_improvement_percent_per_attempt": 0.1954499498679841,
+     "round1_improvement_frequency": 0.20588235294117646,
+     "round1_cost_reduction_percent": 0.3664686560024702,
+     "mean_solver_seconds": 0.00017939581205913177
+    },
+    "random_any": {
+     "runs": 72,
+     "gap_after": 8.888006853692106,
+     "mean_rounds": 1.2222222222222223,
+     "attempted_per_run": 1.9444444444444444,
+     "improvement_frequency": 0.16428571428571428,
+     "mean_improvement_percent_per_attempt": 0.14225002986661692,
+     "round1_improvement_frequency": 0.20408163265306123,
+     "round1_cost_reduction_percent": 0.2436983958186162,
+     "mean_solver_seconds": 0.00016356110831515657
+    },
+    "random_adjacent": {
+     "runs": 72,
+     "gap_after": 8.888006853692106,
+     "mean_rounds": 1.2222222222222223,
+     "attempted_per_run": 1.9444444444444444,
+     "improvement_frequency": 0.16428571428571428,
+     "mean_improvement_percent_per_attempt": 0.14225002986661692,
+     "round1_improvement_frequency": 0.20408163265306123,
+     "round1_cost_reduction_percent": 0.2436983958186162,
+     "mean_solver_seconds": 0.0001650916787588762
+    },
+    "diffusion_minus_random_any_pp": {
+     "mean": -0.08777324991663134,
+     "ci95": [
+      -0.4763955875226657,
+      0.234873109438623
+     ]
+    },
+    "diffusion_minus_random_adjacent_pp": {
+     "mean": -0.08777324991663134,
+     "ci95": [
+      -0.4763955875226657,
+      0.234873109438623
+     ]
+    }
+   },
+   "sa_qubo": {
+    "diffusion": {
+     "runs": 24,
+     "gap_after": 8.80557779072938,
+     "mean_rounds": 1.1666666666666667,
+     "attempted_per_run": 1.7916666666666667,
+     "improvement_frequency": 0.13953488372093023,
+     "mean_improvement_percent_per_attempt": 0.2018164663973604,
+     "round1_improvement_frequency": 0.17647058823529413,
+     "round1_cost_reduction_percent": 0.36158783562860414,
+     "mean_solver_seconds": 0.39208301667046425
+    },
+    "random_any": {
+     "runs": 72,
+     "gap_after": 8.951644252032313,
+     "mean_rounds": 1.1944444444444444,
+     "attempted_per_run": 1.9305555555555556,
+     "improvement_frequency": 0.14388489208633093,
+     "mean_improvement_percent_per_attempt": 0.11354329399465143,
+     "round1_improvement_frequency": 0.18181818181818182,
+     "round1_cost_reduction_percent": 0.2097920432259521,
+     "mean_solver_seconds": 0.4328692152662875
+    },
+    "random_adjacent": {
+     "runs": 72,
+     "gap_after": 8.951644252032313,
+     "mean_rounds": 1.1944444444444444,
+     "attempted_per_run": 1.9305555555555556,
+     "improvement_frequency": 0.14388489208633093,
+     "mean_improvement_percent_per_attempt": 0.11354329399465143,
+     "round1_improvement_frequency": 0.18181818181818182,
+     "round1_cost_reduction_percent": 0.2097920432259521,
+     "mean_solver_seconds": 0.42806092361085274
+    },
+    "diffusion_minus_random_any_pp": {
+     "mean": -0.1460664613029339,
+     "ci95": [
+      -0.5192340854751721,
+      0.14514482501941336
+     ]
+    },
+    "diffusion_minus_random_adjacent_pp": {
+     "mean": -0.1460664613029339,
+     "ci95": [
+      -0.5192340854751721,
+      0.14514482501941336
+     ]
+    }
+   }
+  },
+  "50": {
+   "instances": 24,
+   "classical": {
+    "diffusion": {
+     "runs": 24,
+     "gap_after": 20.33142143852953,
+     "mean_rounds": 1.875,
+     "attempted_per_run": 8.083333333333334,
+     "improvement_frequency": 0.16494845360824742,
+     "mean_improvement_percent_per_attempt": 0.1201074277277657,
+     "round1_improvement_frequency": 0.30392156862745096,
+     "round1_cost_reduction_percent": 0.9212454580244817,
+     "mean_solver_seconds": 0.0007410624869711077
+    },
+    "random_any": {
+     "runs": 72,
+     "gap_after": 19.7992735730824,
+     "mean_rounds": 2.513888888888889,
+     "attempted_per_run": 10.569444444444445,
+     "improvement_frequency": 0.21156373193166886,
+     "mean_improvement_percent_per_attempt": 0.13332339234720236,
+     "round1_improvement_frequency": 0.31338028169014087,
+     "round1_cost_reduction_percent": 0.6926523233250946,
+     "mean_solver_seconds": 0.0008966375155270927
+    },
+    "random_adjacent": {
+     "runs": 72,
+     "gap_after": 19.7992735730824,
+     "mean_rounds": 2.513888888888889,
+     "attempted_per_run": 10.569444444444445,
+     "improvement_frequency": 0.21156373193166886,
+     "mean_improvement_percent_per_attempt": 0.13332339234720236,
+     "round1_improvement_frequency": 0.31338028169014087,
+     "round1_cost_reduction_percent": 0.6926523233250946,
+     "mean_solver_seconds": 0.0008857611198133478
+    },
+    "diffusion_minus_random_any_pp": {
+     "mean": 0.5321478654471327,
+     "ci95": [
+      -0.003774799934678763,
+      1.1451146281688067
+     ]
+    },
+    "diffusion_minus_random_adjacent_pp": {
+     "mean": 0.5321478654471327,
+     "ci95": [
+      -0.003774799934678763,
+      1.1451146281688067
+     ]
+    }
+   },
+   "sa_qubo": {
+    "diffusion": {
+     "runs": 24,
+     "gap_after": 20.469826928198,
+     "mean_rounds": 2.0,
+     "attempted_per_run": 8.541666666666666,
+     "improvement_frequency": 0.18048780487804877,
+     "mean_improvement_percent_per_attempt": 0.10030274663796579,
+     "round1_improvement_frequency": 0.28431372549019607,
+     "round1_cost_reduction_percent": 0.7206795698670722,
+     "mean_solver_seconds": 2.1925024750041
+    },
+    "random_any": {
+     "runs": 72,
+     "gap_after": 19.840197338421817,
+     "mean_rounds": 2.7222222222222223,
+     "attempted_per_run": 11.25,
+     "improvement_frequency": 0.22592592592592592,
+     "mean_improvement_percent_per_attempt": 0.12243477312864823,
+     "round1_improvement_frequency": 0.2807017543859649,
+     "round1_cost_reduction_percent": 0.5561072562761998,
+     "mean_solver_seconds": 2.5634811180821595
+    },
+    "random_adjacent": {
+     "runs": 72,
+     "gap_after": 19.840197338421817,
+     "mean_rounds": 2.7222222222222223,
+     "attempted_per_run": 11.25,
+     "improvement_frequency": 0.22592592592592592,
+     "mean_improvement_percent_per_attempt": 0.12243477312864823,
+     "round1_improvement_frequency": 0.2807017543859649,
+     "round1_cost_reduction_percent": 0.5561072562761998,
+     "mean_solver_seconds": 2.4618429472045844
+    },
+    "diffusion_minus_random_any_pp": {
+     "mean": 0.629629589776181,
+     "ci95": [
+      0.11821052506856901,
+      1.2087594263815427
+     ]
+    },
+    "diffusion_minus_random_adjacent_pp": {
+     "mean": 0.629629589776181,
+     "ci95": [
+      0.11821052506856901,
+      1.2087594263815427
+     ]
+    }
+   }
+  },
+  "100": {
+   "instances": 24,
+   "classical": {
+    "diffusion": {
+     "runs": 24,
+     "gap_after": 24.116253331922888,
+     "mean_rounds": 1.875,
+     "attempted_per_run": 10.0,
+     "improvement_frequency": 0.175,
+     "mean_improvement_percent_per_attempt": 0.049470307292742786,
+     "round1_improvement_frequency": 0.3230769230769231,
+     "round1_cost_reduction_percent": 0.4936314701557097,
+     "mean_solver_seconds": 0.008573691608035006
+    },
+    "random_any": {
+     "runs": 72,
+     "gap_after": 23.32065764700773,
+     "mean_rounds": 3.5694444444444446,
+     "attempted_per_run": 19.069444444444443,
+     "improvement_frequency": 0.20320466132556445,
+     "mean_improvement_percent_per_attempt": 0.05956797948975272,
+     "round1_improvement_frequency": 0.2953929539295393,
+     "round1_cost_reduction_percent": 0.44222815556573775,
+     "mean_solver_seconds": 0.0019763430528756645
+    },
+    "random_adjacent": {
+     "runs": 72,
+     "gap_after": 23.32065764700773,
+     "mean_rounds": 3.5694444444444446,
+     "attempted_per_run": 19.069444444444443,
+     "improvement_frequency": 0.20320466132556445,
+     "mean_improvement_percent_per_attempt": 0.05956797948975272,
+     "round1_improvement_frequency": 0.2953929539295393,
+     "round1_cost_reduction_percent": 0.44222815556573775,
+     "mean_solver_seconds": 0.0020202486048219725
+    },
+    "diffusion_minus_random_any_pp": {
+     "mean": 0.7955956849151571,
+     "ci95": [
+      0.47841081504876903,
+      1.1625775715559494
+     ]
+    },
+    "diffusion_minus_random_adjacent_pp": {
+     "mean": 0.7955956849151571,
+     "ci95": [
+      0.47841081504876903,
+      1.1625775715559494
+     ]
+    }
+   },
+   "sa_qubo": {
+    "diffusion": {
+     "runs": 24,
+     "gap_after": 24.200928955606532,
+     "mean_rounds": 2.125,
+     "attempted_per_run": 11.166666666666666,
+     "improvement_frequency": 0.16417910447761194,
+     "mean_improvement_percent_per_attempt": 0.038421031877008016,
+     "round1_improvement_frequency": 0.3,
+     "round1_cost_reduction_percent": 0.40133404461761923,
+     "mean_solver_seconds": 3.417082316639911
+    },
+    "random_any": {
+     "runs": 72,
+     "gap_after": 23.498493515321805,
+     "mean_rounds": 3.5694444444444446,
+     "attempted_per_run": 18.97222222222222,
+     "improvement_frequency": 0.20571010248901903,
+     "mean_improvement_percent_per_attempt": 0.05220290605732483,
+     "round1_improvement_frequency": 0.3,
+     "round1_cost_reduction_percent": 0.38077754739231917,
+     "mean_solver_seconds": 5.262077294459838
+    },
+    "random_adjacent": {
+     "runs": 72,
+     "gap_after": 23.498493515321805,
+     "mean_rounds": 3.5694444444444446,
+     "attempted_per_run": 18.97222222222222,
+     "improvement_frequency": 0.20571010248901903,
+     "mean_improvement_percent_per_attempt": 0.05220290605732483,
+     "round1_improvement_frequency": 0.3,
+     "round1_cost_reduction_percent": 0.38077754739231917,
+     "mean_solver_seconds": 5.095557059711104
+    },
+    "diffusion_minus_random_any_pp": {
+     "mean": 0.7024354402847327,
+     "ci95": [
+      0.4040896869701357,
+      1.030492190589187
+     ]
+    },
+    "diffusion_minus_random_adjacent_pp": {
+     "mean": 0.7024354402847327,
+     "ci95": [
+      0.4040896869701357,
+      1.030492190589187
+     ]
+    }
+   }
+  }
+ },
+ "all": {
+  "instances": 72,
+  "classical": {
+   "diffusion": {
+    "runs": 72,
+    "gap_after": 17.7493027914093,
+    "mean_rounds": 1.6527777777777777,
+    "attempted_per_run": 6.652777777777778,
+    "improvement_frequency": 0.16910229645093947,
+    "mean_improvement_percent_per_attempt": 0.0917932410720336,
+    "round1_improvement_frequency": 0.3007518796992481,
+    "round1_cost_reduction_percent": 0.5937818613942205,
+    "mean_solver_seconds": 0.003164716635688415
+   },
+   "random_any": {
+    "runs": 216,
+    "gap_after": 17.335979357927414,
+    "mean_rounds": 2.435185185185185,
+    "attempted_per_run": 10.527777777777779,
+    "improvement_frequency": 0.20360598065083554,
+    "mean_improvement_percent_per_attempt": 0.08934078346393046,
+    "round1_improvement_frequency": 0.29027962716378164,
+    "round1_cost_reduction_percent": 0.4595262915698161,
+    "mean_solver_seconds": 0.0010121805589059713
+   },
+   "random_adjacent": {
+    "runs": 216,
+    "gap_after": 17.335979357927414,
+    "mean_rounds": 2.435185185185185,
+    "attempted_per_run": 10.527777777777779,
+    "improvement_frequency": 0.20360598065083554,
+    "mean_improvement_percent_per_attempt": 0.08934078346393046,
+    "round1_improvement_frequency": 0.29027962716378164,
+    "round1_cost_reduction_percent": 0.4595262915698161,
+    "mean_solver_seconds": 0.0010237004677980655
+   },
+   "diffusion_minus_random_any_pp": {
+    "mean": 0.41332343348188616,
+    "ci95": [
+     0.14738632602979532,
+     0.6915041105662049
+    ]
+   },
+   "diffusion_minus_random_adjacent_pp": {
+    "mean": 0.41332343348188616,
+    "ci95": [
+     0.14738632602979532,
+     0.6915041105662049
+    ]
+   }
+  },
+  "sa_qubo": {
+   "diffusion": {
+    "runs": 72,
+    "gap_after": 17.825444558177974,
+    "mean_rounds": 1.7638888888888888,
+    "attempted_per_run": 7.166666666666667,
+    "improvement_frequency": 0.1686046511627907,
+    "mean_improvement_percent_per_attempt": 0.07662210786610006,
+    "round1_improvement_frequency": 0.2781954887218045,
+    "round1_cost_reduction_percent": 0.49453381670443186,
+    "mean_solver_seconds": 2.000555936104825
+   },
+   "random_any": {
+    "runs": 216,
+    "gap_after": 17.430111701925313,
+    "mean_rounds": 2.4953703703703702,
+    "attempted_per_run": 10.717592592592593,
+    "improvement_frequency": 0.20907127429805616,
+    "mean_improvement_percent_per_attempt": 0.08045954806642218,
+    "round1_improvement_frequency": 0.27718832891246686,
+    "round1_cost_reduction_percent": 0.3822256156314904,
+    "mean_solver_seconds": 2.7528092092694285
+   },
+   "random_adjacent": {
+    "runs": 216,
+    "gap_after": 17.430111701925313,
+    "mean_rounds": 2.4953703703703702,
+    "attempted_per_run": 10.717592592592593,
+    "improvement_frequency": 0.20907127429805616,
+    "mean_improvement_percent_per_attempt": 0.08045954806642218,
+    "round1_improvement_frequency": 0.27718832891246686,
+    "round1_cost_reduction_percent": 0.3822256156314904,
+    "mean_solver_seconds": 2.661820310175514
+   },
+   "diffusion_minus_random_any_pp": {
+    "mean": 0.3953328562526599,
+    "ci95": [
+     0.14360680783216873,
+     0.6585766801338422
+    ]
+   },
+   "diffusion_minus_random_adjacent_pp": {
+    "mean": 0.3953328562526599,
+    "ci95": [
+     0.14360680783216873,
+     0.6585766801338422
+    ]
+   }
+  }
+ }
+}

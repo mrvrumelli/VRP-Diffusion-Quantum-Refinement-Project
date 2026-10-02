@@ -1,0 +1,432 @@
+{
+ "solutions": "outputs\\baseline_freeze_20261001\\frozen_validation",
+ "options": {
+  "solvers": [
+   "classical",
+   "sa_qubo"
+  ],
+  "seeds": [
+   0,
+   1,
+   2
+  ],
+  "rounds": 30,
+  "reads": 32,
+  "sweeps": 100,
+  "classical_restarts": 10,
+  "seed": 0,
+  "diffusion_types": [
+   "low_confidence_edges"
+  ],
+  "groups": [
+   "random_any",
+   "random_adjacent"
+  ]
+ },
+ "by_size": {
+  "20": {
+   "instances": 16,
+   "classical": {
+    "diffusion": {
+     "runs": 16,
+     "gap_after": 7.393299201516774,
+     "mean_rounds": 1.1875,
+     "attempted_per_run": 2.125,
+     "improvement_frequency": 0.17647058823529413,
+     "mean_improvement_percent_per_attempt": 0.3948159101578488,
+     "round1_improvement_frequency": 0.25,
+     "round1_cost_reduction_percent": 0.8389838090854287,
+     "mean_solver_seconds": 0.00019821248861262575
+    },
+    "random_any": {
+     "runs": 48,
+     "gap_after": 7.099515889685367,
+     "mean_rounds": 1.2708333333333333,
+     "attempted_per_run": 2.2083333333333335,
+     "improvement_frequency": 0.20754716981132076,
+     "mean_improvement_percent_per_attempt": 0.5061772302977696,
+     "round1_improvement_frequency": 0.2753623188405797,
+     "round1_cost_reduction_percent": 0.9011406085203144,
+     "mean_solver_seconds": 0.00017738751921569929
+    },
+    "random_adjacent": {
+     "runs": 48,
+     "gap_after": 7.099515889685367,
+     "mean_rounds": 1.2708333333333333,
+     "attempted_per_run": 2.2083333333333335,
+     "improvement_frequency": 0.20754716981132076,
+     "mean_improvement_percent_per_attempt": 0.5061772302977696,
+     "round1_improvement_frequency": 0.2753623188405797,
+     "round1_cost_reduction_percent": 0.9011406085203144,
+     "mean_solver_seconds": 0.00017665622484249374
+    },
+    "diffusion_minus_random_any_pp": {
+     "mean": 0.2937833118314067,
+     "ci95": [
+      -0.2740341613124568,
+      0.9704929459797067
+     ]
+    },
+    "diffusion_minus_random_adjacent_pp": {
+     "mean": 0.2937833118314067,
+     "ci95": [
+      -0.2740341613124568,
+      0.9704929459797067
+     ]
+    }
+   },
+   "sa_qubo": {
+    "diffusion": {
+     "runs": 16,
+     "gap_after": 7.703978795087683,
+     "mean_rounds": 1.1875,
+     "attempted_per_run": 2.125,
+     "improvement_frequency": 0.17647058823529413,
+     "mean_improvement_percent_per_attempt": 0.26179076870157936,
+     "round1_improvement_frequency": 0.25,
+     "round1_cost_reduction_percent": 0.5563053834908561,
+     "mean_solver_seconds": 0.5069435937548405
+    },
+    "random_any": {
+     "runs": 48,
+     "gap_after": 7.22791581602431,
+     "mean_rounds": 1.3541666666666667,
+     "attempted_per_run": 2.3125,
+     "improvement_frequency": 0.23423423423423423,
+     "mean_improvement_percent_per_attempt": 0.43369252860272106,
+     "round1_improvement_frequency": 0.2753623188405797,
+     "round1_cost_reduction_percent": 0.6804836759322462,
+     "mean_solver_seconds": 0.5483402062357831
+    },
+    "random_adjacent": {
+     "runs": 48,
+     "gap_after": 7.22791581602431,
+     "mean_rounds": 1.3541666666666667,
+     "attempted_per_run": 2.3125,
+     "improvement_frequency": 0.23423423423423423,
+     "mean_improvement_percent_per_attempt": 0.43369252860272106,
+     "round1_improvement_frequency": 0.2753623188405797,
+     "round1_cost_reduction_percent": 0.6804836759322462,
+     "mean_solver_seconds": 0.5398304749833187
+    },
+    "diffusion_minus_random_any_pp": {
+     "mean": 0.47606297906337325,
+     "ci95": [
+      0.004834564432585405,
+      1.0545490672430105
+     ]
+    },
+    "diffusion_minus_random_adjacent_pp": {
+     "mean": 0.47606297906337325,
+     "ci95": [
+      0.004834564432585405,
+      1.0545490672430105
+     ]
+    }
+   }
+  },
+  "50": {
+   "instances": 16,
+   "classical": {
+    "diffusion": {
+     "runs": 16,
+     "gap_after": 20.374013893853743,
+     "mean_rounds": 1.8125,
+     "attempted_per_run": 8.8125,
+     "improvement_frequency": 0.15602836879432624,
+     "mean_improvement_percent_per_attempt": 0.06714820989038342,
+     "round1_improvement_frequency": 0.2857142857142857,
+     "round1_cost_reduction_percent": 0.5904256130362695,
+     "mean_solver_seconds": 0.0007323437312152237
+    },
+    "random_any": {
+     "runs": 48,
+     "gap_after": 19.685912962994177,
+     "mean_rounds": 2.6666666666666665,
+     "attempted_per_run": 12.395833333333334,
+     "improvement_frequency": 0.19663865546218487,
+     "mean_improvement_percent_per_attempt": 0.0932745627856311,
+     "round1_improvement_frequency": 0.3269230769230769,
+     "round1_cost_reduction_percent": 0.6973777708777534,
+     "mean_solver_seconds": 0.0010474312706113171
+    },
+    "random_adjacent": {
+     "runs": 48,
+     "gap_after": 19.685912962994177,
+     "mean_rounds": 2.6666666666666665,
+     "attempted_per_run": 12.395833333333334,
+     "improvement_frequency": 0.19663865546218487,
+     "mean_improvement_percent_per_attempt": 0.0932745627856311,
+     "round1_improvement_frequency": 0.3269230769230769,
+     "round1_cost_reduction_percent": 0.6973777708777534,
+     "mean_solver_seconds": 0.0009885083200060762
+    },
+    "diffusion_minus_random_any_pp": {
+     "mean": 0.6881009308595696,
+     "ci95": [
+      0.27668843661218684,
+      1.0577569320536444
+     ]
+    },
+    "diffusion_minus_random_adjacent_pp": {
+     "mean": 0.6881009308595696,
+     "ci95": [
+      0.27668843661218684,
+      1.0577569320536444
+     ]
+    }
+   },
+   "sa_qubo": {
+    "diffusion": {
+     "runs": 16,
+     "gap_after": 20.410358021467314,
+     "mean_rounds": 1.875,
+     "attempted_per_run": 9.375,
+     "improvement_frequency": 0.15333333333333332,
+     "mean_improvement_percent_per_attempt": 0.05991456670318321,
+     "round1_improvement_frequency": 0.2727272727272727,
+     "round1_cost_reduction_percent": 0.5512795488657176,
+     "mean_solver_seconds": 2.459267300007923
+    },
+    "random_any": {
+     "runs": 48,
+     "gap_after": 19.884503919997872,
+     "mean_rounds": 2.6875,
+     "attempted_per_run": 12.666666666666666,
+     "improvement_frequency": 0.1924342105263158,
+     "mean_improvement_percent_per_attempt": 0.07859955669519303,
+     "round1_improvement_frequency": 0.2757009345794392,
+     "round1_cost_reduction_percent": 0.5008767241700401,
+     "mean_solver_seconds": 3.059799981250156
+    },
+    "random_adjacent": {
+     "runs": 48,
+     "gap_after": 19.884503919997872,
+     "mean_rounds": 2.6875,
+     "attempted_per_run": 12.666666666666666,
+     "improvement_frequency": 0.1924342105263158,
+     "mean_improvement_percent_per_attempt": 0.07859955669519303,
+     "round1_improvement_frequency": 0.2757009345794392,
+     "round1_cost_reduction_percent": 0.5008767241700401,
+     "mean_solver_seconds": 2.8716287875092044
+    },
+    "diffusion_minus_random_any_pp": {
+     "mean": 0.5258541014694411,
+     "ci95": [
+      0.11662961600212465,
+      0.923631523862205
+     ]
+    },
+    "diffusion_minus_random_adjacent_pp": {
+     "mean": 0.5258541014694411,
+     "ci95": [
+      0.11662961600212465,
+      0.923631523862205
+     ]
+    }
+   }
+  },
+  "100": {
+   "instances": 13,
+   "classical": {
+    "diffusion": {
+     "runs": 13,
+     "gap_after": 26.787376212786235,
+     "mean_rounds": 1.7692307692307692,
+     "attempted_per_run": 9.384615384615385,
+     "improvement_frequency": 0.13934426229508196,
+     "mean_improvement_percent_per_attempt": 0.03923471441951032,
+     "round1_improvement_frequency": 0.24285714285714285,
+     "round1_cost_reduction_percent": 0.36736482776472185,
+     "mean_solver_seconds": 0.012732061521651654
+    },
+    "random_any": {
+     "runs": 39,
+     "gap_after": 26.188525448119176,
+     "mean_rounds": 2.5384615384615383,
+     "attempted_per_run": 13.564102564102564,
+     "improvement_frequency": 0.20415879017013233,
+     "mean_improvement_percent_per_attempt": 0.06175740790861257,
+     "round1_improvement_frequency": 0.25980392156862747,
+     "round1_cost_reduction_percent": 0.36055473990480263,
+     "mean_solver_seconds": 0.001306600029914616
+    },
+    "random_adjacent": {
+     "runs": 39,
+     "gap_after": 26.188525448119176,
+     "mean_rounds": 2.5384615384615383,
+     "attempted_per_run": 13.564102564102564,
+     "improvement_frequency": 0.20415879017013233,
+     "mean_improvement_percent_per_attempt": 0.06175740790861257,
+     "round1_improvement_frequency": 0.25980392156862747,
+     "round1_cost_reduction_percent": 0.36055473990480263,
+     "mean_solver_seconds": 0.0012901974274800755
+    },
+    "diffusion_minus_random_any_pp": {
+     "mean": 0.5988507646670638,
+     "ci95": [
+      0.18502782592970804,
+      1.1254438751115032
+     ]
+    },
+    "diffusion_minus_random_adjacent_pp": {
+     "mean": 0.5988507646670638,
+     "ci95": [
+      0.18502782592970804,
+      1.1254438751115032
+     ]
+    }
+   },
+   "sa_qubo": {
+    "diffusion": {
+     "runs": 13,
+     "gap_after": 26.79855754573324,
+     "mean_rounds": 2.076923076923077,
+     "attempted_per_run": 11.307692307692308,
+     "improvement_frequency": 0.1292517006802721,
+     "mean_improvement_percent_per_attempt": 0.031796317271745055,
+     "round1_improvement_frequency": 0.21428571428571427,
+     "round1_cost_reduction_percent": 0.2920092640106775,
+     "mean_solver_seconds": 3.3622807922970073
+    },
+    "random_any": {
+     "runs": 39,
+     "gap_after": 26.23481632846575,
+     "mean_rounds": 2.8205128205128207,
+     "attempted_per_run": 15.41025641025641,
+     "improvement_frequency": 0.19633943427620631,
+     "mean_improvement_percent_per_attempt": 0.05215960268477007,
+     "round1_improvement_frequency": 0.23671497584541062,
+     "round1_cost_reduction_percent": 0.3078340529440612,
+     "mean_solver_seconds": 4.126177558988834
+    },
+    "random_adjacent": {
+     "runs": 39,
+     "gap_after": 26.23481632846575,
+     "mean_rounds": 2.8205128205128207,
+     "attempted_per_run": 15.41025641025641,
+     "improvement_frequency": 0.19633943427620631,
+     "mean_improvement_percent_per_attempt": 0.05215960268477007,
+     "round1_improvement_frequency": 0.23671497584541062,
+     "round1_cost_reduction_percent": 0.3078340529440612,
+     "mean_solver_seconds": 3.99074731543899
+    },
+    "diffusion_minus_random_any_pp": {
+     "mean": 0.5637412172674876,
+     "ci95": [
+      0.10948608733078279,
+      1.0897543115258517
+     ]
+    },
+    "diffusion_minus_random_adjacent_pp": {
+     "mean": 0.5637412172674876,
+     "ci95": [
+      0.10948608733078279,
+      1.0897543115258517
+     ]
+    }
+   }
+  }
+ },
+ "all": {
+  "instances": 45,
+  "classical": {
+   "diffusion": {
+    "runs": 45,
+    "gap_after": 17.611397784269986,
+    "mean_rounds": 1.5777777777777777,
+    "attempted_per_run": 6.6,
+    "improvement_frequency": 0.15151515151515152,
+    "mean_improvement_percent_per_attempt": 0.09319284073768073,
+    "round1_improvement_frequency": 0.2631578947368421,
+    "round1_cost_reduction_percent": 0.6143620781086345,
+    "mean_solver_seconds": 0.004009015539971491
+   },
+   "random_any": {
+    "runs": 135,
+    "gap_after": 17.089282054853822,
+    "mean_rounds": 2.1333333333333333,
+    "attempted_per_run": 9.11111111111111,
+    "improvement_frequency": 0.2008130081300813,
+    "mean_improvement_percent_per_attempt": 0.11530310573387816,
+    "round1_improvement_frequency": 0.2910602910602911,
+    "round1_cost_reduction_percent": 0.6725223486473672,
+    "mean_solver_seconds": 0.0008129533561360505
+   },
+   "random_adjacent": {
+    "runs": 135,
+    "gap_after": 17.089282054853822,
+    "mean_rounds": 2.1333333333333333,
+    "attempted_per_run": 9.11111111111111,
+    "improvement_frequency": 0.2008130081300813,
+    "mean_improvement_percent_per_attempt": 0.11530310573387816,
+    "round1_improvement_frequency": 0.2910602910602911,
+    "round1_cost_reduction_percent": 0.6725223486473672,
+    "mean_solver_seconds": 0.0007870044283292912
+   },
+   "diffusion_minus_random_any_pp": {
+    "mean": 0.5221157294161656,
+    "ci95": [
+     0.2237430417004075,
+     0.8222254668691441
+    ]
+   },
+   "diffusion_minus_random_adjacent_pp": {
+    "mean": 0.5221157294161656,
+    "ci95": [
+     0.2237430417004075,
+     0.8222254668691441
+    ]
+   }
+  },
+  "sa_qubo": {
+   "diffusion": {
+    "runs": 45,
+    "gap_after": 17.738014159098046,
+    "mean_rounds": 1.6888888888888889,
+    "attempted_per_run": 7.355555555555555,
+    "improvement_frequency": 0.14501510574018128,
+    "mean_improvement_percent_per_attempt": 0.06816353407938883,
+    "round1_improvement_frequency": 0.24561403508771928,
+    "round1_cost_reduction_percent": 0.4781662077743108,
+    "mean_solver_seconds": 2.0259783244458958
+   },
+   "random_any": {
+    "runs": 135,
+    "gap_after": 17.218918401031328,
+    "mean_rounds": 2.251851851851852,
+    "attempted_per_run": 9.777777777777779,
+    "improvement_frequency": 0.19772727272727272,
+    "mean_improvement_percent_per_attempt": 0.09642145633267138,
+    "round1_improvement_frequency": 0.25918367346938775,
+    "round1_cost_reduction_percent": 0.5089690908868751,
+    "mean_solver_seconds": 2.4749011392584417
+   },
+   "random_adjacent": {
+    "runs": 135,
+    "gap_after": 17.218918401031328,
+    "mean_rounds": 2.251851851851852,
+    "attempted_per_run": 9.777777777777779,
+    "improvement_frequency": 0.19772727272727272,
+    "mean_improvement_percent_per_attempt": 0.09642145633267138,
+    "round1_improvement_frequency": 0.25918367346938775,
+    "round1_cost_reduction_percent": 0.5089690908868751,
+    "mean_solver_seconds": 2.3658458511241607
+   },
+   "diffusion_minus_random_any_pp": {
+    "mean": 0.5190957580667193,
+    "ci95": [
+     0.2425894583400479,
+     0.7978420690348869
+    ]
+   },
+   "diffusion_minus_random_adjacent_pp": {
+    "mean": 0.5190957580667193,
+    "ci95": [
+     0.2425894583400479,
+     0.7978420690348869
+    ]
+   }
+  }
+ }
+}

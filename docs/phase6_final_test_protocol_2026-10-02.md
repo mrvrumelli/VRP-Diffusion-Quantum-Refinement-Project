@@ -61,3 +61,10 @@ classical baseline there is an exact solver, not local search. No configuration 
 
 `outputs/phase6_20261001/run_queue6.sh` runs every configuration above with
 `scripts/run_refinement_loop.py --once`.
+
+## Execution
+
+Run on 2026-10-02, after the declaration (commit `eec546d6b`) and the amendment (commit
+`ee7f45c74`), each configuration once with `--once`. Results and verdicts are in section 5 of the
+[Phase 6 write-up](phase6_refinement_experiments_2026-10-01.md#5-final-test); the raw outputs are in
+`outputs/phase6_20261001/final/`, with summaries copied to `docs/evidence/phase6_20261001/final/`.

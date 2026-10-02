@@ -1,0 +1,318 @@
+{
+ "20": {
+  "graphs": 24,
+  "classical": {
+   "gap_after": 2.39,
+   "solver_seconds": 0.2
+  },
+  "classical_restarts": {
+   "gap_after": 1.23,
+   "solver_seconds": 2.9
+  },
+  "classical_exact": {
+   "gap_after": 1.2,
+   "solver_seconds": 1.0
+  },
+  "sa_qubo": {
+   "gap_after": 2.3,
+   "solver_seconds": 7.4
+  },
+  "qaoa": {
+   "gap_after": 1.46,
+   "solver_seconds": 71.2
+  },
+  "random_qubo": {
+   "gap_after": 1.27,
+   "solver_seconds": 2.1
+  },
+  "qaoa+classical": {
+   "gap_after": 1.22,
+   "solver_seconds": 71.3
+  },
+  "qaoa_minus_random_qubo": [
+   0.19,
+   [
+    -0.08,
+    0.65
+   ],
+   "2 better / 3 worse"
+  ],
+  "qaoa_minus_classical_exact": [
+   0.26,
+   [
+    0.0,
+    0.74
+   ],
+   "0 better / 3 worse"
+  ],
+  "random_qubo_minus_classical_exact": [
+   0.07,
+   [
+    0.0,
+    0.16
+   ],
+   "0 better / 3 worse"
+  ],
+  "qaoa_minus_classical_restarts": [
+   0.23,
+   [
+    -0.06,
+    0.73
+   ],
+   "1 better / 3 worse"
+  ],
+  "classical_exact_minus_classical_restarts": [
+   -0.03,
+   [
+    -0.1,
+    0.0
+   ],
+   "1 better / 0 worse"
+  ],
+  "qaoa+classical_minus_classical_restarts": [
+   -0.02,
+   [
+    -0.1,
+    0.05
+   ],
+   "1 better / 2 worse"
+  ]
+ },
+ "50": {
+  "graphs": 24,
+  "classical": {
+   "gap_after": 11.3,
+   "solver_seconds": 1.3
+  },
+  "classical_restarts": {
+   "gap_after": 6.67,
+   "solver_seconds": 21.7
+  },
+  "classical_exact": {
+   "gap_after": 5.87,
+   "solver_seconds": 6.5
+  },
+  "sa_qubo": {
+   "gap_after": 6.59,
+   "solver_seconds": 29.4
+  },
+  "qaoa": {
+   "gap_after": 6.15,
+   "solver_seconds": 224.8
+  },
+  "random_qubo": {
+   "gap_after": 5.88,
+   "solver_seconds": 7.7
+  },
+  "qaoa+classical": {
+   "gap_after": 6.05,
+   "solver_seconds": 225.3
+  },
+  "qaoa_minus_random_qubo": [
+   0.28,
+   [
+    -0.26,
+    0.98
+   ],
+   "3 better / 4 worse"
+  ],
+  "qaoa_minus_classical_exact": [
+   0.29,
+   [
+    0.08,
+    0.58
+   ],
+   "0 better / 7 worse"
+  ],
+  "random_qubo_minus_classical_exact": [
+   0.01,
+   [
+    -0.79,
+    0.78
+   ],
+   "3 better / 7 worse"
+  ],
+  "qaoa_minus_classical_restarts": [
+   -0.52,
+   [
+    -1.23,
+    0.06
+   ],
+   "4 better / 6 worse"
+  ],
+  "classical_exact_minus_classical_restarts": [
+   -0.81,
+   [
+    -1.74,
+    -0.04
+   ],
+   "4 better / 2 worse"
+  ],
+  "qaoa+classical_minus_classical_restarts": [
+   -0.63,
+   [
+    -1.37,
+    -0.02
+   ],
+   "4 better / 4 worse"
+  ]
+ },
+ "100": {
+  "graphs": 24,
+  "classical": {
+   "gap_after": 14.5,
+   "solver_seconds": 3.0
+  },
+  "classical_restarts": {
+   "gap_after": 12.08,
+   "solver_seconds": 45.5
+  },
+  "classical_exact": {
+   "gap_after": 11.84,
+   "solver_seconds": 12.9
+  },
+  "sa_qubo": {
+   "gap_after": 12.14,
+   "solver_seconds": 43.0
+  },
+  "qaoa": {
+   "gap_after": 11.66,
+   "solver_seconds": 336.5
+  },
+  "random_qubo": {
+   "gap_after": 11.43,
+   "solver_seconds": 18.3
+  },
+  "qaoa+classical": {
+   "gap_after": 11.62,
+   "solver_seconds": 337.6
+  },
+  "qaoa_minus_random_qubo": [
+   0.23,
+   [
+    -0.04,
+    0.57
+   ],
+   "2 better / 9 worse"
+  ],
+  "qaoa_minus_classical_exact": [
+   -0.19,
+   [
+    -1.0,
+    0.34
+   ],
+   "2 better / 7 worse"
+  ],
+  "random_qubo_minus_classical_exact": [
+   -0.42,
+   [
+    -1.48,
+    0.22
+   ],
+   "3 better / 4 worse"
+  ],
+  "qaoa_minus_classical_restarts": [
+   -0.42,
+   [
+    -1.31,
+    0.24
+   ],
+   "5 better / 7 worse"
+  ],
+  "classical_exact_minus_classical_restarts": [
+   -0.23,
+   [
+    -0.68,
+    0.04
+   ],
+   "6 better / 2 worse"
+  ],
+  "qaoa+classical_minus_classical_restarts": [
+   -0.46,
+   [
+    -1.35,
+    0.19
+   ],
+   "5 better / 5 worse"
+  ]
+ },
+ "all": {
+  "graphs": 72,
+  "classical": {
+   "gap_after": 9.4,
+   "solver_seconds": 1.5
+  },
+  "classical_restarts": {
+   "gap_after": 6.66,
+   "solver_seconds": 23.4
+  },
+  "classical_exact": {
+   "gap_after": 6.3,
+   "solver_seconds": 6.8
+  },
+  "sa_qubo": {
+   "gap_after": 7.01,
+   "solver_seconds": 26.6
+  },
+  "qaoa": {
+   "gap_after": 6.43,
+   "solver_seconds": 210.8
+  },
+  "random_qubo": {
+   "gap_after": 6.19,
+   "solver_seconds": 9.4
+  },
+  "qaoa+classical": {
+   "gap_after": 6.3,
+   "solver_seconds": 211.4
+  },
+  "qaoa_minus_random_qubo": [
+   0.23,
+   [
+    -0.01,
+    0.53
+   ],
+   "7 better / 16 worse"
+  ],
+  "qaoa_minus_classical_exact": [
+   0.12,
+   [
+    -0.21,
+    0.39
+   ],
+   "2 better / 17 worse"
+  ],
+  "random_qubo_minus_classical_exact": [
+   -0.11,
+   [
+    -0.58,
+    0.25
+   ],
+   "6 better / 14 worse"
+  ],
+  "qaoa_minus_classical_restarts": [
+   -0.24,
+   [
+    -0.66,
+    0.12
+   ],
+   "10 better / 16 worse"
+  ],
+  "classical_exact_minus_classical_restarts": [
+   -0.36,
+   [
+    -0.71,
+    -0.08
+   ],
+   "11 better / 4 worse"
+  ],
+  "qaoa+classical_minus_classical_restarts": [
+   -0.37,
+   [
+    -0.76,
+    -0.06
+   ],
+   "10 better / 11 worse"
+  ]
+ }
+}

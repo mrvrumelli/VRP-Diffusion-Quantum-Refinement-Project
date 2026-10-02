@@ -10,8 +10,8 @@ import itertools
 
 import numpy as np
 import pytest
-from test_quantum_audit import exchange_case, instance, reorder_case
 
+from test_quantum_audit import exchange_case, instance, reorder_case
 from vrp_diffusion_quantum.local_search.baselines import solve_exchange, solve_reorder
 from vrp_diffusion_quantum.quantum.neighborhoods import (
     Neighborhood,

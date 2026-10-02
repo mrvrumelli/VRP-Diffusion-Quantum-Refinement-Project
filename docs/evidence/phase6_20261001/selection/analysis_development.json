@@ -1,0 +1,634 @@
+{
+ "classical|N20": {
+  "instances": 24,
+  "diffusion": {
+   "gap_after": 4.62,
+   "attempted_per_run": 10.8,
+   "improvement_frequency": 0.215,
+   "improvement_per_attempt_percent": 0.386,
+   "round1_improvement_frequency": 0.43,
+   "round1_cost_reduction_percent": 3.71,
+   "mean_rounds": 2.3
+  },
+  "random_any": {
+   "gap_after": 6.03,
+   "attempted_per_run": 12.0,
+   "improvement_frequency": 0.16,
+   "improvement_per_attempt_percent": 0.241,
+   "round1_improvement_frequency": 0.29,
+   "round1_cost_reduction_percent": 2.11,
+   "mean_rounds": 2.4
+  },
+  "random_adjacent": {
+   "gap_after": 5.17,
+   "attempted_per_run": 12.7,
+   "improvement_frequency": 0.177,
+   "improvement_per_attempt_percent": 0.29,
+   "round1_improvement_frequency": 0.325,
+   "round1_cost_reduction_percent": 2.54,
+   "mean_rounds": 2.6
+  },
+  "geometric": {
+   "gap_after": 2.33,
+   "attempted_per_run": 23.1,
+   "improvement_frequency": 0.171,
+   "improvement_per_attempt_percent": 0.275,
+   "round1_improvement_frequency": 0.385,
+   "round1_cost_reduction_percent": 4.69,
+   "mean_rounds": 3.0
+  },
+  "diffusion_minus_random_any_pp": [
+   -1.41,
+   [
+    -2.44,
+    -0.37
+   ],
+   "diffusion better on 15/24"
+  ],
+  "diffusion_minus_random_adjacent_pp": [
+   -0.54,
+   [
+    -1.52,
+    0.44
+   ],
+   "diffusion better on 12/24"
+  ],
+  "diffusion_minus_geometric_pp": [
+   2.29,
+   [
+    0.98,
+    3.76
+   ],
+   "diffusion better on 2/24"
+  ],
+  "round1_reduction_diffusion_minus_random_adjacent_pp": [
+   1.17,
+   [
+    0.28,
+    2.09
+   ]
+  ],
+  "all_four_gap_after": 2.14,
+  "all_four_minus_geometric_pp": [
+   -0.19,
+   [
+    -0.57,
+    0.11
+   ],
+   "all four better on 3/24"
+  ]
+ },
+ "classical|N50": {
+  "instances": 24,
+  "diffusion": {
+   "gap_after": 13.55,
+   "attempted_per_run": 34.8,
+   "improvement_frequency": 0.178,
+   "improvement_per_attempt_percent": 0.194,
+   "round1_improvement_frequency": 0.434,
+   "round1_cost_reduction_percent": 5.57,
+   "mean_rounds": 3.0
+  },
+  "random_any": {
+   "gap_after": 15.97,
+   "attempted_per_run": 34.9,
+   "improvement_frequency": 0.144,
+   "improvement_per_attempt_percent": 0.133,
+   "round1_improvement_frequency": 0.363,
+   "round1_cost_reduction_percent": 3.87,
+   "mean_rounds": 2.9
+  },
+  "random_adjacent": {
+   "gap_after": 14.47,
+   "attempted_per_run": 43.1,
+   "improvement_frequency": 0.144,
+   "improvement_per_attempt_percent": 0.137,
+   "round1_improvement_frequency": 0.376,
+   "round1_cost_reduction_percent": 4.12,
+   "mean_rounds": 3.6
+  },
+  "geometric": {
+   "gap_after": 11.11,
+   "attempted_per_run": 51.3,
+   "improvement_frequency": 0.197,
+   "improvement_per_attempt_percent": 0.173,
+   "round1_improvement_frequency": 0.558,
+   "round1_cost_reduction_percent": 5.94,
+   "mean_rounds": 3.6
+  },
+  "diffusion_minus_random_any_pp": [
+   -2.42,
+   [
+    -4.06,
+    -1.1
+   ],
+   "diffusion better on 21/24"
+  ],
+  "diffusion_minus_random_adjacent_pp": [
+   -0.93,
+   [
+    -2.35,
+    0.16
+   ],
+   "diffusion better on 17/24"
+  ],
+  "diffusion_minus_geometric_pp": [
+   2.44,
+   [
+    0.95,
+    4.08
+   ],
+   "diffusion better on 2/24"
+  ],
+  "round1_reduction_diffusion_minus_random_adjacent_pp": [
+   1.44,
+   [
+    0.8,
+    2.17
+   ]
+  ],
+  "all_four_gap_after": 10.21,
+  "all_four_minus_geometric_pp": [
+   -0.9,
+   [
+    -1.78,
+    -0.24
+   ],
+   "all four better on 9/24"
+  ]
+ },
+ "classical|N100": {
+  "instances": 24,
+  "diffusion": {
+   "gap_after": 16.75,
+   "attempted_per_run": 35.3,
+   "improvement_frequency": 0.207,
+   "improvement_per_attempt_percent": 0.186,
+   "round1_improvement_frequency": 0.54,
+   "round1_cost_reduction_percent": 5.96,
+   "mean_rounds": 2.6
+  },
+  "random_any": {
+   "gap_after": 17.48,
+   "attempted_per_run": 46.5,
+   "improvement_frequency": 0.167,
+   "improvement_per_attempt_percent": 0.128,
+   "round1_improvement_frequency": 0.494,
+   "round1_cost_reduction_percent": 4.75,
+   "mean_rounds": 3.4
+  },
+  "random_adjacent": {
+   "gap_after": 16.48,
+   "attempted_per_run": 57.9,
+   "improvement_frequency": 0.179,
+   "improvement_per_attempt_percent": 0.117,
+   "round1_improvement_frequency": 0.505,
+   "round1_cost_reduction_percent": 4.65,
+   "mean_rounds": 4.4
+  },
+  "geometric": {
+   "gap_after": 14.96,
+   "attempted_per_run": 81.2,
+   "improvement_frequency": 0.182,
+   "improvement_per_attempt_percent": 0.1,
+   "round1_improvement_frequency": 0.594,
+   "round1_cost_reduction_percent": 6.32,
+   "mean_rounds": 4.2
+  },
+  "diffusion_minus_random_any_pp": [
+   -0.73,
+   [
+    -1.31,
+    -0.2
+   ],
+   "diffusion better on 19/24"
+  ],
+  "diffusion_minus_random_adjacent_pp": [
+   0.27,
+   [
+    -0.41,
+    0.93
+   ],
+   "diffusion better on 11/24"
+  ],
+  "diffusion_minus_geometric_pp": [
+   1.79,
+   [
+    0.81,
+    2.81
+   ],
+   "diffusion better on 6/24"
+  ],
+  "round1_reduction_diffusion_minus_random_adjacent_pp": [
+   1.31,
+   [
+    0.93,
+    1.72
+   ]
+  ],
+  "all_four_gap_after": 13.74,
+  "all_four_minus_geometric_pp": [
+   -1.22,
+   [
+    -2.17,
+    -0.36
+   ],
+   "all four better on 16/24"
+  ]
+ },
+ "classical|Nall": {
+  "instances": 72,
+  "diffusion": {
+   "gap_after": 11.64,
+   "attempted_per_run": 27.0,
+   "improvement_frequency": 0.196,
+   "improvement_per_attempt_percent": 0.216,
+   "round1_improvement_frequency": 0.48,
+   "round1_cost_reduction_percent": 5.08,
+   "mean_rounds": 2.6
+  },
+  "random_any": {
+   "gap_after": 13.16,
+   "attempted_per_run": 31.1,
+   "improvement_frequency": 0.158,
+   "improvement_per_attempt_percent": 0.144,
+   "round1_improvement_frequency": 0.407,
+   "round1_cost_reduction_percent": 3.58,
+   "mean_rounds": 2.9
+  },
+  "random_adjacent": {
+   "gap_after": 12.04,
+   "attempted_per_run": 37.9,
+   "improvement_frequency": 0.165,
+   "improvement_per_attempt_percent": 0.144,
+   "round1_improvement_frequency": 0.422,
+   "round1_cost_reduction_percent": 3.77,
+   "mean_rounds": 3.5
+  },
+  "geometric": {
+   "gap_after": 9.47,
+   "attempted_per_run": 51.8,
+   "improvement_frequency": 0.185,
+   "improvement_per_attempt_percent": 0.15,
+   "round1_improvement_frequency": 0.542,
+   "round1_cost_reduction_percent": 5.65,
+   "mean_rounds": 3.6
+  },
+  "diffusion_minus_random_any_pp": [
+   -1.52,
+   [
+    -2.21,
+    -0.92
+   ],
+   "diffusion better on 55/72"
+  ],
+  "diffusion_minus_random_adjacent_pp": [
+   -0.4,
+   [
+    -1.02,
+    0.15
+   ],
+   "diffusion better on 40/72"
+  ],
+  "diffusion_minus_geometric_pp": [
+   2.17,
+   [
+    1.42,
+    2.95
+   ],
+   "diffusion better on 10/72"
+  ],
+  "round1_reduction_diffusion_minus_random_adjacent_pp": [
+   1.31,
+   [
+    0.91,
+    1.72
+   ]
+  ],
+  "all_four_gap_after": 8.7,
+  "all_four_minus_geometric_pp": [
+   -0.77,
+   [
+    -1.21,
+    -0.38
+   ],
+   "all four better on 28/72"
+  ]
+ },
+ "sa_qubo|N20": {
+  "instances": 24,
+  "diffusion": {
+   "gap_after": 4.45,
+   "attempted_per_run": 11.7,
+   "improvement_frequency": 0.199,
+   "improvement_per_attempt_percent": 0.371,
+   "round1_improvement_frequency": 0.4,
+   "round1_cost_reduction_percent": 3.94,
+   "mean_rounds": 2.4
+  },
+  "random_any": {
+   "gap_after": 6.29,
+   "attempted_per_run": 11.6,
+   "improvement_frequency": 0.152,
+   "improvement_per_attempt_percent": 0.228,
+   "round1_improvement_frequency": 0.272,
+   "round1_cost_reduction_percent": 1.99,
+   "mean_rounds": 2.3
+  },
+  "random_adjacent": {
+   "gap_after": 5.59,
+   "attempted_per_run": 11.8,
+   "improvement_frequency": 0.171,
+   "improvement_per_attempt_percent": 0.277,
+   "round1_improvement_frequency": 0.297,
+   "round1_cost_reduction_percent": 2.32,
+   "mean_rounds": 2.4
+  },
+  "geometric": {
+   "gap_after": 2.93,
+   "attempted_per_run": 24.3,
+   "improvement_frequency": 0.144,
+   "improvement_per_attempt_percent": 0.238,
+   "round1_improvement_frequency": 0.295,
+   "round1_cost_reduction_percent": 4.27,
+   "mean_rounds": 3.1
+  },
+  "diffusion_minus_random_any_pp": [
+   -1.84,
+   [
+    -2.97,
+    -0.72
+   ],
+   "diffusion better on 15/24"
+  ],
+  "diffusion_minus_random_adjacent_pp": [
+   -1.14,
+   [
+    -2.23,
+    -0.01
+   ],
+   "diffusion better on 14/24"
+  ],
+  "diffusion_minus_geometric_pp": [
+   1.52,
+   [
+    0.32,
+    2.86
+   ],
+   "diffusion better on 6/24"
+  ],
+  "round1_reduction_diffusion_minus_random_adjacent_pp": [
+   1.62,
+   [
+    0.59,
+    2.68
+   ]
+  ],
+  "all_four_gap_after": 2.31,
+  "all_four_minus_geometric_pp": [
+   -0.61,
+   [
+    -1.39,
+    -0.02
+   ],
+   "all four better on 6/24"
+  ]
+ },
+ "sa_qubo|N50": {
+  "instances": 24,
+  "diffusion": {
+   "gap_after": 12.77,
+   "attempted_per_run": 37.2,
+   "improvement_frequency": 0.16,
+   "improvement_per_attempt_percent": 0.199,
+   "round1_improvement_frequency": 0.423,
+   "round1_cost_reduction_percent": 6.11,
+   "mean_rounds": 3.2
+  },
+  "random_any": {
+   "gap_after": 15.98,
+   "attempted_per_run": 38.6,
+   "improvement_frequency": 0.13,
+   "improvement_per_attempt_percent": 0.12,
+   "round1_improvement_frequency": 0.342,
+   "round1_cost_reduction_percent": 3.83,
+   "mean_rounds": 3.1
+  },
+  "random_adjacent": {
+   "gap_after": 14.98,
+   "attempted_per_run": 42.4,
+   "improvement_frequency": 0.142,
+   "improvement_per_attempt_percent": 0.129,
+   "round1_improvement_frequency": 0.361,
+   "round1_cost_reduction_percent": 3.96,
+   "mean_rounds": 3.5
+  },
+  "geometric": {
+   "gap_after": 8.74,
+   "attempted_per_run": 69.6,
+   "improvement_frequency": 0.159,
+   "improvement_per_attempt_percent": 0.158,
+   "round1_improvement_frequency": 0.466,
+   "round1_cost_reduction_percent": 5.55,
+   "mean_rounds": 4.9
+  },
+  "diffusion_minus_random_any_pp": [
+   -3.2,
+   [
+    -4.6,
+    -1.96
+   ],
+   "diffusion better on 19/24"
+  ],
+  "diffusion_minus_random_adjacent_pp": [
+   -2.21,
+   [
+    -3.41,
+    -1.08
+   ],
+   "diffusion better on 18/24"
+  ],
+  "diffusion_minus_geometric_pp": [
+   4.04,
+   [
+    1.49,
+    6.73
+   ],
+   "diffusion better on 7/24"
+  ],
+  "round1_reduction_diffusion_minus_random_adjacent_pp": [
+   2.15,
+   [
+    1.44,
+    2.92
+   ]
+  ],
+  "all_four_gap_after": 6.45,
+  "all_four_minus_geometric_pp": [
+   -2.29,
+   [
+    -4.15,
+    -0.52
+   ],
+   "all four better on 18/24"
+  ]
+ },
+ "sa_qubo|N100": {
+  "instances": 24,
+  "diffusion": {
+   "gap_after": 15.94,
+   "attempted_per_run": 42.3,
+   "improvement_frequency": 0.191,
+   "improvement_per_attempt_percent": 0.172,
+   "round1_improvement_frequency": 0.539,
+   "round1_cost_reduction_percent": 6.44,
+   "mean_rounds": 3.1
+  },
+  "random_any": {
+   "gap_after": 17.64,
+   "attempted_per_run": 46.9,
+   "improvement_frequency": 0.162,
+   "improvement_per_attempt_percent": 0.124,
+   "round1_improvement_frequency": 0.454,
+   "round1_cost_reduction_percent": 4.51,
+   "mean_rounds": 3.4
+  },
+  "random_adjacent": {
+   "gap_after": 16.1,
+   "attempted_per_run": 66.6,
+   "improvement_frequency": 0.166,
+   "improvement_per_attempt_percent": 0.107,
+   "round1_improvement_frequency": 0.467,
+   "round1_cost_reduction_percent": 4.45,
+   "mean_rounds": 5.0
+  },
+  "geometric": {
+   "gap_after": 12.28,
+   "attempted_per_run": 111.1,
+   "improvement_frequency": 0.165,
+   "improvement_per_attempt_percent": 0.094,
+   "round1_improvement_frequency": 0.579,
+   "round1_cost_reduction_percent": 6.45,
+   "mean_rounds": 6.0
+  },
+  "diffusion_minus_random_any_pp": [
+   -1.71,
+   [
+    -2.63,
+    -0.86
+   ],
+   "diffusion better on 17/24"
+  ],
+  "diffusion_minus_random_adjacent_pp": [
+   -0.17,
+   [
+    -1.2,
+    0.78
+   ],
+   "diffusion better on 13/24"
+  ],
+  "diffusion_minus_geometric_pp": [
+   3.65,
+   [
+    2.0,
+    5.23
+   ],
+   "diffusion better on 4/24"
+  ],
+  "round1_reduction_diffusion_minus_random_adjacent_pp": [
+   2.0,
+   [
+    1.46,
+    2.56
+   ]
+  ],
+  "all_four_gap_after": 10.62,
+  "all_four_minus_geometric_pp": [
+   -1.67,
+   [
+    -2.96,
+    -0.42
+   ],
+   "all four better on 17/24"
+  ]
+ },
+ "sa_qubo|Nall": {
+  "instances": 72,
+  "diffusion": {
+   "gap_after": 11.05,
+   "attempted_per_run": 30.4,
+   "improvement_frequency": 0.179,
+   "improvement_per_attempt_percent": 0.208,
+   "round1_improvement_frequency": 0.47,
+   "round1_cost_reduction_percent": 5.5,
+   "mean_rounds": 2.9
+  },
+  "random_any": {
+   "gap_after": 13.3,
+   "attempted_per_run": 32.4,
+   "improvement_frequency": 0.148,
+   "improvement_per_attempt_percent": 0.135,
+   "round1_improvement_frequency": 0.378,
+   "round1_cost_reduction_percent": 3.45,
+   "mean_rounds": 2.9
+  },
+  "random_adjacent": {
+   "gap_after": 12.22,
+   "attempted_per_run": 40.3,
+   "improvement_frequency": 0.158,
+   "improvement_per_attempt_percent": 0.131,
+   "round1_improvement_frequency": 0.395,
+   "round1_cost_reduction_percent": 3.58,
+   "mean_rounds": 3.6
+  },
+  "geometric": {
+   "gap_after": 7.98,
+   "attempted_per_run": 68.3,
+   "improvement_frequency": 0.16,
+   "improvement_per_attempt_percent": 0.133,
+   "round1_improvement_frequency": 0.482,
+   "round1_cost_reduction_percent": 5.42,
+   "mean_rounds": 4.7
+  },
+  "diffusion_minus_random_any_pp": [
+   -2.25,
+   [
+    -2.93,
+    -1.62
+   ],
+   "diffusion better on 51/72"
+  ],
+  "diffusion_minus_random_adjacent_pp": [
+   -1.17,
+   [
+    -1.85,
+    -0.52
+   ],
+   "diffusion better on 45/72"
+  ],
+  "diffusion_minus_geometric_pp": [
+   3.07,
+   [
+    1.95,
+    4.24
+   ],
+   "diffusion better on 17/72"
+  ],
+  "round1_reduction_diffusion_minus_random_adjacent_pp": [
+   1.92,
+   [
+    1.46,
+    2.4
+   ]
+  ],
+  "all_four_gap_after": 6.46,
+  "all_four_minus_geometric_pp": [
+   -1.52,
+   [
+    -2.33,
+    -0.76
+   ],
+   "all four better on 41/72"
+  ]
+ }
+}

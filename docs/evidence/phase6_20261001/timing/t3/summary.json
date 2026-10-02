@@ -1,0 +1,175 @@
+{
+ "solutions": "outputs\\phase6_20261001\\timing_subset",
+ "options": {
+  "reads": 32,
+  "sweeps": 100,
+  "alpha": 0.5,
+  "seed": 0,
+  "rounds": 30,
+  "classical_restarts": 10,
+  "configs": [
+   "classical_restarts"
+  ],
+  "neighborhoods": {
+   "max_reorder_size": 10,
+   "max_exchange_size": 16,
+   "max_per_type": 30,
+   "uncertainty_margin": 0.2,
+   "low_confidence_threshold": 0.5,
+   "exchange_route_pairs_per_route": 2
+  }
+ },
+ "by_size": {
+  "20": {
+   "instances": 4,
+   "classical_restarts": {
+    "gap_before": 9.49363829008034,
+    "gap_after": 1.8027286682632222,
+    "gap_after_median": 0.5949302090470453,
+    "change_pp": -7.690909621817119,
+    "change_pp_ci95": [
+     -11.534452427107919,
+     -4.690767103002247
+    ],
+    "cost_reduction_percent": 6.939060464126762,
+    "cost_reduction_percent_ci95": [
+     4.332318169171989,
+     10.268031109492345
+    ],
+    "gap_closed_percent": 82.89235502862745,
+    "improved_instances": 4,
+    "at_or_below_reference": 2,
+    "routes_before": 4.0,
+    "routes_after": 3.75,
+    "mean_rounds": 3.75,
+    "converged_share": 1.0,
+    "mean_accepted_steps": 5.25,
+    "mean_attempted_steps": 43.0,
+    "mean_solver_seconds": 3.2587784000497777,
+    "mean_wall_seconds": 3.270647575001931,
+    "gap_by_round": [
+     3.5918234264417412,
+     2.1639957291591227,
+     1.865504332944512,
+     1.8027286682632222,
+     1.8027286682632222
+    ]
+   }
+  },
+  "50": {
+   "instances": 4,
+   "classical_restarts": {
+    "gap_before": 21.827994033274578,
+    "gap_after": 3.361941222176966,
+    "gap_after_median": 1.3393682318014926,
+    "change_pp": -18.46605281109762,
+    "change_pp_ci95": [
+     -21.682308920705594,
+     -13.886131767972673
+    ],
+    "cost_reduction_percent": 15.146123737060973,
+    "cost_reduction_percent_ci95": [
+     11.430617868622477,
+     17.60465800376752
+    ],
+    "gap_closed_percent": 84.51767863087782,
+    "improved_instances": 4,
+    "at_or_below_reference": 0,
+    "routes_before": 8.0,
+    "routes_after": 7.0,
+    "mean_rounds": 5.25,
+    "converged_share": 1.0,
+    "mean_accepted_steps": 17.75,
+    "mean_attempted_steps": 129.75,
+    "mean_solver_seconds": 26.16469304970815,
+    "mean_wall_seconds": 26.22514900000533,
+    "gap_by_round": [
+     11.472376038370168,
+     8.675694900780464,
+     7.297689580004576,
+     3.8391743758183936,
+     3.361941222176966,
+     3.361941222176966
+    ]
+   }
+  },
+  "100": {
+   "instances": 4,
+   "classical_restarts": {
+    "gap_before": 22.756316406600344,
+    "gap_after": 5.293048149844334,
+    "gap_after_median": 5.001249120314251,
+    "change_pp": -17.463268256756013,
+    "change_pp_ci95": [
+     -18.283418693197373,
+     -16.643117820314654
+    ],
+    "cost_reduction_percent": 14.227210703211599,
+    "cost_reduction_percent_ci95": [
+     13.534862067214245,
+     14.919559339208949
+    ],
+    "gap_closed_percent": 76.97874977080271,
+    "improved_instances": 4,
+    "at_or_below_reference": 0,
+    "routes_before": 11.5,
+    "routes_after": 11.25,
+    "mean_rounds": 6.25,
+    "converged_share": 1.0,
+    "mean_accepted_steps": 29.25,
+    "mean_attempted_steps": 265.75,
+    "mean_solver_seconds": 134.42575297455187,
+    "mean_wall_seconds": 134.6314865250315,
+    "gap_by_round": [
+     11.697907226392417,
+     8.141765011605482,
+     6.956100614776082,
+     6.079141773821227,
+     5.883895596922942,
+     5.5061094057656765,
+     5.293048149844334,
+     5.293048149844334
+    ]
+   }
+  }
+ },
+ "all": {
+  "instances": 12,
+  "classical_restarts": {
+   "gap_before": 18.02598290998509,
+   "gap_after": 3.485906013428174,
+   "gap_after_median": 2.494948126815226,
+   "change_pp": -14.540076896556917,
+   "change_pp_ci95": [
+    -17.631844776894027,
+    -11.12686599686426
+   ],
+   "cost_reduction_percent": 12.104131634799776,
+   "cost_reduction_percent_ci95": [
+    9.475391650822372,
+    14.510374476121608
+   ],
+   "gap_closed_percent": 81.46292781010267,
+   "improved_instances": 12,
+   "at_or_below_reference": 2,
+   "routes_before": 7.833333333333333,
+   "routes_after": 7.333333333333333,
+   "mean_rounds": 5.083333333333333,
+   "converged_share": 1.0,
+   "mean_accepted_steps": 17.416666666666668,
+   "mean_attempted_steps": 146.16666666666666,
+   "mean_solver_seconds": 54.6164081414366,
+   "mean_wall_seconds": 54.70909436667959,
+   "gap_by_round": [
+    8.92070223040144,
+    6.327151880515022,
+    5.37309817590839,
+    3.9070149393009483,
+    3.6828551624543766,
+    3.5569264320686216,
+    3.485906013428174,
+    3.485906013428174
+   ]
+  }
+ }
+}

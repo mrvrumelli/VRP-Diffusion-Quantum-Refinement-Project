@@ -1,0 +1,290 @@
+{
+ "reorder|p=1": {
+  "subproblems": 55,
+  "mean_qubits": 11.4,
+  "qaoa": {
+   "hit_rate": 0.782,
+   "kept_excess_percent": 0.481,
+   "mean_delta_cost_percent": 1.011,
+   "worse_than_start_before_acceptance": 0.2,
+   "valid_without_repair": 0.964,
+   "shots": 1024,
+   "mean_energy_evaluations": 279.0,
+   "mean_simulation_seconds": 1.82
+  },
+  "classical_ls": {
+   "hit_rate": 0.982,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.442,
+   "mean_seconds": 0.0
+  },
+  "classical_ls_budget": {
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "mean_seconds": 0.2507
+  },
+  "sa_qubo": {
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "mean_seconds": 0.2561
+  },
+  "sa_qubo_bias": {
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "mean_seconds": 0.2558
+  },
+  "optimum_mean_delta_cost_percent": 1.443,
+  "qaoa_best_of_stored_samples": {
+   "n": 55,
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "stored_samples": 43.7,
+   "stored_shot_share": 0.398,
+   "stored_shots_valid_without_repair": 0.208
+  }
+ },
+ "reorder|p=2": {
+  "subproblems": 55,
+  "mean_qubits": 11.4,
+  "qaoa": {
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "worse_than_start_before_acceptance": 0.0,
+   "valid_without_repair": 1.0,
+   "shots": 1024,
+   "mean_energy_evaluations": 771.0,
+   "mean_simulation_seconds": 7.94
+  },
+  "classical_ls": {
+   "hit_rate": 0.982,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.442,
+   "mean_seconds": 0.0
+  },
+  "classical_ls_budget": {
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "mean_seconds": 0.2507
+  },
+  "sa_qubo": {
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "mean_seconds": 0.2561
+  },
+  "sa_qubo_bias": {
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "mean_seconds": 0.2558
+  },
+  "optimum_mean_delta_cost_percent": 1.443,
+  "qaoa_best_of_stored_samples": {
+   "n": 55,
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "stored_samples": 43.7,
+   "stored_shot_share": 0.528,
+   "stored_shots_valid_without_repair": 0.535
+  }
+ },
+ "reorder|p=3": {
+  "subproblems": 55,
+  "mean_qubits": 11.4,
+  "qaoa": {
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "worse_than_start_before_acceptance": 0.0,
+   "valid_without_repair": 1.0,
+   "shots": 1024,
+   "mean_energy_evaluations": 1149.0,
+   "mean_simulation_seconds": 15.58
+  },
+  "classical_ls": {
+   "hit_rate": 0.982,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.442,
+   "mean_seconds": 0.0
+  },
+  "classical_ls_budget": {
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "mean_seconds": 0.2507
+  },
+  "sa_qubo": {
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "mean_seconds": 0.2561
+  },
+  "sa_qubo_bias": {
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "mean_seconds": 0.2558
+  },
+  "optimum_mean_delta_cost_percent": 1.443,
+  "qaoa_best_of_stored_samples": {
+   "n": 55,
+   "hit_rate": 1.0,
+   "kept_excess_percent": 0.0,
+   "mean_delta_cost_percent": 1.443,
+   "stored_samples": 43.4,
+   "stored_shot_share": 0.616,
+   "stored_shots_valid_without_repair": 0.616
+  }
+ },
+ "exchange|p=1": {
+  "subproblems": 192,
+  "mean_qubits": 7.9,
+  "qaoa": {
+   "hit_rate": 0.401,
+   "kept_excess_percent": 4.266,
+   "mean_delta_cost_percent": 2.533,
+   "worse_than_start_before_acceptance": 0.312,
+   "valid_without_repair": 0.948,
+   "shots": 1024,
+   "mean_energy_evaluations": 482.0,
+   "mean_simulation_seconds": 0.71
+  },
+  "classical_ls": {
+   "hit_rate": 0.891,
+   "kept_excess_percent": 0.282,
+   "mean_delta_cost_percent": 5.782,
+   "mean_seconds": 0.0252
+  },
+  "classical_ls_budget": {
+   "hit_rate": 0.974,
+   "kept_excess_percent": 0.02,
+   "mean_delta_cost_percent": 6.021,
+   "mean_seconds": 0.2654
+  },
+  "sa_qubo": {
+   "hit_rate": 0.703,
+   "kept_excess_percent": 3.351,
+   "mean_delta_cost_percent": 3.413,
+   "mean_seconds": 0.3031
+  },
+  "sa_qubo_bias": {
+   "hit_rate": 0.786,
+   "kept_excess_percent": 1.607,
+   "mean_delta_cost_percent": 4.681,
+   "mean_seconds": 0.3028
+  },
+  "optimum_mean_delta_cost_percent": 6.037,
+  "qaoa_best_of_stored_samples": {
+   "n": 192,
+   "hit_rate": 0.854,
+   "kept_excess_percent": 1.868,
+   "mean_delta_cost_percent": 4.588,
+   "stored_samples": 32.0,
+   "stored_shot_share": 0.58,
+   "stored_shots_valid_without_repair": 0.751
+  }
+ },
+ "exchange|p=2": {
+  "subproblems": 192,
+  "mean_qubits": 7.9,
+  "qaoa": {
+   "hit_rate": 0.453,
+   "kept_excess_percent": 3.975,
+   "mean_delta_cost_percent": 2.802,
+   "worse_than_start_before_acceptance": 0.307,
+   "valid_without_repair": 0.99,
+   "shots": 1024,
+   "mean_energy_evaluations": 608.0,
+   "mean_simulation_seconds": 1.22
+  },
+  "classical_ls": {
+   "hit_rate": 0.891,
+   "kept_excess_percent": 0.282,
+   "mean_delta_cost_percent": 5.782,
+   "mean_seconds": 0.0252
+  },
+  "classical_ls_budget": {
+   "hit_rate": 0.974,
+   "kept_excess_percent": 0.02,
+   "mean_delta_cost_percent": 6.021,
+   "mean_seconds": 0.2654
+  },
+  "sa_qubo": {
+   "hit_rate": 0.703,
+   "kept_excess_percent": 3.351,
+   "mean_delta_cost_percent": 3.413,
+   "mean_seconds": 0.3031
+  },
+  "sa_qubo_bias": {
+   "hit_rate": 0.786,
+   "kept_excess_percent": 1.607,
+   "mean_delta_cost_percent": 4.681,
+   "mean_seconds": 0.3028
+  },
+  "optimum_mean_delta_cost_percent": 6.037,
+  "qaoa_best_of_stored_samples": {
+   "n": 192,
+   "hit_rate": 0.818,
+   "kept_excess_percent": 2.407,
+   "mean_delta_cost_percent": 4.202,
+   "stored_samples": 31.1,
+   "stored_shot_share": 0.597,
+   "stored_shots_valid_without_repair": 0.793
+  }
+ },
+ "exchange|p=3": {
+  "subproblems": 192,
+  "mean_qubits": 7.9,
+  "qaoa": {
+   "hit_rate": 0.422,
+   "kept_excess_percent": 4.272,
+   "mean_delta_cost_percent": 2.537,
+   "worse_than_start_before_acceptance": 0.328,
+   "valid_without_repair": 0.964,
+   "shots": 1024,
+   "mean_energy_evaluations": 631.0,
+   "mean_simulation_seconds": 1.81
+  },
+  "classical_ls": {
+   "hit_rate": 0.891,
+   "kept_excess_percent": 0.282,
+   "mean_delta_cost_percent": 5.782,
+   "mean_seconds": 0.0252
+  },
+  "classical_ls_budget": {
+   "hit_rate": 0.974,
+   "kept_excess_percent": 0.02,
+   "mean_delta_cost_percent": 6.021,
+   "mean_seconds": 0.2654
+  },
+  "sa_qubo": {
+   "hit_rate": 0.703,
+   "kept_excess_percent": 3.351,
+   "mean_delta_cost_percent": 3.413,
+   "mean_seconds": 0.3031
+  },
+  "sa_qubo_bias": {
+   "hit_rate": 0.786,
+   "kept_excess_percent": 1.607,
+   "mean_delta_cost_percent": 4.681,
+   "mean_seconds": 0.3028
+  },
+  "optimum_mean_delta_cost_percent": 6.037,
+  "qaoa_best_of_stored_samples": {
+   "n": 192,
+   "hit_rate": 0.828,
+   "kept_excess_percent": 2.375,
+   "mean_delta_cost_percent": 4.227,
+   "stored_samples": 31.0,
+   "stored_shot_share": 0.591,
+   "stored_shots_valid_without_repair": 0.758
+  }
+ }
+}

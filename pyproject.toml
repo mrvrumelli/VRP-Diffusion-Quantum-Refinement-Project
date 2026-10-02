@@ -72,7 +72,7 @@ markers = [
 line-length = 100
 target-version = "py311"
 src = ["src", "tests", "scripts"]
-extend-exclude = [".phase1-venv", ".test-tmp", ".test-tmp-*"]
+extend-exclude = [".phase1-venv", ".test-tmp", ".test-tmp-*", "docs/evidence/*/scripts"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "ANN", "RUF"]

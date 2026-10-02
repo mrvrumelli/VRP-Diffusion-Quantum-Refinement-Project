@@ -1,0 +1,53 @@
+{
+ "seeds": [
+  0,
+  1,
+  2
+ ],
+ "classical_restarts": {
+  "per_seed": {
+   "0": 6.2,
+   "1": 6.4,
+   "2": 6.44
+  },
+  "mean": 6.35,
+  "sd_across_seeds": 0.13
+ },
+ "sa_qubo": {
+  "per_seed": {
+   "0": 6.99,
+   "1": 7.16,
+   "2": 6.91
+  },
+  "mean": 7.02,
+  "sd_across_seeds": 0.13
+ },
+ "sa_minus_restarts_seed0": [
+  0.79,
+  [
+   -0.09,
+   1.67
+  ]
+ ],
+ "sa_minus_restarts_seed1": [
+  0.76,
+  [
+   -0.16,
+   1.65
+  ]
+ ],
+ "sa_minus_restarts_seed2": [
+  0.47,
+  [
+   -0.45,
+   1.32
+  ]
+ ],
+ "sa_minus_restarts_seed_averaged": [
+  0.67,
+  [
+   -0.06,
+   1.37
+  ]
+ ]
+}
