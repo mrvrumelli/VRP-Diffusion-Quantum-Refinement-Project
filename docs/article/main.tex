@@ -1,0 +1,647 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=25mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+\setlength{\emergencystretch}{2em}
+\newcommand{\E}{\mathcal{E}}
+\newcommand{\R}{\mathcal{R}}
+
+\title{Diffusion-Informed QUBO Formulations for Vehicle Routing Refinement:\\
+Formulation and Benchmarking against Classical Search}
+\author{Author names and affiliations to be added}
+\date{Working draft --- 5 October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We propose a diffusion-informed quadratic unconstrained binary optimization
+(QUBO) formulation for local refinement of capacitated vehicle routing
+solutions. The formulation converts a diffusion model's soft route-membership
+matrix into linear assignment costs and quadratic customer-pair interactions,
+combining learned structure with route-cost terms and feasibility penalties.
+Our second contribution is a controlled benchmark against classical refinement
+algorithms, including 2-opt, relocate/swap, restarted search, and exact local
+solvers. Simulated annealing, simulated quantum annealing, and the quantum
+approximate optimization algorithm (QAOA) provide alternative QUBO solvers.
+Bias ablations test the matrix-derived terms, while a predeclared evaluation
+compares refinement operators on 96 reserved and 72 spatial stress instances. On the
+reserved set, the mean gap to strong heuristic references falls from 19.22\%
+before refinement to 9.69\% with inexpensive classical refinement and 4.14\%
+with larger, restarted classical neighborhoods. QAOA, simulated with at most
+16 qubits, reaches 7.12\% at smaller neighborhoods, compared with 7.03\% for
+exact classical subproblem solving and 7.46\% for matched random sampling;
+the paired intervals do not distinguish these outcomes. Learned guidance is
+useful for selecting exchanges, but the tested QUBO operators show no reliable
+advantage over strong classical refinement. These are simulation results and
+do not establish quantum speedup or hardware performance.
+\end{abstract}
+
+\section{Introduction}
+
+The capacitated vehicle routing problem (CVRP) asks for short depot-to-depot
+routes that serve every customer while respecting vehicle capacity. The project
+studies whether a learned description of route membership can support both
+solution construction and subsequent improvement. Its starting point is the
+constraints matrix diffusion approach of Wang et al.\ \cite{cmd}, in which a
+discrete diffusion model supplies structural information to an autoregressive
+routing policy.
+
+The project extends that construction pipeline by converting its matrix
+output into the objective of a local combinatorial optimization problem.
+This gives the learned structure a second role: it influences the assignments
+and interactions that a refinement solver optimizes. The resulting QUBO can
+be solved by different classical or simulated quantum methods.
+
+\subsection{Contributions}
+
+The project makes two principal contributions:
+\begin{enumerate}
+ \item \textbf{A diffusion-informed local QUBO formulation.}
+ We propose an explicit mapping from the predicted same-route matrix to
+ QUBO coefficients. For two-route exchanges, matrix entries determine
+ customer-to-route assignment costs and customer-pair interactions; for
+ reordering, they determine preferences for consecutive visits. These terms
+ augment geometric objectives and feasibility penalties, with one weight
+ controlling the contribution of learned information. The methodological
+ contribution is this coupling of the diffusion output to local QUBO
+ optimization, including a bias-off control and true-cost acceptance.
+ \item \textbf{Comparative benchmarking against classical refinement.}
+ We compare QUBO-based refinement with 2-opt, relocate/swap, multistart local
+ search, and exact subproblem solvers. Fixed-subproblem experiments isolate
+ solver behavior on identical neighborhoods; complete refinement loops
+ measure the effect on feasible CVRP solutions. Matrix-bias and neighborhood
+ selection ablations, matched random sampling, recorded computational
+ budgets, and paired confidence intervals separate the contribution of
+ learned information from the contribution of the optimization algorithm.
+\end{enumerate}
+
+The diffusion predictor and constructive policy supply the experimental
+backbone. Data generation, label auditing, and the frozen
+\texttt{baseline-v1.0} make the comparisons reproducible. The contribution
+claimed here concerns the matrix-to-QUBO coupling and its evaluation; the
+diffusion architecture, one-hot encoding, classical moves, and QAOA are
+building blocks. The repository also maintains a separate paper-guided
+reconstruction track; the reported refinement uses the project baseline.
+
+Two questions organize the evaluation: does incorporating the diffusion
+matrix improve local QUBO refinement, and how does the resulting approach
+compare with classical refinement algorithms? A useful formulation need
+not imply a quantum advantage. The benchmark therefore reports both the
+benefits of matrix guidance and the cases where classical refinement is
+more effective.
+
+\section{Problem and learned pipeline}
+
+Let the depot be node $0$, let customers be $1,\ldots,n$, let $d_{ij}$ be
+Euclidean distance, and let customer $i$ have demand $q_i$. A solution $\R$
+is a collection of routes that visits every customer exactly once. Each route
+starts and ends at the depot and satisfies $\sum_{i\in r}q_i\leq Q$, where
+$Q$ is vehicle capacity. The objective is
+\begin{equation}
+ C(\R)=\sum_{r\in\R}\sum_{(i,j)\in r}d_{ij}.
+\end{equation}
+The experiments cover $n\in\{20,50,100\}$. The spatial stress regimes are random
+(R), clustered (C), and mixed random/clustered (RC) plain CVRP instances;
+they do not include time windows.
+
+The matrix target is $M_{ij}=1$ when customers $i$ and $j$ belong to the same
+reference route, and zero otherwise. This is a route-membership matrix, not
+an adjacency matrix specifying visit order. Because different near-equal-cost
+solutions can partition customers differently, reference auditing checks both
+route cost and partition stability. The project also supports stochastic
+selection among competitive reference partitions during training. Reference
+costs are heuristic solutions, not certified optima.
+
+A graph attention encoder represents the instance, and a discrete denoiser
+learns to recover route membership from corrupted matrices. The frozen
+baseline uses separate models for the three sizes and regenerates a soft
+matrix $P=(p_{ij})$ using 50 reverse-diffusion steps and the corrected
+\texttt{posterior\_mixture\_v2} sampler. A reinforcement-learning policy combines
+global instance information with matrix-guided local information, constructs
+capacity-feasible routes, and keeps the cheapest of 16 greedy starts. Its
+weights and the diffusion weights remain fixed during refinement.
+
+The pipeline can be summarized as
+\begin{center}
+\fbox{\parbox{0.91\linewidth}{\centering
+Instance $\longrightarrow$ diffusion membership prior $P$
+$\longrightarrow$ policy routes $\R_0$\\[3pt]
+$\longrightarrow$ neighborhood selection
+$\longrightarrow$ local solver and repair
+$\longrightarrow$ feasible, lower-cost routes.
+}}
+\end{center}
+The prior guides both the initial policy and the later choice of neighborhoods.
+Its conversion into QUBO coefficients is the proposed formulation developed
+below. Neighborhood guidance and objective guidance are evaluated separately,
+with objective guidance disabled in the bias-off controls.
+
+\section{Local refinement and QUBO formulations}
+
+\subsection{Neighborhoods and acceptance}
+
+Four selectors identify expensive route segments, customers with uncertain
+membership between two routes, consecutive customers with low predicted
+same-route probability, and geometrically nearby route pairs. Their proposals
+create either a segment-reordering problem or a two-route exchange problem.
+All other customers and the relevant segment boundaries remain fixed.
+
+Every proposed solution is decoded, repaired if necessary, and rescored using
+the true full-route cost. The update is accepted only when
+\begin{equation}
+ \R'\text{ is feasible}\quad\text{and}\quad C(\R')<C(\R).
+ \label{eq:accept}
+\end{equation}
+Thus, an unsuccessful or infeasible QUBO proposal leaves the current solution
+unchanged. The loop repeats selection and refinement until a round makes no
+improvement or reaches its round limit. This is local refinement of an existing
+CVRP solution; the entire instance is never encoded as one QUBO.
+
+\subsection{Route reordering}
+
+For $k$ customers between fixed endpoints $s$ and $e$, let $x_{ip}=1$ when
+customer $i$ occupies position $p$. The one-hot formulation uses $k^2$ binary
+variables:
+\begin{align}
+ E_{\mathrm{reorder}}(x)
+ &=\sum_i d_{si}x_{i1}
+   +\sum_{p=1}^{k-1}\sum_{i\ne j}d_{ij}x_{ip}x_{j,p+1}
+   +\sum_i d_{ie}x_{ik} \nonumber\\
+ &\quad+A\sum_i\left(\sum_p x_{ip}-1\right)^2
+       +A\sum_p\left(\sum_i x_{ip}-1\right)^2.
+ \label{eq:reorder}
+\end{align}
+The penalty $A$ scales with the largest local distance and is enlarged when
+bias terms are enabled. On valid permutations, the unbiased energy equals
+the segment's true path cost. Invalid samples are repaired by a subset dynamic
+program that maximizes agreement with the sampled bits and then minimizes
+path cost among equally agreeing permutations. Consequently, classical repair
+can contribute substantially to the quality of a sampled solution.
+
+\subsection{Two-route exchange}
+
+Let $y_i=1$ assign movable customer $i$ to route $a$ and $y_i=0$ assign it to
+route $b$. Let $I_a(i)$ and $I_b(i)$ be cheapest insertion costs into the
+fixed customers of those routes. The implemented surrogate is
+\begin{equation}
+ S(y)=\sum_i\bigl[y_iI_a(i)+(1-y_i)I_b(i)\bigr]
+ +\frac{\gamma}{\max(m-1,1)}\sum_{i<j}d_{ij}
+       (1-y_i-y_j+2y_iy_j),
+ \label{eq:exchange}
+\end{equation}
+where $m$ is the number of movable customers and $\gamma$ controls dispersion.
+The last factor is one when the customers are assigned to the same route.
+For fixed loads $F_a,F_b$, capacity penalties have the form
+\begin{equation}
+ A\left(F_a+\sum_i q_i y_i+u_a-Q\right)^2
+ +A\left(F_b+\sum_i q_i(1-y_i)+u_b-Q\right)^2,
+\end{equation}
+with nonnegative binary-encoded slack $u_a,u_b$. Constraints that cannot bind
+need no slack. Integral demands permit exact load representation, and the
+penalty is chosen to dominate the surrogate's range.
+
+Unlike the reorder energy, $S(y)$ is not the true route objective. Decoding
+reconstructs each route using nearest-neighbor ordering and 2-opt before
+applying Equation~\eqref{eq:accept}. An ``exact exchange'' result therefore
+means the best assignment under this reconstruction rule, not an exact joint
+solution of membership and visit order.
+
+\subsection{Proposed diffusion-matrix-to-QUBO mapping}
+\label{sec:matrix-qubo}
+
+The proposed formulation augments the preceding geometric objectives with
+coefficients computed from the diffusion output $P$. For binary decision
+vector $z$, write
+\begin{equation}
+ E_\alpha(z;P)=C_{\mathrm{local}}(z)+\Pi_\alpha(z)+\alpha B(z;P),
+ \qquad \alpha\geq 0,
+ \label{eq:diffusion-qubo}
+\end{equation}
+where $C_{\mathrm{local}}$ is the reorder path cost or exchange surrogate,
+$\Pi_\alpha$ contains the constraint penalties, and $B$ expresses agreement
+with the learned matrix. The matrix is fixed during local optimization, so
+the resulting objective remains quadratic in the decision variables.
+
+For exchanges, let $\mathcal{F}_r$ contain the fixed customers of route
+$r\in\{a,b\}$. Define the predicted affinity of movable customer $i$ to
+that route by
+\begin{equation}
+ a_{ir}=\begin{cases}
+ |\mathcal{F}_r|^{-1}\displaystyle\sum_{j\in\mathcal{F}_r}p_{ij},
+       &\mathcal{F}_r\ne\varnothing,\\
+ 1/2, &\mathcal{F}_r=\varnothing.
+ \end{cases}
+\end{equation}
+In probability mode the matrix-derived exchange term is
+\begin{align}
+ B_{\mathrm{ex}}(y;P)
+ &=s_{\mathrm{ex}}\sum_i
+       \bigl[y_i(1-a_{ia})+(1-y_i)(1-a_{ib})\bigr] \nonumber\\
+ &\quad+s_{\mathrm{ex}}\sum_{i<j}(1-2p_{ij})
+       (1-y_i-y_j+2y_iy_j).
+ \label{eq:matrix-exchange}
+\end{align}
+The first term favors assigning a customer to the route whose fixed members
+have higher predicted affinity. The second rewards a shared assignment when
+$p_{ij}>1/2$ and penalizes it when $p_{ij}<1/2$. Expanding these expressions
+gives linear and quadratic QUBO coefficients directly from $P$.
+
+For reorders, define $\phi(u,v)=1-p_{uv}$ when both endpoints are customers
+and $\phi(u,v)=0$ when either is the depot. The corresponding term is
+\begin{align}
+ B_{\mathrm{re}}(x;P)=s_{\mathrm{re}}\Bigl[
+ &\sum_i\phi(s,i)x_{i1}
+ +\sum_{\ell=1}^{k-1}\sum_{i\ne j}\phi(i,j)x_{i\ell}x_{j,\ell+1}
+ \nonumber\\
+ &+\sum_i\phi(i,e)x_{ik}\Bigr].
+ \label{eq:matrix-reorder}
+\end{align}
+The scales $s_{\mathrm{ex}}$ and $s_{\mathrm{re}}$ are the means of positive
+insertion costs and positive local distances, respectively, with a unit
+fallback if none are positive. This uses same-route predictions as a soft
+preference for consecutive visits; it does not assume that the matrix
+predicts route adjacency.
+
+The implementation also supports confidence mode, multiplying each
+probability-derived cost by $|2p-1|$ for its corresponding probability
+(including route affinities). Penalties in $\Pi_\alpha$ are increased to
+cover the additional bias, preserving the underlying constraint treatment.
+Setting $\alpha=0$ recovers the geometric QUBO control. Thus, comparing
+positive $\alpha$ with zero measures the effect of the proposed matrix
+coupling without changing the basic decision variables. Raw energies across
+these objectives are not directly comparable; true route cost and feasibility
+remain the evaluation criteria.
+
+\subsection{Refinement solvers and classical controls}
+
+Classical controls use 2-opt for reorders and relocate/swap for exchanges,
+optionally with multiple starting points. Exact controls use Held--Karp
+dynamic programming and assignment enumeration. Simulated annealing (SA)
+is a classical QUBO sampler. Simulated quantum annealing (SQA) uses
+path-integral Monte Carlo with 16 Trotter replicas and also runs on a classical
+computer.
+
+QAOA\ \cite{qaoa} is evaluated using an exact, noise-free statevector simulator.
+The cost unitary encodes the QUBO energy and alternates with an $X$ mixer.
+The final loop uses depth one, COBYLA angle optimization from four random
+starts, 1,024 shots, and at most 16 qubits. Up to 50 lowest-energy distinct
+sampled states are decoded and scored on true route cost. The random control
+uses uniform bitstrings with the same shot count, retention rule, repair, and
+qubit limit. Larger QUBOs are skipped unchanged. The shot budget concerns
+final sampling; angle optimization uses exact expectations rather than noisy
+hardware measurements.
+
+\section{Experimental protocol}
+
+Development uses 72 graphs, 24 per size. A separate validation set contains
+45 graphs, with 16, 16, and 13 at sizes 20, 50, and 100. These sets informed
+refinement settings and exploratory ablations. The final refinement protocol
+was declared before refinement runs on 96 reserved graphs, 32 per size, and
+72 spatial stress graphs, eight per regime and size. The starting baseline
+had already been scored and frozen. Each final configuration was then run
+once with seed zero, all four selectors, and a maximum of 30 rounds.
+
+The reserved reference is the best of the original label and two seeded
+PyVRP runs with 10, 20, and 40 seconds of search per size, respectively.
+Other panels use their instance labels. PyVRP is a strong hybrid genetic
+search reference solver\ \cite{pyvrp}. Reported gaps are mean
+instance-relative gaps:
+\begin{equation}
+ g_i=100\frac{C_i-C_i^{\mathrm{ref}}}{C_i^{\mathrm{ref}}},\qquad
+ \bar g=\frac{1}{N}\sum_{i=1}^N g_i.
+\end{equation}
+They are not percentages above a proven optimum. Paired comparisons report
+the mean of $g_i^{(a)}-g_i^{(b)}$ in percentage points (pp), with 95\%
+percentile-bootstrap intervals from 10,000 graph resamples, seed zero.
+A negative difference favors the first method. Intervals describe graph
+variation under fixed trained models and do not measure training-seed
+uncertainty or adjust for multiple comparisons.
+
+The notation $k/m/h$ denotes maximum reorder length, movable exchange
+customers, and neighborhoods per selector per round. ``10 starts'' means
+the current solution plus nine random starts, matching the code's
+\texttt{classical\_restarts=10}. ``One start'' is a single local-search run
+per subproblem, repeated across refinement rounds, not just one loop round.
+SA uses 32 reads of 100 sweeps in the final loops. The matrix-derived
+objective terms are evaluated in the development and validation bias
+ablations. The final SA and QAOA arms use $\alpha=0$, while retaining
+matrix-guided neighborhood selection. Accordingly, the final-test tables
+establish comparisons between refinement operators; they do not constitute
+a reserved-test evaluation of the positive-$\alpha$ formulation.
+
+The fixed-subproblem comparisons use identical extracted subproblems. Full
+loops share starting routes and neighborhood rules, but accepted moves cause
+their later neighborhoods to diverge. Equal neighborhood limits therefore do
+not imply identical search trajectories or equal wall-clock budgets.
+
+\section{Final refinement results}
+
+\begin{table}[tbp]
+\centering\small
+\setlength{\tabcolsep}{3.5pt}
+\caption{Final mean reference gaps (\%). The reserved set has 96 graphs;
+the R/C/RC set has 72. All configurations use the same frozen starting
+solutions within each set. Bold values identify the lowest gaps.}
+\label{tab:final}
+\begin{tabular}{@{}llcrrrrr@{}}
+\toprule
+ & & & \multicolumn{4}{c}{Reserved test} & R/C/RC\\
+ID & Refinement & $k/m/h$ & N20 & N50 & N100 & All & All\\
+\midrule
+-- & Baseline & -- & 8.56 & 21.88 & 27.20 & 19.22 & 16.53\\
+T1 & Classical, one start & 5/8/10 & 3.85 & 9.59 & 15.63 & 9.69 & 7.84\\
+T2 & Classical, 10 starts & 5/8/30 & 1.92 & 5.81 & 8.89 & 5.54 & 5.00\\
+T3 & Classical, 10 starts & 10/16/30 & \textbf{1.16} & \textbf{4.48} & \textbf{6.77} & \textbf{4.14} & \textbf{3.54}\\
+T4 & SA & 5/8/30 & 3.05 & 6.36 & 9.36 & 6.26 & 5.23\\
+T5 & SA + classical & 5/8/30 & 1.89 & 5.18 & 8.19 & 5.09 & 4.49\\
+T6 & QAOA, depth 1 & 4/6/10 & 2.36 & 6.77 & 12.24 & 7.12 & 6.20\\
+T7 & Random QUBO & 4/6/10 & 2.43 & 7.57 & 12.36 & 7.46 & 6.15\\
+T8 & Classical, 10 starts & 4/6/10 & 2.52 & 6.82 & 12.24 & 7.19 & 6.34\\
+T9 & QAOA + classical & 4/6/10 & 2.24 & 6.67 & 12.05 & 6.99 & 6.06\\
+T10 & Classical exact & 4/6/10 & 2.21 & 6.74 & 12.13 & 7.03 & 6.10\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:final} shows that local refinement improves the learned
+solutions substantially. T1 reduces the reserved mean gap from 19.22\%
+to 9.69\%, while T3 reaches 4.14\%. The analogous spatial stress gaps fall
+from 16.53\% to 7.84\% and 3.54\%. Every final configuration improves
+95 of 96 reserved graphs and all 72 spatial stress graphs. The remaining
+reserved graph already matched its reference. Accepted outputs stay feasible.
+
+The strongest observed configuration is classical search with larger
+neighborhoods (T3). This is a best-configuration comparison, not evidence
+isolating the solver: T3 is allowed larger moves than the QAOA arms. The
+matched-limit comparisons are T4 versus T2 and T6 versus T7, T8, and T10.
+
+\begin{table}[tbp]
+\centering\small
+\caption{Predeclared paired gap differences in pp, with 95\% bootstrap
+intervals. Negative values favor the first method. An interval containing
+zero is inconclusive, not a demonstration of equivalence.}
+\label{tab:contrasts}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Comparison & Reserved test & R/C/RC\\
+\midrule
+T1 $-$ baseline & $-9.53\ [-10.54,-8.49]$ & $-8.68\ [-9.90,-7.57]$\\
+T3 $-$ baseline & $-15.08\ [-16.47,-13.65]$ & $-12.98\ [-14.54,-11.43]$\\
+T4 $-$ T2: SA $-$ classical & $+0.72\ [+0.16,+1.27]$ & $+0.23\ [-0.33,+0.79]$\\
+T5 $-$ T2: SA before polish & $-0.45\ [-0.96,+0.04]$ & $-0.51\ [-1.02,-0.01]$\\
+T6 $-$ T7: QAOA $-$ random & $-0.34\ [-0.76,+0.02]$ & $+0.05\ [-0.10,+0.20]$\\
+T6 $-$ T10: QAOA $-$ exact & $+0.09\ [-0.18,+0.35]$ & $+0.09\ [-0.06,+0.29]$\\
+T6 $-$ T8: QAOA $-$ classical & $-0.07\ [-0.56,+0.38]$ & $-0.15\ [-0.53,+0.23]$\\
+T9 $-$ T8: QAOA before polish & $-0.21\ [-0.68,+0.24]$ & $-0.29\ [-0.63,+0.03]$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+SA is worse than restarted classical search on the reserved test by
+0.72 pp, with an interval entirely above zero (Table~\ref{tab:contrasts}).
+On the spatial stress set this comparison is inconclusive. Adding SA before
+classical polish reduces the mean gap by about half a point, but the reserved
+interval includes zero. The spatial interval narrowly excludes zero; this
+small result should be interpreted alongside the multiple comparisons and
+the additional computation. In the archived final runs, the hybrid consumes
+approximately 26--39\% more solver time than its classical control.
+
+QAOA gives no statistically resolved improvement over random sampling,
+restarted classical search, or exact classical subproblem solving on either
+final set. Its reserved gap is 7.12\%, compared with 7.46\%, 7.19\%, and
+7.03\%, respectively. QAOA followed by classical polish also has an interval
+including zero against classical search alone. Approximately 0.6--0.8\% of
+QAOA subproblem attempts exceed the 16-qubit limit and are skipped.
+
+\section{Understanding the benchmark outcomes}
+
+\subsection{Formulation and single-subproblem performance}
+
+The reorder QUBO's exact minimum agrees with the true optimum on all 84
+enumerable development and validation segments. For exchanges, exact QUBO
+minimization returns a capacity-feasible assignment on all 698 tested
+subproblems, but matches the best reconstructed route cost on only 197/430
+development and 117/268 validation exchanges. About one fifth of those
+surrogate-optimal candidates are worse than the starting routes. This
+distinction limits any solver that optimizes the exchange QUBO, even if it
+finds its ground state.
+
+\begin{table}[tbp]
+\centering\small
+\caption{Local optimum hit rates (\%) on frozen subproblems. There are
+392/243 development/validation reorders and 430/268 exchanges. Budgeted
+methods target 0.25 s per subproblem; individual work units can overrun it.
+The SQA comparison is a separate run, with an SA control from that run.}
+\label{tab:local}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+ & \multicolumn{2}{c}{Reorder} & \multicolumn{2}{c}{Exchange}\\
+Method & Dev. & Val. & Dev. & Val.\\
+\midrule
+Classical, one start & 92.9 & 95.9 & 76.5 & 76.9\\
+Classical, budgeted restarts & 100.0 & 100.0 & 91.9 & 91.8\\
+SA, budgeted & 50.0 & 53.9 & 67.7 & 69.0\\
+SA + prior bias, $\alpha=0.5$ & 52.0 & 62.6 & 70.9 & 74.6\\
+\midrule
+SA, separate SQA comparison & 60.5 & 59.3 & 74.0 & 71.6\\
+SQA, same comparison & 27.6 & 25.9 & 35.1 & 35.4\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Classical restarts dominate the main local comparisons
+(Table~\ref{tab:local}). SA is effective on very small reorders but becomes
+less reliable at five customers, where the one-hot encoding already needs
+25 variables. SQA performs worse than its SA control at the same nominal
+time budget; simulating 16 replicas allows only a few reads per subproblem.
+Approximately half of SA exchange reads violate capacity before repair.
+Feasible final solutions therefore do not imply that the sampler itself
+usually finds feasible assignments.
+
+\subsection{What QAOA adds on small subproblems}
+
+\begin{table}[tbp]
+\centering\small
+\caption{Optimum hit rates (\%) after shared decoding, repair, and retention
+of the better of candidate and start, for exchanges of at most 16 qubits.
+These screening results are exploratory, separate from the final loop.}
+\label{tab:qaoa}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Method & Development ($N=192$) & Validation ($N=119$)\\
+\midrule
+Classical, one start & 89.1 & 93.3\\
+Classical, budgeted restarts & 97.4 & 99.2\\
+SA & 72.4 & 74.8\\
+SA + prior bias & 81.2 & 87.4\\
+QAOA, depth 1 & 87.0 & 86.6\\
+QAOA, depth 2 & 83.9 & 82.4\\
+QAOA, depth 3 & 83.9 & 82.4\\
+Uniform random sampling & 90.6 & 95.8\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+QAOA can increase the probability of low-energy states without improving
+the final routing result. On all 55 development and 29 validation reorders
+small enough for screening, QAOA and matched random sampling both reach
+100\% optimum hits after the shared decoding procedure. On exchanges,
+random sampling has higher aggregate hit rates than the tested QAOA depths
+(Table~\ref{tab:qaoa}). For tiny state spaces, 1,024 samples and strong
+classical repair leave little room for a quantum sampling benefit.
+
+Deeper cold-start circuits do not help in this screening. A separate
+development warm-start experiment improves QUBO-optimal sampling by
+initializing deeper circuits from shallower solutions. That diagnostic was
+not used in the final depth-one loop and does not establish an improvement
+in end-to-end routing. The exchange surrogate remains a separate obstacle.
+
+\subsection{Evidence for the matrix-based formulation and selection}
+
+The uncertainty selector produces 1.4--2.0 pp more first-round route-cost
+reduction than nearby random neighborhoods matched in number and size,
+across development and validation with both classical search and SA. Its
+signal is useful for ranking possible customer moves. The low-confidence
+edge selector does not show the same benefit: it identifies possible
+membership errors but feeds reorder moves that cannot change membership.
+
+The bias ablation directly evaluates the matrix-to-QUBO contribution in
+Section~\ref{sec:matrix-qubo}. In a three-seed exploratory sweep,
+probability-mode bias with $\alpha=2$ lowers kept excess over the local
+reference by 0.84 pp on development and 1.27 pp on validation. Reorders
+show no consistent benefit. A subsequent full-loop test reaches 5.72\%
+and 6.51\% gap with biased SA, against 5.81\% and 6.20\% for classical
+restarts at the same default limits. Those comparisons do not distinguish
+the methods. The bias strength was chosen from the sweep, so this remains
+development evidence rather than a final-test claim.
+
+Increasing the number of rounds eventually saturates: all development and
+validation extension runs stop within 15 rounds. Larger neighborhoods help
+classical search more than SA. At limits 10/16/30, restarted classical
+search reaches 4.23\%/4.10\% development/validation gap, compared with
+6.84\%/6.77\% for SA. This motivates the larger classical arm T3.
+
+\section{Runtime and limitations}
+
+\begin{table}[tbp]
+\centering\small
+\caption{Mean refinement wall-clock seconds per graph in the separate
+timing pass, four development graphs per size. Each run uses one process
+and one numerical-library thread, with at most four runs concurrent.
+These are not the final-test quality panel or quantum hardware timings.}
+\label{tab:timing}
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+ID & Configuration & N20 & N50 & N100\\
+\midrule
+T1 & Classical, one start & 0.2 & 1.0 & 2.9\\
+T2 & Classical, 10 starts & 1.5 & 15.6 & 49.3\\
+T3 & Classical, larger neighborhoods & 3.3 & 26.2 & 134.6\\
+T4 & SA & 3.8 & 17.9 & 47.2\\
+T5 & SA + classical & 5.1 & 22.2 & 79.1\\
+T6 & Simulated QAOA & 40.1 & 159.2 & 145.7\\
+T7 & Random QUBO & 0.9 & 5.1 & 8.2\\
+T10 & Classical exact & 0.5 & 3.0 & 5.0\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The economical classical option takes approximately 0.2--3 seconds per
+graph; larger restarted search takes about 3 seconds to 2.2 minutes
+(Table~\ref{tab:timing}). Add approximately 0.78, 0.86, and 1.06 seconds
+for the frozen prior and policy at the three sizes on an RTX 3060 Ti,
+excluding model loading. Most archived refinement runs used ten workers
+sharing six physical CPU cores; their solver times should not be treated
+as isolated deployment timings. In those final reserved runs, QAOA takes
+244.6 s per graph versus 5.9 s for exact classical solving, approximately
+41 times as long. This ratio describes classical simulation only.
+
+The principal limitations are the small simulated QUBOs, the surrogate
+exchange objective, the contribution of classical repair, and the selected
+evaluation panels. The spatial stress panel uses stable-label selections
+from larger pools and had informed earlier baseline diagnostics; it is not
+a wholly untouched population-level generalization test. Most final arms
+use one refinement seed, and graph bootstrap intervals do not capture
+training variability. The present study also mixes fixed-read and
+nominal-time-budget comparisons; equal limits do not establish equal compute.
+
+The learned pipeline remains behind strong classical CVRP solving. On the
+72-graph development panel, one-second PyVRP runs have gaps of 0.00\%,
+0.09\%, and 1.11\% at the three sizes. These are development results,
+not a new matched-budget comparison against every final refinement arm.
+Finally, the prior-based selection ablations do not determine whether
+diffusion guidance is worth its total training and inference cost compared
+with a fully classical construction-and-search pipeline.
+
+\section{Conclusion}
+
+The project's primary contribution is a local QUBO formulation whose
+assignment and interaction coefficients incorporate a diffusion model's
+route-membership matrix. Its second contribution is a controlled comparison
+with classical refinement algorithms, covering both fixed subproblems and
+complete routing solutions. Together, they provide a concrete method for
+using learned structure in QUBO refinement and evidence about its practical
+value.
+
+The matrix-derived exchange terms improve SA in exploratory bias ablations,
+and matrix-guided selection identifies useful exchanges. Classical search
+with larger neighborhoods and restarts nevertheless gives the strongest
+tested final solutions. SA and simulated QAOA show no reliable advantage
+over the relevant strong classical controls, while SQA is less effective
+than SA at the tested local time budget. A reserved-test evaluation of the
+positive-$\alpha$ formulation remains future work. Improvements to the
+exchange surrogate and reorder encoding should precede stronger quantum
+claims; the present contribution is a formulation and comparative benchmark,
+with no demonstrated quantum advantage.
+
+\appendix
+\section{Evidence and reproducibility}
+
+This draft summarizes completed repository experiments from 1--2 October
+2026; it introduces no new training or benchmark runs. The baseline freeze
+record is \path{docs/evidence/baseline_freeze_20261001/freeze_manifest.json}.
+The final configurations and decision rules are recorded in
+\path{docs/phase6_final_test_protocol_2026-10-02.md}.
+
+Tables~\ref{tab:final} and~\ref{tab:contrasts} use
+\path{docs/evidence/phase6_20261001/final/analysis_reserved.json}
+and \path{analysis_ood.json} in the same directory, cross-checked against
+the individual run summaries. Table~\ref{tab:local} uses the
+\path{experiment_development}, \path{experiment_validation}, and
+corresponding \path{_sqa} summary directories. Table~\ref{tab:qaoa} uses
+the \path{qaoa_random_control_development.json} and validation counterpart.
+Table~\ref{tab:timing} uses the \path{timing/} summaries. All are under
+\path{docs/evidence/phase6_20261001/}; its manifest records evidence hashes.
+The accompanying article README maps the supporting narrative claims to
+their reports and records build instructions.
+
+\begin{thebibliography}{9}
+\bibitem{cmd}
+Z. Wang, T. Zhang, N. Xue, E. Ozcan, L. Wang, and R. Bai.
+\newblock Constraints Matrix Diffusion based Generative Neural Solver for
+Vehicle Routing Problems.
+\newblock arXiv:2603.07568v1, 2026.
+\newblock \url{https://arxiv.org/abs/2603.07568v1}.
+
+\bibitem{qaoa}
+E. Farhi, J. Goldstone, and S. Gutmann.
+\newblock A Quantum Approximate Optimization Algorithm.
+\newblock arXiv:1411.4028, 2014.
+\newblock \url{https://arxiv.org/abs/1411.4028}.
+
+\bibitem{pyvrp}
+N. A. Wouda, L. Lan, and W. Kool.
+\newblock PyVRP: a high-performance VRP solver package.
+\newblock arXiv:2403.13795, 2024.
+\newblock \url{https://arxiv.org/abs/2403.13795}.
+\end{thebibliography}
+
+\end{document}

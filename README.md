@@ -4,6 +4,9 @@ Reproducible research code for a Constraints Matrix Diffusion based CVRP solver,
 quantum and quantum-inspired refinement scoped to small local neighborhoods after the
 classical baseline is stable.
 
+An [initial LaTeX article draft](docs/article/main.tex) explains the project and the completed
+quantum refinement benchmarks. See its [build instructions and evidence map](docs/article/README.md).
+
 ## Setup
 
 Use Python 3.12.
