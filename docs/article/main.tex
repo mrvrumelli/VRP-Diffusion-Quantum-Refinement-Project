@@ -6,145 +6,437 @@
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{array}
+\usepackage{longtable}
 \usepackage{microtype}
 \usepackage[hidelinks]{hyperref}
 \usepackage{url}
 \setlength{\emergencystretch}{2em}
-\newcommand{\E}{\mathcal{E}}
+\newcommand{\Expect}{\mathbb{E}}
+\newcommand{\artifact}[1]{\path{#1}}
 \newcommand{\R}{\mathcal{R}}
 
-\title{Diffusion-Informed QUBO Formulations for Vehicle Routing Refinement:\\
-Formulation and Benchmarking against Classical Search}
-\author{Author names and affiliations to be added}
-\date{Working draft --- 5 October 2026}
+\title{A Diffusion-Guided Neural Architecture for Capacitated Vehicle Routing\\
+with Classical and QUBO-Based Local Refinement}
+\author{Merve, Hassan and Mustafa Mert}
+\date{7 October 2026}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-We propose a diffusion-informed quadratic unconstrained binary optimization
-(QUBO) formulation for local refinement of capacitated vehicle routing
-solutions. The formulation converts a diffusion model's soft route-membership
-matrix into linear assignment costs and quadratic customer-pair interactions,
-combining learned structure with route-cost terms and feasibility penalties.
-Our second contribution is a controlled benchmark against classical refinement
-algorithms, including 2-opt, relocate/swap, restarted search, and exact local
-solvers. Simulated annealing, simulated quantum annealing, and the quantum
-approximate optimization algorithm (QAOA) provide alternative QUBO solvers.
-Bias ablations test the matrix-derived terms, while a predeclared evaluation
-compares refinement operators on 96 reserved and 72 spatial stress instances. On the
-reserved set, the mean gap to strong heuristic references falls from 19.22\%
-before refinement to 9.69\% with inexpensive classical refinement and 4.14\%
-with larger, restarted classical neighborhoods. QAOA, simulated with at most
-16 qubits, reaches 7.12\% at smaller neighborhoods, compared with 7.03\% for
-exact classical subproblem solving and 7.46\% for matched random sampling;
-the paired intervals do not distinguish these outcomes. Learned guidance is
-useful for selecting exchanges, but the tested QUBO operators show no reliable
-advantage over strong classical refinement. These are simulation results and
-do not establish quantum speedup or hardware performance.
+We present an implemented neural solver for the capacitated vehicle routing
+problem, inspired by Constraints Matrix Diffusion based Generative Neural
+Solver for Vehicle Routing Problems. Our architecture combines a discrete
+diffusion model of customer route membership with a global Transformer,
+a matrix-masked local Transformer, learned gated fusion, and a capacity-aware
+dual-pointer decoder trained by multi-start reinforcement learning. The
+predicted matrix supplies structural guidance, while explicit decoding masks
+enforce feasibility. A modular improvement stage reuses the matrix for
+neighborhood selection and maps its probabilities into local quadratic
+unconstrained binary optimization (QUBO) objectives. We evaluate the frozen
+solver and classical, annealing, and simulated quantum refinement on 96
+reserved instances and 72 spatial stress instances with 20, 50, or 100
+customers. On the reserved set, the constructive solver has a mean gap of
+19.22\% to strengthened heuristic references. Inexpensive classical refinement
+reduces this to 9.69\%, and larger restarted neighborhoods reach 4.14\%;
+the spatial stress gap falls from 16.53\% to 3.54\%. Matrix-guided selection
+identifies useful exchanges, and matrix-derived objective terms improve
+annealing in exploratory ablations. Simulated QAOA with at most 16 qubits gives
+no statistically resolved improvement over exact classical solving or matched
+random sampling. The study establishes a complete construction-and-refinement
+architecture and measures its current limitations; it does not demonstrate
+quantum advantage or state-of-the-art CVRP performance.
 \end{abstract}
+
+\noindent\textbf{Keywords:} capacitated vehicle routing; discrete diffusion;
+neural combinatorial optimization; gated fusion; reinforcement learning;
+local search; QUBO.
 
 \section{Introduction}
 
-The capacitated vehicle routing problem (CVRP) asks for short depot-to-depot
-routes that serve every customer while respecting vehicle capacity. The project
-studies whether a learned description of route membership can support both
-solution construction and subsequent improvement. Its starting point is the
-constraints matrix diffusion approach of Wang et al.\ \cite{cmd}, in which a
-discrete diffusion model supplies structural information to an autoregressive
-routing policy.
+Capacitated vehicle routing couples two decisions: which customers share a
+vehicle and in what order that vehicle visits them. A constructive neural
+solver makes these decisions sequentially; an improvement method revisits
+them after a feasible solution is available. Learned information about
+customer grouping can potentially help at both stages, provided that it is
+combined with an explicit mechanism for enforcing routing constraints.
 
-The project extends that construction pipeline by converting its matrix
-output into the objective of a local combinatorial optimization problem.
-This gives the learned structure a second role: it influences the assignments
-and interactions that a refinement solver optimizes. The resulting QUBO can
-be solved by different classical or simulated quantum methods.
+This article presents our implemented construction-and-refinement solver.
+Its inspiration is the constraints matrix diffusion (CMD) approach of
+Wang et al.~\cite{wang2026cmd}, which generates a structural assignment
+matrix and integrates it into an autoregressive routing network. We adopt
+the idea of predicting same-route structure, then build a solver around
+a trainable global Transformer, a matrix-masked local Transformer, gated
+feature fusion, and a dual-pointer decoder. A multi-start training objective
+and explicit visited-customer and capacity masks complete the constructive
+architecture.
 
-\subsection{Contributions}
+We also give the predicted matrix a role after construction. It ranks
+neighborhoods that may contain route-membership errors and supplies
+coefficients for local QUBO objectives. The refinement stage is modular:
+the same starting routes can be improved by classical search, simulated
+annealing, simulated quantum annealing, or simulated QAOA. This makes the
+architecture a controlled test bed for learning-guided local optimization,
+even when classical methods remain the strongest solvers.
 
-The project makes two principal contributions:
+\subsection{Contributions and scope}
+
+The work has three contributions:
 \begin{enumerate}
- \item \textbf{A diffusion-informed local QUBO formulation.}
- We propose an explicit mapping from the predicted same-route matrix to
- QUBO coefficients. For two-route exchanges, matrix entries determine
- customer-to-route assignment costs and customer-pair interactions; for
- reordering, they determine preferences for consecutive visits. These terms
- augment geometric objectives and feasibility penalties, with one weight
- controlling the contribution of learned information. The methodological
- contribution is this coupling of the diffusion output to local QUBO
- optimization, including a bias-off control and true-cost acceptance.
- \item \textbf{Comparative benchmarking against classical refinement.}
- We compare QUBO-based refinement with 2-opt, relocate/swap, multistart local
- search, and exact subproblem solvers. Fixed-subproblem experiments isolate
- solver behavior on identical neighborhoods; complete refinement loops
- measure the effect on feasible CVRP solutions. Matrix-bias and neighborhood
- selection ablations, matched random sampling, recorded computational
- budgets, and paired confidence intervals separate the contribution of
- learned information from the contribution of the optimization algorithm.
+ \item \textbf{An implemented diffusion-guided CVRP architecture.}
+ We describe the complete path from audited route-membership supervision
+ to diffusion inference, global and local representation learning, gated
+ fusion, and feasible multi-start route construction. The architecture is
+ our implementation inspired by CMD; its standard attention, diffusion,
+ and reinforcement-learning components are credited to their sources.
+ \item \textbf{A reusable local refinement interface.}
+ The prior guides neighborhood selection and can be converted into linear
+ assignment costs and quadratic customer-pair interactions. Reorder and
+ exchange operators share extraction, reconstruction, repair, and true-cost
+ acceptance across classical and QUBO solvers.
+ \item \textbf{An empirical evaluation of the complete solver.}
+ Frozen checkpoints, heuristic-reference auditing, reserved and spatial
+ stress panels, fixed-subproblem comparisons, matrix ablations, and
+ matched random controls quantify construction quality, refinement value,
+ and the limits of simulated quantum optimization.
 \end{enumerate}
 
-The diffusion predictor and constructive policy supply the experimental
-backbone. Data generation, label auditing, and the frozen
-\texttt{baseline-v1.0} make the comparisons reproducible. The contribution
-claimed here concerns the matrix-to-QUBO coupling and its evaluation; the
-diffusion architecture, one-hot encoding, classical moves, and QAOA are
-building blocks. The repository also maintains a separate paper-guided
-reconstruction track; the reported refinement uses the project baseline.
+Three questions organize the evaluation: how well does the implemented
+constructive architecture solve CVRP, how much does local refinement improve
+its solutions, and does matrix-guided QUBO optimization add value relative
+to classical controls? We report the frozen implementation rather than
+attributing every gain to an individual architectural component. The
+available experiments establish pipeline behavior and selected guidance
+effects; they do not isolate the causal contribution of every encoder,
+gate, or decoder feature.
 
-Two questions organize the evaluation: does incorporating the diffusion
-matrix improve local QUBO refinement, and how does the resulting approach
-compare with classical refinement algorithms? A useful formulation need
-not imply a quantum advantage. The benchmark therefore reports both the
-benefits of matrix guidance and the cases where classical refinement is
-more effective.
+\section{Related work}
+\label{sec:related}
 
-\section{Problem and learned pipeline}
+\subsection{Neural routing and structural diffusion}
 
-Let the depot be node $0$, let customers be $1,\ldots,n$, let $d_{ij}$ be
-Euclidean distance, and let customer $i$ have demand $q_i$. A solution $\R$
-is a collection of routes that visits every customer exactly once. Each route
-starts and ends at the depot and satisfies $\sum_{i\in r}q_i\leq Q$, where
-$Q$ is vehicle capacity. The objective is
+Attention-based routing policies learn distributions over sequential
+customer visits. Kool et al.~\cite{kool2019attention} train attention
+models with REINFORCE for CVRP and other routing problems. POMO
+\cite{kwon2020pomo} uses diverse starts and a shared baseline to exploit
+alternative solution representations. Our constructive policy uses a
+multi-start objective and keeps the best greedy start at inference.
+
+Discrete diffusion learns denoising transitions in a finite state space
+\cite{austin2021discrete}. DIFUSCO~\cite{sun2023difusco} applies graph-based
+diffusion to binary representations of traveling-salesperson and
+independent-set problems. CMD~\cite{wang2026cmd} instead generates a
+constraints assignment matrix for routing and integrates it into a fusion
+network and autoregressive solver. That idea motivates our membership
+prior. Our implementation uses Transformer-based global and local policy
+encoders with a learned gate and extends the structural prior into
+post-construction refinement.
+
+Membership and adjacency are different prediction tasks. A high
+same-route probability supports assigning two customers to one vehicle;
+it does not imply that they should be consecutive visits. This distinction
+informs both our policy masks and the interpretation of matrix-derived
+reorder costs.
+
+\subsection{Classical and QUBO-based optimization}
+
+Hybrid genetic search combines population search with strong local
+improvement. Vidal's CVRP implementation and SWAP* neighborhood illustrate
+the importance of effective customer exchanges~\cite{vidal2022hgs}.
+PyVRP provides a high-performance hybrid genetic search package
+\cite{wouda2024pyvrp} and supplies our heuristic references. Our local
+controls use simpler 2-opt, relocate/swap, restarts, and exact solving.
+For short segments, Held--Karp dynamic programming~\cite{held1962dynamic}
+is an especially relevant exact control because it searches valid orders
+without introducing one-hot infeasible states.
+
+Quadratic binary and Ising formulations encode constraints through penalty
+terms~\cite{lucas2014ising}. QAOA alternates objective and mixing unitaries
+with classically optimized parameters~\cite{farhi2014qaoa}.
+Azad et al.~\cite{azad2020vrp} study Ising formulations and simulated QAOA
+for small routing problems. Here, QUBOs encode bounded neighborhoods of
+an existing solution. Learned matrix entries change their coefficients,
+and common classical postprocessing maps samples back into routes.
+This permits controlled tests against exact search and uniform sampling.
+Our contribution is the implemented architecture, its refinement interface,
+and their evaluation; we do not claim priority for neural routing,
+QUBO routing, or hybrid quantum optimization in general.
+
+\section{Problem definition and structural representation}
+\label{sec:problem}
+
+Let the depot be node $0$, let customers be $1,\ldots,n$, and let
+$v_i\in\mathbb R^2$ and $q_i$ be their coordinates and demands. Distances
+are $d_{ij}=\|v_i-v_j\|_2$. A solution $\R$ is a collection of routes
+that starts and ends at the depot, visits every customer exactly once,
+and satisfies $\sum_{i\in r}q_i\leq Q$ for every route $r$. We minimize
 \begin{equation}
  C(\R)=\sum_{r\in\R}\sum_{(i,j)\in r}d_{ij}.
+ \label{eq:cvrp-cost}
 \end{equation}
-The experiments cover $n\in\{20,50,100\}$. The spatial stress regimes are random
-(R), clustered (C), and mixed random/clustered (RC) plain CVRP instances;
-they do not include time windows.
+The fleet is homogeneous, split deliveries are disallowed, and the number
+of used routes may change during refinement. The synthetic experiments
+minimize distance without a separate vehicle-use penalty or prescribed
+fleet size. They cover $n\in\{20,50,100\}$ and capacities $Q=30,40,50$,
+respectively. The random, clustered, and mixed spatial regimes are plain
+CVRP; they do not include time windows.
 
-The matrix target is $M_{ij}=1$ when customers $i$ and $j$ belong to the same
-reference route, and zero otherwise. This is a route-membership matrix, not
-an adjacency matrix specifying visit order. Because different near-equal-cost
-solutions can partition customers differently, reference auditing checks both
-route cost and partition stability. The project also supports stochastic
-selection among competitive reference partitions during training. Reference
-costs are heuristic solutions, not certified optima.
+For distinct customers, define $M_{ij}=1$ when $i$ and $j$ belong to the
+same reference route and zero otherwise. We set $M_{ii}=0$ by convention
+and exclude diagonal entries from the loss. This representation is invariant
+to route labels and visit order within a route. It captures customer
+partitioning, but does not identify a route's first customer, its internal
+sequence, or its depot connections. A soft prediction $P=(p_{ij})$ also
+need not form a transitive partition. It is therefore used as a structural
+prior rather than treated as a feasible CVRP solution.
 
-A graph attention encoder represents the instance, and a discrete denoiser
-learns to recover route membership from corrupted matrices. The frozen
-baseline uses separate models for the three sizes and regenerates a soft
-matrix $P=(p_{ij})$ using 50 reverse-diffusion steps and the corrected
-\texttt{posterior\_mixture\_v2} sampler. A reinforcement-learning policy combines
-global instance information with matrix-guided local information, constructs
-capacity-feasible routes, and keeps the cheapest of 16 greedy starts. Its
-weights and the diffusion weights remain fixed during refinement.
+Different near-equal-cost solutions can partition customers differently.
+Our label audit checks both reference cost and partition stability, and
+retains competitive alternatives for stochastic supervision. The three
+training pools each contain 500 source instances. Their materialized
+partition counts are 500, 536, and 1,268 at N20, N50, and N100,
+respectively. Each diffusion training epoch chooses one retained
+competitive partition per source, using a
+source- and epoch-dependent deterministic selection seed. Alternatives
+are thus not counted as independent graphs. Reference costs are heuristic
+solutions, not certified optima.
 
-The pipeline can be summarized as
-\begin{center}
-\fbox{\parbox{0.91\linewidth}{\centering
-Instance $\longrightarrow$ diffusion membership prior $P$
-$\longrightarrow$ policy routes $\R_0$\\[3pt]
-$\longrightarrow$ neighborhood selection
-$\longrightarrow$ local solver and repair
-$\longrightarrow$ feasible, lower-cost routes.
+\section{Implemented solver architecture}
+\label{sec:architecture}
+
+Our solver has a structural prediction stage, a constructive policy, and
+an optional improvement stage. Figure~\ref{fig:pipeline} summarizes the
+interfaces. The diffusion stage works on customer pairs. The policy encodes
+the depot and all customers, constructs full routes, and enforces feasibility.
+Refinement reuses the predicted matrix and improves the resulting incumbent
+without changing the neural weights.
+
+\begin{figure}[tbp]
+\centering
+\fbox{\parbox{0.93\linewidth}{\centering\small
+Instance $G$ $\longrightarrow$ graph denoiser $\longrightarrow$
+route-membership prior $P$\\[5pt]
+$G$ $\longrightarrow$ global Transformer $\longrightarrow$
+$P$-masked local Transformer\\[3pt]
+$\longrightarrow$ gated fusion $\longrightarrow$ dual-pointer decoder
+$\longrightarrow$ best of 16 feasible starts\\[5pt]
+$(\R_0,P)$ $\longrightarrow$ selected neighborhoods $\longrightarrow$
+classical or QUBO solver\\[3pt]
+$\longrightarrow$ reconstruction and feasibility checks
+$\longrightarrow$ accepted lower-cost routes
 }}
-\end{center}
-The prior guides both the initial policy and the later choice of neighborhoods.
-Its conversion into QUBO coefficients is the proposed formulation developed
-below. Neighborhood guidance and objective guidance are evaluated separately,
-with objective guidance disabled in the bias-off controls.
+\caption{The implemented architecture. Global embeddings feed the local
+encoder and also reach fusion directly. The same fixed prior guides
+construction and refinement; feasibility is checked independently of it.}
+\label{fig:pipeline}
+\end{figure}
 
-\section{Local refinement and QUBO formulations}
+\subsection{Discrete diffusion of route membership}
+
+Let $G$ denote instance features and $M^{(0)}$ a clean membership matrix.
+The forward process corrupts upper-triangular customer pairs and mirrors
+them to preserve symmetry. With $T=700$ transitions, the frozen recipe
+uses a linear schedule from $\beta_1=10^{-4}$ to $\beta_T=0.02$ and
+\begin{equation}
+ Q_t=\begin{pmatrix}1-\beta_t&\beta_t\\
+                    \beta_t&1-\beta_t\end{pmatrix},
+ \qquad \overline Q_t=Q_1Q_2\cdots Q_t.
+ \label{eq:forward-diffusion}
+\end{equation}
+The marginal flip probability at time $t$ is
+$\tfrac12[1-\prod_{u=1}^{t}(1-2\beta_u)]$. Diagonal and padded entries
+remain zero. The depot has no membership-matrix row.
+
+The denoiser uses a pretrained frozen graph attention node encoder and
+an eight-layer anisotropic graph network. Noisy pair values and geometric
+distances initialize the edge features. Sinusoidal timestep embeddings
+condition the message-passing layers, and the output predicts clean-pair
+logits $f_{\theta,ij}(G,M^{(t)},t)$. The frozen implementation uses width
+192, five node-GAT layers with eight heads, and LayerNorm in the denoising
+network. Define $\widehat p_{ij}^{(t)}=\operatorname{sigmoid}(f_{\theta,ij})$.
+For ordered off-diagonal real pairs $\mathcal V$ in a batch, training uses
+\begin{align}
+ \mathcal L_{\mathrm{diff}}
+ &=\Expect_{G,M^{(0)},t,M^{(t)}}\left[
+   \frac{1}{|\mathcal V|}\sum_{(i,j)\in\mathcal V}
+   \ell(M_{ij}^{(0)},\widehat p_{ij}^{(t)})\right],\\
+ \ell(m,p)&=-w_+m\log p-(1-m)\log(1-p),
+ \qquad w_+=\left(\frac{N_-}{\max(N_+,1)}\right)^{1/2}.
+ \label{eq:diffusion-loss}
+\end{align}
+Here $N_+$ and $N_-$ are the batch's positive and negative pair counts,
+and $t$ is uniform over training timesteps. This weighted classification
+loss predicts clean membership at different corruption levels; it does
+not directly minimize route cost.
+
+For a skipped reverse transition from $t$ to $s<t$, inference uses the
+learned clean-state mixture
+\begin{equation}
+ p_\theta(M_{ij}^{(s)}\mid M_{ij}^{(t)},G)=
+ \sum_{b\in\{0,1\}}
+ q(M_{ij}^{(s)}\mid M_{ij}^{(t)},M_{ij}^{(0)}=b)
+ p_\theta(M_{ij}^{(0)}=b\mid M^{(t)},G).
+ \label{eq:reverse-mixture}
+\end{equation}
+The conditional $q$ follows by Bayes' rule from the cumulative forward
+kernels. Inference starts from a symmetric Bernoulli matrix with positive
+probability $1/2$ and uses 50 reverse steps. The final clean-pair
+probabilities form $P$, which is cached throughout refinement. The
+implementation names this sampler \texttt{posterior\_mixture\_v2}.
+Independent denoiser checkpoints are used for the three customer counts.
+
+\subsection{Global instance encoder}
+
+The global encoder processes the complete depot-and-customer instance.
+Its input feature for node $i$ is
+\begin{equation}
+ u_i=[v_{i,x},v_{i,y},q_i/Q,\mathbf 1\{i=0\}].
+ \label{eq:node-features}
+\end{equation}
+A learned projection maps $u_i$ to width 128. Five Transformer layers
+with eight heads and feed-forward width 512 produce global embeddings
+$h_i^g$. Only padding is masked in this branch; the predicted membership
+matrix does not restrict global attention. This gives the decoder a
+complete view of geometry, normalized demand, and depot identity even
+when the structural prior is inaccurate.
+
+\subsection{Matrix-masked local encoder}
+
+The local Transformer takes $h_i^g$ as its input and applies five further
+attention layers. For distinct customers its frozen attention mask allows
+$(i,j)$ if the symmetrized prior satisfies $p_{ij}\geq\tau$, with
+$\tau=0.5$. Every real node retains a self-loop. Customer queries may
+attend to the depot; the depot query attends only to itself in the local
+branch. This asymmetric depot rule supplies depot context without making
+the depot a hub for messages between otherwise separate local groups.
+The global branch already carries full-instance information.
+
+For one local attention head, the operation can be written as
+\begin{equation}
+ A^l_{ij}=\frac{(W_Q h_i)^\top(W_K h_j)}{\sqrt{d_h}}
+             +\mu_{ij},\qquad
+ \mu_{ij}=\begin{cases}0,&(i,j)\text{ is allowed},\\
+                     -\infty,&\text{otherwise},\end{cases}
+ \label{eq:local-attention}
+\end{equation}
+followed by row-wise softmax, value aggregation, and residual attention
+and feed-forward updates. The output is $h_i^l$. Hard masking concentrates
+local messages on predicted route groups; it does not prevent the final
+policy from visiting a customer outside the current group.
+
+\subsection{Learned gated fusion}
+
+Rather than replacing the global representation, the implementation
+learns a feature-wise gate between aligned global and local embeddings:
+\begin{align}
+ g_i&=\operatorname{sigmoid}\!\left(
+       \operatorname{MLP}([h_i^g,h_i^l,|h_i^l-h_i^g|])\right),\\
+ \widetilde h_i&=h_i^g+g_i\odot(h_i^l-h_i^g).
+ \label{eq:fusion}
+\end{align}
+A position-wise residual feed-forward block and normalization produce
+fused embeddings $h_i$. Their masked mean, including the depot, gives
+the graph context $\overline h$. The gate is initialized to favor the
+global branch, with local weight 0.25. It can learn different local
+weights for different nodes and features. This is an architectural
+mechanism for moderating the prior's influence, not empirical proof that
+the trained gate always rejects incorrect matrix information.
+
+\subsection{Capacity-aware dual-pointer decoding}
+
+At decoding step $t$, let $i_t$ be the current node and $L_t$ the remaining
+vehicle capacity. The local query context combines depot, current-node,
+and projected capacity embeddings; the global query additionally includes
+$\overline h$. A global multi-head pointer attends to all feasible nodes.
+A local pointer attends to feasible neighbors of $i_t$ in the prior mask,
+with depot access retained so that routes can close. Their glimpses are
+summed with a learned context-perception term, projected to a query $a_t$,
+and used to score candidate embeddings.
+
+The geometric savings term for two customer nodes is
+\begin{equation}
+ s_{ij}=d_{0i}+d_{0j}-d_{ij}.
+ \label{eq:savings}
+\end{equation}
+With score keys $k_j$, the decoder's customer logits have the form
+\begin{equation}
+ z_{tj}=10\tanh\!\left(
+       \frac{a_t^\top k_j}{\sqrt{128}}
+       +\log\max(s_{i_tj},0.01)\right).
+ \label{eq:decoder-logit}
+\end{equation}
+Depot-related savings use a learned scalar bias. Visited customers and
+customers with $q_j>L_t$ receive $-\infty$ logits after clipping.
+A depot visit closes the current route and resets capacity. The global
+pointer keeps feasible customers available even when local membership
+predictions are wrong. Thus the structural mask influences preferences,
+while visited and capacity masks determine feasible actions.
+
+For instances with $q_i\leq Q$, the policy constructs complete feasible
+routes and returns to the depot. The frozen inference protocol forces
+16 distinct first-customer starts, selected in increasing depot distance,
+decodes greedily thereafter, and keeps the cheapest solution. Encodings
+are reused across starts. The feasible incumbent is the interface to
+all subsequent refinement methods.
+
+\subsection{Reinforcement learning and training configuration}
+
+The diffusion encoder is trained first, and its prior is held fixed while
+the policy learns route construction. Policy training uses a POMO-style
+shared baseline~\cite{kwon2020pomo}. For $S$ sampled starts on an instance,
+let $C_s$ be rollout cost and $\overline C=S^{-1}\sum_s C_s$. The loss is
+\begin{equation}
+ \mathcal L_{\mathrm{policy}}=
+ \frac1S\sum_{s=1}^{S}\operatorname{stopgrad}(C_s-\overline C)
+       \log\pi_\psi(\R_s\mid G,P).
+ \label{eq:policy-loss}
+\end{equation}
+The sign is appropriate for cost minimization: above-average-cost
+rollouts have their probabilities reduced. Diffusion training uses Adam;
+policy training uses Adam with weight decay $10^{-6}$. The selected
+weights are frozen for evaluation and refinement.
+
+Table~\ref{tab:training} gives the archived configurations. Epoch and
+runtime limits are configured ceilings, not assertions that every run
+completed every epoch. Denoisers use training seed 4331 and policies
+seed 42. Diffusion checkpoint selection uses decoded validation route
+gap; policy selection uses validation best-start cost. The N100 policy
+is the primary seed of the 16-start training experiment, rather than
+the seed with the best development score.
+
+\begin{table}[tbp]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\caption{Frozen training configurations. Denoisers share a recipe but
+have separate weights. Global and local policy encoders each have five
+layers and eight heads.}
+\label{tab:training}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Setting & Diffusion & Policy N20 & Policy N50 & Policy N100\\
+\midrule
+Hidden/embedding width & 192 & 128 & 128 & 128\\
+Denoising layers & 8 & -- & -- & --\\
+Node-GAT layers/heads & 5/8 & -- & -- & --\\
+Learning rate & $3\cdot10^{-4}$ & $10^{-4}$ & $10^{-4}$ & $10^{-4}$\\
+Batch size & 4 & 16 & 16 & 16\\
+Gradient accumulation & 4 & 1 & 1 & 1\\
+Maximum epochs & 15 & 15 & 8 & 6\\
+Training starts & -- & 8 & 8 & 16\\
+Time ceiling (s) & 3,600 & 1,800 & 2,400 & 10,800\\
+Gradient-norm clipping & 1 & 1 & 1 & 1\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Dense pair prediction and attention require quadratic storage in customer
+count, and the reverse chain evaluates the denoiser repeatedly. Multi-start
+decoding then adds sequential policy work. These costs motivate measuring
+both constructive inference and optional refinement time, rather than
+reporting decoder time alone.
+
+\section{Local refinement extension}
+\label{sec:refinement}
 
 \subsection{Neighborhoods and acceptance}
 
@@ -153,6 +445,16 @@ membership between two routes, consecutive customers with low predicted
 same-route probability, and geometrically nearby route pairs. Their proposals
 create either a segment-reordering problem or a two-route exchange problem.
 All other customers and the relevant segment boundaries remain fixed.
+For exchanges, fixed customers retain their route membership, while the
+reconstruction may change their visit order within that route.
+
+The uncertainty selector compares a customer's mean predicted affinity
+to its own route with its best competing route. If the difference is
+below 0.2, the customer is a candidate for reassignment; candidates are
+grouped by the implicated route pair. Low-confidence edges use a 0.5
+threshold on consecutive-customer probabilities. The geometric selector
+considers nearby route pairs and boundary customers, while the high-cost
+selector ranks routes by cost per customer and proposes reorder segments.
 
 Every proposed solution is decoded, repaired if necessary, and rescored using
 the true full-route cost. The update is accepted only when
@@ -164,6 +466,31 @@ Thus, an unsuccessful or infeasible QUBO proposal leaves the current solution
 unchanged. The loop repeats selection and refinement until a round makes no
 improvement or reaches its round limit. This is local refinement of an existing
 CVRP solution; the entire instance is never encoded as one QUBO.
+
+\begin{figure}[tbp]
+\centering
+\fbox{\parbox{0.92\linewidth}{\small
+\textbf{Refinement loop.} Input: instance $G$, feasible starting routes
+$\R_0$, fixed prior $P$, selector limits, and solver.\\[3pt]
+1. Set the incumbent to $\R_0$.\\
+2. At each round, rank neighborhoods using the current routes and $P$.\\
+3. For each proposal, extract its current subproblem. Run the chosen
+solver directly, or build $E_\alpha$, sample binary states, and decode
+and repair the retained states.\\
+4. Reconstruct affected routes and choose the feasible candidate with
+lowest true cost. Replace the incumbent only if Equation~\eqref{eq:accept}
+holds; record attempts, repairs, accepted moves, and time.\\
+5. Stop after a round with no accepted move or after 30 rounds. Return
+the incumbent.}}
+\caption{Common improvement loop. Proposals are re-extracted from the
+current incumbent before solving so that earlier accepted moves are
+respected.}
+\label{fig:algorithm}
+\end{figure}
+
+Strict cost decrease prevents cycling between incumbents. However,
+stopping is relative to the selected neighborhoods and solver budget,
+and does not certify CVRP optimality.
 
 \subsection{Route reordering}
 
@@ -179,12 +506,16 @@ variables:
        +A\sum_p\left(\sum_i x_{ip}-1\right)^2.
  \label{eq:reorder}
 \end{align}
-The penalty $A$ scales with the largest local distance and is enlarged when
+The default penalty is $A=2\max(d_{uv})$ over the local distance matrix,
+with a positive numerical floor, and is enlarged when
 bias terms are enabled. On valid permutations, the unbiased energy equals
 the segment's true path cost. Invalid samples are repaired by a subset dynamic
 program that maximizes agreement with the sampled bits and then minimizes
 path cost among equally agreeing permutations. Consequently, classical repair
 can contribute substantially to the quality of a sampled solution.
+The encoding scales quadratically: four customers require 16 variables
+and five require 25. Exact path dynamic programming instead requires
+$O(k^2 2^k)$ time and $O(k2^k)$ storage.
 
 \subsection{Two-route exchange}
 
@@ -207,12 +538,36 @@ For fixed loads $F_a,F_b$, capacity penalties have the form
 with nonnegative binary-encoded slack $u_a,u_b$. Constraints that cannot bind
 need no slack. Integral demands permit exact load representation, and the
 penalty is chosen to dominate the surrogate's range.
+For an integer slack upper bound $U>0$, the implementation uses
+$b=\lfloor\log_2 U\rfloor+1$ bits with coefficients
+$1,2,\ldots,2^{b-2},U-(2^{b-1}-1)$; for $b=1$ the coefficient is
+just $U$. Their subset sums cover exactly $0,\ldots,U$.
+An exchange therefore requires $m+b_a+b_b$ variables, where an inactive
+capacity constraint contributes zero bits. Movable-customer count alone
+does not determine whether an exchange fits a qubit limit.
+
+With $\gamma=1$, a bound on the unbiased surrogate range is
+\begin{equation}
+ D_S=\sum_i|I_a(i)-I_b(i)|
+ +\frac{\gamma}{\max(m-1,1)}\sum_{i<j}d_{ij}.
+ \label{eq:exchange-span}
+\end{equation}
+The default exchange penalty is $A=1.5\max(D_S+D_B,10^{-9})$, where
+$D_B$ bounds the range of the weighted matrix bias. Integral loads imply
+that an infeasible assignment has a squared capacity residual of at
+least one. The penalty then places such an assignment above feasible
+assignments with correctly encoded slack. This ground-state property
+does not ensure that finite annealing or QAOA samples are feasible.
 
 Unlike the reorder energy, $S(y)$ is not the true route objective. Decoding
 reconstructs each route using nearest-neighbor ordering and 2-opt before
 applying Equation~\eqref{eq:accept}. An ``exact exchange'' result therefore
 means the best assignment under this reconstruction rule, not an exact joint
-solution of membership and visit order.
+solution of membership and visit order. Capacity-violating samples are
+repaired by moving a movable customer out of the overloaded route,
+choosing a move that fits the receiving route and minimizes the surrogate.
+Unrepairable assignments are discarded. Empty routes may be removed,
+allowing exchanges to reduce route fragmentation.
 
 \subsection{Proposed diffusion-matrix-to-QUBO mapping}
 \label{sec:matrix-qubo}
@@ -253,6 +608,20 @@ The first term favors assigning a customer to the route whose fixed members
 have higher predicted affinity. The second rewards a shared assignment when
 $p_{ij}>1/2$ and penalizes it when $p_{ij}<1/2$. Expanding these expressions
 gives linear and quadratic QUBO coefficients directly from $P$.
+In particular, let $w_{ij}=s_{\mathrm{ex}}(1-2p_{ij})$, extended
+symmetrically. The bias adds
+\begin{equation}
+ \Delta h_i=\alpha\left[s_{\mathrm{ex}}(a_{ib}-a_{ia})
+                   -\sum_{j\ne i}w_{ij}\right],
+ \qquad \Delta J_{ij}=2\alpha w_{ij}
+ \label{eq:bias-coefficients}
+\end{equation}
+to an upper-triangular QUBO
+$c+\sum_i h_i y_i+\sum_{i<j}J_{ij}y_iy_j$. The remaining contribution
+is constant. The mapping requires no extra decision variables and no
+neural evaluation inside the solver. For example, $p_{ij}=0.8$ gives
+a negative shared-route coefficient, while $p_{ij}=0.2$ gives a positive
+coefficient of the same magnitude.
 
 For reorders, define $\phi(u,v)=1-p_{uv}$ when both endpoints are customers
 and $\phi(u,v)=0$ when either is the depot. The corresponding term is
@@ -289,8 +658,17 @@ is a classical QUBO sampler. Simulated quantum annealing (SQA) uses
 path-integral Monte Carlo with 16 Trotter replicas and also runs on a classical
 computer.
 
-QAOA\ \cite{qaoa} is evaluated using an exact, noise-free statevector simulator.
+QAOA is evaluated using an exact, noise-free statevector simulator.
 The cost unitary encodes the QUBO energy and alternates with an $X$ mixer.
+For $v$ binary variables, substituting $z_i=(1-Z_i)/2$ gives a diagonal
+cost Hamiltonian $H_C$. With $H_X=\sum_i X_i$, the depth-$p$ state is
+\begin{equation}
+ |\gamma,\beta\rangle=
+ e^{-\mathrm i\beta_p H_X}e^{-\mathrm i\gamma_p H_C}\cdots
+ e^{-\mathrm i\beta_1 H_X}e^{-\mathrm i\gamma_1 H_C}
+ |+\rangle^{\otimes v}.
+ \label{eq:qaoa-state}
+\end{equation}
 The final loop uses depth one, COBYLA angle optimization from four random
 starts, 1,024 shots, and at most 16 qubits. Up to 50 lowest-energy distinct
 sampled states are decoded and scored on true route cost. The random control
@@ -300,6 +678,20 @@ final sampling; angle optimization uses exact expectations rather than noisy
 hardware measurements.
 
 \section{Experimental protocol}
+\label{sec:protocol}
+
+\subsection{Data and evaluation panels}
+
+The standard synthetic recipe samples depot and customer coordinates
+uniformly in $[0,1]^2$ and integer demands uniformly from
+$\{1,\ldots,9\}$. The generator also supplies clustered (C) and mixed
+random/clustered (RC) coordinates, alongside random (R) coordinates, at
+the same three customer counts. Training uses the audited per-size pools
+described in Section~\ref{sec:problem}. The spatial stress panel selects
+eight stable-label graphs from each regime--size cell; it therefore
+measures robustness on those selected cells rather than the full unfiltered
+spatial distribution.
+
 
 Development uses 72 graphs, 24 per size. A separate validation set contains
 45 graphs, with 16, 16, and 13 at sizes 20, 50, and 100. These sets informed
@@ -312,7 +704,11 @@ once with seed zero, all four selectors, and a maximum of 30 rounds.
 The reserved reference is the best of the original label and two seeded
 PyVRP runs with 10, 20, and 40 seconds of search per size, respectively.
 Other panels use their instance labels. PyVRP is a strong hybrid genetic
-search reference solver\ \cite{pyvrp}. Reported gaps are mean
+search reference solver~\cite{wouda2024pyvrp}.
+
+\subsection{Metrics and uncertainty}
+
+Reported gaps are mean
 instance-relative gaps:
 \begin{equation}
  g_i=100\frac{C_i-C_i^{\mathrm{ref}}}{C_i^{\mathrm{ref}}},\qquad
@@ -324,6 +720,16 @@ percentile-bootstrap intervals from 10,000 graph resamples, seed zero.
 A negative difference favors the first method. Intervals describe graph
 variation under fixed trained models and do not measure training-seed
 uncertainty or adjust for multiple comparisons.
+
+For fixed subproblems, the local reference is the exact best reorder or
+the best feasible assignment under the shared exchange reconstruction
+rule. A hit means reaching that local reference cost. Kept excess is
+$100(C_{\mathrm{kept}}-C_{\mathrm{local}}^*)/C_{\mathrm{local}}^*$,
+where the original incumbent is retained if no candidate improves it.
+Local excess, full-instance reference gap, and route-cost reduction have
+different denominators and are reported separately.
+
+\subsection{Refinement budgets and controls}
 
 The notation $k/m/h$ denotes maximum reorder length, movable exchange
 customers, and neighborhoods per selector per round. ``10 starts'' means
@@ -341,6 +747,60 @@ The fixed-subproblem comparisons use identical extracted subproblems. Full
 loops share starting routes and neighborhood rules, but accepted moves cause
 their later neighborhoods to diverge. Equal neighborhood limits therefore do
 not imply identical search trajectories or equal wall-clock budgets.
+
+\section{Constructive solver results}
+\label{sec:construction-results}
+
+Table~\ref{tab:construction} reports the frozen neural architecture before
+refinement. Every output is feasible. The reserved panel has the strongest
+references, making it the primary construction result: mean gaps are
+8.56\%, 21.88\%, and 27.20\% at the three sizes, and 19.22\% overall.
+The growth with customer count shows that feasibility and efficient
+construction alone do not guarantee high route quality.
+
+\begin{table}[tbp]
+\centering\small
+\caption{Mean reference gap (\%) of the frozen constructive solver.
+Development is used for selection; validation also informs refinement
+settings. Reserved references are strengthened PyVRP solutions, while
+other panels use their instance labels.}
+\label{tab:construction}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Panel & Graphs & N20 & N50 & N100 & All\\
+\midrule
+Development & 72 & 9.19 & 21.51 & 24.73 & 18.48\\
+Validation & 45 & 8.31 & 21.08 & 27.26 & 18.33\\
+Reserved & 96 & 8.56 & 21.88 & 27.20 & 19.22\\
+Spatial R/C/RC & 72 & 8.29 & 19.20 & 22.09 & 16.53\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The constructive policy is materially better than directly decoding the
+diffusion matrix into routes. On the same 72 development graphs and
+cached prior, diffusion-only decoding gives gaps of 21.33\%, 29.61\%,
+and 28.51\%, compared with the policy's 9.19\%, 21.51\%, and 24.73\%.
+The paired policy-minus-diffusion differences are approximately
+$-12.1$ pp $[-17.6,-6.6]$, $-8.1$ pp $[-12.9,-3.4]$, and
+$-3.8$ pp $[-7.2,-0.5]$. This supports the policy's value on that panel;
+it does not separately identify the effects of fusion, the local encoder,
+or multi-start decoding.
+
+The policy also improves over diffusion-only decoding in all nine spatial
+regime--size cells. Its clustered-cell gaps are 10.51\%, 15.30\%, and
+16.08\%; the corresponding random-cell gaps are 8.23\%, 22.54\%, and
+26.67\%. Thus clustered instances are easier at N50 and N100, while N20
+does not follow that ordering. The selected spatial panel shows that the
+implementation works across the tested coordinate regimes, with the
+selection caveat described in Section~\ref{sec:protocol}.
+
+The learned solver remains behind strong classical construction-and-search.
+On the same development panel, one-second PyVRP runs reach gaps of
+0.00\%, 0.09\%, and 1.11\%. This comparison establishes practical headroom;
+it is not a matched-hardware claim that the neural architecture is faster
+or better than PyVRP. The following experiments test how much of that
+headroom the local refinement interface can recover.
 
 \section{Final refinement results}
 
@@ -529,7 +989,8 @@ classical search more than SA. At limits 10/16/30, restarted classical
 search reaches 4.23\%/4.10\% development/validation gap, compared with
 6.84\%/6.77\% for SA. This motivates the larger classical arm T3.
 
-\section{Runtime and limitations}
+\section{Computational cost and discussion}
+\subsection{Measured runtime}
 
 \begin{table}[tbp]
 \centering\small
@@ -564,84 +1025,267 @@ as isolated deployment timings. In those final reserved runs, QAOA takes
 244.6 s per graph versus 5.9 s for exact classical solving, approximately
 41 times as long. This ratio describes classical simulation only.
 
-The principal limitations are the small simulated QUBOs, the surrogate
-exchange objective, the contribution of classical repair, and the selected
-evaluation panels. The spatial stress panel uses stable-label selections
-from larger pools and had informed earlier baseline diagnostics; it is not
-a wholly untouched population-level generalization test. Most final arms
-use one refinement seed, and graph bootstrap intervals do not capture
-training variability. The present study also mixes fixed-read and
-nominal-time-budget comparisons; equal limits do not establish equal compute.
+\subsection{What the architecture learns and what search repairs}
 
-The learned pipeline remains behind strong classical CVRP solving. On the
-72-graph development panel, one-second PyVRP runs have gaps of 0.00\%,
-0.09\%, and 1.11\% at the three sizes. These are development results,
-not a new matched-budget comparison against every final refinement arm.
-Finally, the prior-based selection ablations do not determine whether
-diffusion guidance is worth its total training and inference cost compared
-with a fully classical construction-and-search pipeline.
+The empirical picture separates construction from improvement. The policy
+uses the diffusion prior more effectively than direct matrix decoding, but
+its initial solutions still contain substantial route-cost headroom.
+Exchange moves correct membership errors and can reduce the number of
+routes; reorder moves improve visit order without changing membership.
+In exploratory three-round development loops, N50 starts with about 7.9
+routes per instance and ends with roughly 6.9 under the stronger settings.
+This is consistent with refinement repairing route fragmentation, although
+it does not isolate a single architectural cause of that fragmentation.
+
+The prior has three distinct interfaces: local policy attention,
+neighborhood ranking, and optional QUBO objective bias. Evidence at one
+interface cannot be transferred automatically to the others. Useful
+exchange ranking does not prove that hard attention masks are optimal,
+and improvements from positive matrix bias on development do not establish
+an improvement on reserved graphs. Conversely, setting objective bias to
+zero in the final tests does not remove matrix guidance from the whole
+pipeline: the starting policy and two selectors still depend on $P$.
+
+The strongest observed refinement is classical search with larger
+neighborhoods. This points to a practical configuration for the current
+implementation: use the frozen constructive policy to obtain a feasible
+incumbent, then choose the classical neighborhood budget according to the
+available latency. It also identifies a research direction: improve the
+constructive policy and the exchange representation before treating a
+more sophisticated QUBO sampler as the main bottleneck.
+
+\subsection{Limits of the evidence}
+
+The study evaluates selected checkpointed models, not all possible versions
+of the architecture. In particular, it does not present an independent
+reserved-panel factorial ablation of global-only attention, local attention,
+gated fusion, savings bias, and training-start count. The observed pipeline
+improvements should therefore not be attributed to the gate or any other
+single component without a matched retraining experiment.
+
+The spatial panel uses stable-label selections from larger pools and had
+informed earlier baseline diagnostics. It is not a wholly untouched
+population-level generalization test. Reference costs are heuristic, most
+final configurations use one refinement seed, and graph bootstrap intervals
+do not capture training variability. Equal neighborhood limits also do not
+establish equal compute: accepted moves lead to different later subproblems,
+and fixed-read and nominal-time-budget comparisons measure different
+resources.
+
+For the QUBO extension, the key limitations are the small simulated state
+spaces, the surrogate exchange objective, and the contribution of classical
+repair. A better QUBO-energy distribution can still produce worse route
+cost after reconstruction. Statevector QAOA ignores hardware noise,
+connectivity, compilation, and finite-shot parameter-estimation costs.
+SQA also executes entirely on a classical computer. The measured timings
+therefore do not predict deployment on a quantum device.
+
+The prior-guidance ablations do not determine whether the diffusion stage
+justifies its total training and inference cost relative to a fully
+classical construction-and-search pipeline. Large-scale instances,
+fixed-fleet constraints, and time windows are outside the reported
+architecture evaluation. Future extensions should first establish stronger
+construction baselines and independent component ablations, then evaluate
+positive-bias refinement with a frozen protocol and an explicitly matched
+compute budget.
+
+\section{Reproducibility and artifact provenance}
+\label{sec:reproducibility}
+
+The constructive solver is frozen as \texttt{baseline-v1.0}. Its manifest
+pairs source commit \texttt{460b2efb5} with SHA-256 hashes for all six
+checkpoints, copied training configurations, dataset identities, and
+panel manifests. The frozen evaluation entry point was committed in
+\texttt{aca6c0aec}. Prior inference uses a graph-specific seed derived
+from the first four bytes of SHA-256 of the base seed and instance ID,
+with base seed zero. This avoids making a graph's prior depend on its
+position in a batch.
+
+The final refinement protocol was declared on 2 October 2026 before
+refinement runs on the reserved and spatial panels. It fixes T1--T10,
+selector limits, seed zero, stopping rules, and paired comparisons.
+Evidence archives record aggregate results and analysis scripts; full
+per-graph rows and large generated checkpoints remain in local output
+directories. The article itself is self-contained and requires neither
+external figures nor a separate bibliography file to compile.
+
+The archived training environment records Python 3.12.10, PyTorch
+2.11.0+cu128, CUDA 12.8, and an NVIDIA GeForce RTX 3060 Ti with 8 GiB of
+memory on Windows 11. Refinement reporting records six physical CPU cores
+and the concurrency described above, but the retained evidence does not
+provide a complete pinned software environment and CPU model for every
+benchmark pass. Project dependency constraints are specified in
+\artifact{pyproject.toml}; those constraints should not be confused with
+an exact historical lockfile. Appendix~\ref{app:artifacts} maps the
+reported methods and results to retained project artifacts.
 
 \section{Conclusion}
 
-The project's primary contribution is a local QUBO formulation whose
-assignment and interaction coefficients incorporate a diffusion model's
-route-membership matrix. Its second contribution is a controlled comparison
-with classical refinement algorithms, covering both fixed subproblems and
-complete routing solutions. Together, they provide a concrete method for
-using learned structure in QUBO refinement and evidence about its practical
-value.
+We have presented our implemented diffusion-guided CVRP solver, inspired
+by the structural-prior idea of CMD. A discrete route-membership denoiser
+feeds a global and local Transformer policy, learned gated fusion, and
+a capacity-aware dual-pointer decoder. Multi-start inference produces
+feasible solutions, while a modular local improvement stage reuses the
+prior to select exchanges and to form optional matrix-informed QUBOs.
 
-The matrix-derived exchange terms improve SA in exploratory bias ablations,
-and matrix-guided selection identifies useful exchanges. Classical search
-with larger neighborhoods and restarts nevertheless gives the strongest
-tested final solutions. SA and simulated QAOA show no reliable advantage
-over the relevant strong classical controls, while SQA is less effective
-than SA at the tested local time budget. A reserved-test evaluation of the
-positive-$\alpha$ formulation remains future work. Improvements to the
-exchange surrogate and reorder encoding should precede stronger quantum
-claims; the present contribution is a formulation and comparative benchmark,
-with no demonstrated quantum advantage.
+The complete system is functional across the tested 20-, 50-, and
+100-customer panels. Its constructive reserved gap is 19.22\%; inexpensive
+classical refinement reduces it to 9.69\%, and larger restarted search
+to 4.14\%. The corresponding spatial stress gap falls from 16.53\% to
+3.54\%. These outcomes establish substantial refinement value while
+showing that the current learned construction remains behind strong
+classical CVRP solving.
 
-\appendix
-\section{Evidence and reproducibility}
+Matrix-guided selection identifies useful exchanges, and objective bias
+improves annealing in exploratory local comparisons. Simulated QAOA gives
+no reliable benefit over matched random sampling or exact classical
+solving at its small neighborhood limits. The architecture's practical
+contribution is a complete, inspectable combination of structural
+prediction, feasible construction, and solver-independent refinement.
+Further claims about individual components, positive-bias generalization,
+or quantum advantage require additional controlled evidence.
 
-This draft summarizes completed repository experiments from 1--2 October
-2026; it introduces no new training or benchmark runs. The baseline freeze
-record is \path{docs/evidence/baseline_freeze_20261001/freeze_manifest.json}.
-The final configurations and decision rules are recorded in
-\path{docs/phase6_final_test_protocol_2026-10-02.md}.
+\begin{thebibliography}{99}
 
-Tables~\ref{tab:final} and~\ref{tab:contrasts} use
-\path{docs/evidence/phase6_20261001/final/analysis_reserved.json}
-and \path{analysis_ood.json} in the same directory, cross-checked against
-the individual run summaries. Table~\ref{tab:local} uses the
-\path{experiment_development}, \path{experiment_validation}, and
-corresponding \path{_sqa} summary directories. Table~\ref{tab:qaoa} uses
-the \path{qaoa_random_control_development.json} and validation counterpart.
-Table~\ref{tab:timing} uses the \path{timing/} summaries. All are under
-\path{docs/evidence/phase6_20261001/}; its manifest records evidence hashes.
-The accompanying article README maps the supporting narrative claims to
-their reports and records build instructions.
-
-\begin{thebibliography}{9}
-\bibitem{cmd}
+\bibitem{wang2026cmd}
 Z. Wang, T. Zhang, N. Xue, E. Ozcan, L. Wang, and R. Bai.
 \newblock Constraints Matrix Diffusion based Generative Neural Solver for
 Vehicle Routing Problems.
 \newblock arXiv:2603.07568v1, 2026.
 \newblock \url{https://arxiv.org/abs/2603.07568v1}.
 
-\bibitem{qaoa}
+\bibitem{kool2019attention}
+W. Kool, H. van Hoof, and M. Welling.
+\newblock Attention, Learn to Solve Routing Problems!
+\newblock \emph{International Conference on Learning Representations}, 2019.
+\newblock \url{https://arxiv.org/abs/1803.08475}.
+
+\bibitem{kwon2020pomo}
+Y.-D. Kwon, J. Choo, B. Kim, I. Yoon, Y. Gwon, and S. Min.
+\newblock POMO: Policy Optimization with Multiple Optima for Reinforcement
+Learning.
+\newblock \emph{Advances in Neural Information Processing Systems}, 2020.
+\newblock \url{https://arxiv.org/abs/2010.16011}.
+
+\bibitem{austin2021discrete}
+J. Austin, D. D. Johnson, J. Ho, D. Tarlow, and R. van den Berg.
+\newblock Structured Denoising Diffusion Models in Discrete State-Spaces.
+\newblock \emph{Advances in Neural Information Processing Systems}, 2021.
+\newblock \url{https://arxiv.org/abs/2107.03006}.
+
+\bibitem{sun2023difusco}
+Z. Sun and Y. Yang.
+\newblock DIFUSCO: Graph-based Diffusion Solvers for Combinatorial Optimization.
+\newblock \emph{Advances in Neural Information Processing Systems}, 2023.
+\newblock \url{https://arxiv.org/abs/2302.08224}.
+
+\bibitem{vidal2022hgs}
+T. Vidal.
+\newblock Hybrid Genetic Search for the CVRP: Open-Source Implementation and
+SWAP* Neighborhood.
+\newblock \emph{Computers \& Operations Research}, 140:105643, 2022.
+\newblock \url{https://doi.org/10.1016/j.cor.2021.105643}.
+
+\bibitem{wouda2024pyvrp}
+N. A. Wouda, L. Lan, and W. Kool.
+\newblock PyVRP: A High-Performance VRP Solver Package.
+\newblock \emph{INFORMS Journal on Computing}, 36(4):943--955, 2024.
+\newblock \url{https://doi.org/10.1287/ijoc.2023.0055}.
+
+\bibitem{held1962dynamic}
+M. Held and R. M. Karp.
+\newblock A Dynamic Programming Approach to Sequencing Problems.
+\newblock \emph{Journal of the Society for Industrial and Applied
+Mathematics}, 10(1):196--210, 1962.
+\newblock \url{https://doi.org/10.1137/0110015}.
+
+\bibitem{lucas2014ising}
+A. Lucas.
+\newblock Ising Formulations of Many NP Problems.
+\newblock \emph{Frontiers in Physics}, 2:5, 2014.
+\newblock \url{https://doi.org/10.3389/fphy.2014.00005}.
+
+\bibitem{farhi2014qaoa}
 E. Farhi, J. Goldstone, and S. Gutmann.
 \newblock A Quantum Approximate Optimization Algorithm.
 \newblock arXiv:1411.4028, 2014.
 \newblock \url{https://arxiv.org/abs/1411.4028}.
 
-\bibitem{pyvrp}
-N. A. Wouda, L. Lan, and W. Kool.
-\newblock PyVRP: a high-performance VRP solver package.
-\newblock arXiv:2403.13795, 2024.
-\newblock \url{https://arxiv.org/abs/2403.13795}.
+\bibitem{azad2020vrp}
+U. Azad, B. K. Behera, E. A. Ahmed, P. K. Panigrahi, and A. Farouk.
+\newblock Solving Vehicle Routing Problem Using Quantum Approximate
+Optimization Algorithm.
+\newblock \emph{IEEE Transactions on Intelligent Transportation Systems}, 2022.
+\newblock \url{https://doi.org/10.1109/TITS.2022.3172241}.
+
 \end{thebibliography}
+
+\appendix
+\section{Mapping the article to project artifacts}
+\label{app:artifacts}
+
+All paths in Table~\ref{tab:artifacts} are relative to the repository root.
+External references supply methodological context; the numerical routing
+results come from the project archives listed here. No new experiments
+are introduced by this article.
+
+\small
+\begin{longtable}{@{}p{0.30\linewidth}p{0.65\linewidth}@{}}
+\caption{Implementation and evidence sources. Folder braces denote the
+named alternatives within that folder.}\label{tab:artifacts}\\
+\toprule
+Article content & Artifact\\
+\midrule
+\endfirsthead
+\toprule
+Article content & Artifact\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Problem representation and data &
+\artifact{src/vrp_diffusion_quantum/data/generate_cvrp.py};
+\artifact{src/vrp_diffusion_quantum/data/training_labels.py}\\[4pt]
+Diffusion schedule and denoiser &
+\artifact{src/vrp_diffusion_quantum/models/diffusion.py};
+\artifact{src/vrp_diffusion_quantum/models/constraint_denoiser.py}\\[4pt]
+Global, local, and fusion modules &
+\artifact{src/vrp_diffusion_quantum/models/}\newline
+\artifact{global_encoder.py}, \artifact{local_masked_encoder.py},
+\artifact{fusion_encoder.py}\\[4pt]
+Decoding and training &
+\artifact{src/vrp_diffusion_quantum/models/decoder.py};
+\artifact{src/vrp_diffusion_quantum/train/}\newline
+\artifact{train_diffusion.py}, \artifact{train_policy.py}\\[4pt]
+Frozen architecture and construction results &
+\artifact{docs/evidence/baseline_freeze_20261001/freeze_manifest.json};
+\artifact{docs/evidence/baseline_freeze_20261001/configs/};
+\artifact{docs/classical_baseline_freeze_proposal_2026-09-30.md}\\[4pt]
+Final evaluation declaration &
+\artifact{docs/phase6_final_test_protocol_2026-10-02.md}\\[4pt]
+Final gaps and paired contrasts &
+\artifact{docs/evidence/phase6_20261001/final/analysis_reserved.json};
+\artifact{docs/evidence/phase6_20261001/final/analysis_ood.json};
+corresponding run \artifact{summary.json} files\\[4pt]
+QUBO coefficients, repair, and acceptance &
+\artifact{src/vrp_diffusion_quantum/quantum/}\newline
+\artifact{qubo_reorder.py}, \artifact{qubo_exchange.py},
+\artifact{qubo_bias.py}, \artifact{refinement.py}\\[4pt]
+Local solver comparisons &
+\artifact{docs/evidence/phase6_20261001/}\newline
+\artifact{experiment_{development,validation}/summary.json};
+\artifact{experiment_{development,validation}_sqa/summary.json}\\[4pt]
+QAOA and random screening &
+\artifact{docs/evidence/phase6_20261001/}\newline
+\artifact{qaoa_random_control_{development,validation}.json}\\[4pt]
+Matrix guidance and larger-neighborhood studies &
+\artifact{docs/evidence/phase6_20261001/}\newline
+\artifact{bias_sweep/}, \artifact{selection/}, \artifact{extension/};
+\artifact{docs/phase6_refinement_experiments_2026-10-01.md}\\[4pt]
+Separate timing pass &
+\artifact{docs/evidence/phase6_20261001/timing/}\newline
+\artifact{{t1_t10,t2_t4_t5,t3,t6_t7,exact_small}/summary.json}\\
+\end{longtable}
+\normalsize
 
 \end{document}
